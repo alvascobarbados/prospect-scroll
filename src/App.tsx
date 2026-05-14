@@ -16,6 +16,12 @@ import MasterList from "./pages/MasterList.tsx";
 import ArchivePage from "./pages/Archive.tsx";
 import TrashPage from "./pages/Trash.tsx";
 import ActivityPage from "./pages/Activity.tsx";
+import OriginsPage from "./pages/Origins.tsx";
+import DestinationsPage from "./pages/Destinations.tsx";
+import ShippingMethodsPage from "./pages/ShippingMethods.tsx";
+import ProductCategoriesPage from "./pages/ProductCategories.tsx";
+import DecorationMethodsPage from "./pages/DecorationMethods.tsx";
+import SettingsPage from "./pages/Settings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -40,6 +46,13 @@ const App = () => (
                     <Route path="/customers" element={<MasterList kind="customer" />} />
                     <Route path="/suppliers" element={<MasterList kind="supplier" />} />
                     <Route path="/team" element={<MasterList kind="team" />} />
+                    <Route path="/users" element={<MasterList kind="team" />} />
+                    <Route path="/origins" element={<OriginsPage />} />
+                    <Route path="/destinations" element={<DestinationsPage />} />
+                    <Route path="/shipping-methods" element={<ShippingMethodsPage />} />
+                    <Route path="/product-categories" element={<ProductCategoriesPage />} />
+                    <Route path="/decoration-methods" element={<DecorationMethodsPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/archive" element={<ArchivePage />} />
                     <Route path="/trash" element={<TrashPage />} />
                     {/* v1.0: deferred routes redirect to Pipeline */}
