@@ -3,7 +3,7 @@
  * when ?customer=ID is present. Mirrors TeamMemberPage structure:
  * sticky header → Profile → Buyers → Assigned Projects.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, MoreVertical, Trash2, UserPlus, Plus } from "lucide-react";
 import { toast } from "sonner";
