@@ -533,22 +533,40 @@ export const EditableSelect = ({
   );
 };
 
+const ADD_NEW_DEST = "__add_new_destination__";
+
 const DestinationSelect = ({
   value, fallback, options, onSave,
-}: { value: string; fallback?: string | null; options: { value: string; label: string }[]; onSave: (v: string) => void }) => (
-  <select
-    value={value}
-    onChange={(e) => onSave(e.target.value)}
-    className={cn(
-      "w-full px-1.5 py-0.5 rounded text-[13px] bg-transparent hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)] cursor-pointer",
-      !value && "italic text-muted-foreground",
-    )}
-    style={{ minHeight: 28, color: value ? "hsl(var(--brand-navy))" : undefined }}
-    title={!value && fallback ? `Legacy country: ${fallback}` : undefined}
-  >
-    {options.map((o) => <option key={o.value || "_"} value={o.value}>{o.label}</option>)}
-  </select>
-);
+}: { value: string; fallback?: string | null; options: { value: string; label: string }[]; onSave: (v: string) => void }) => {
+  const [adding, setAdding] = useState(false);
+  return (
+    <>
+      <select
+        value={value}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === ADD_NEW_DEST) { setAdding(true); return; }
+          onSave(v);
+        }}
+        className={cn(
+          "w-full px-1.5 py-0.5 rounded text-[13px] bg-transparent hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)] cursor-pointer",
+          !value && "italic text-muted-foreground",
+        )}
+        style={{ minHeight: 28, color: value ? "hsl(var(--brand-navy))" : undefined }}
+        title={!value && fallback ? `Legacy country: ${fallback}` : undefined}
+      >
+        {options.map((o) => <option key={o.value || "_"} value={o.value}>{o.label}</option>)}
+        <option disabled>──────────</option>
+        <option value={ADD_NEW_DEST} style={{ color: "hsl(var(--brand-orange))", fontWeight: 600 }}>+ Add new destination</option>
+      </select>
+      <DestinationAddSheet
+        open={adding}
+        onClose={() => setAdding(false)}
+        onCreated={(id) => { setAdding(false); onSave(id); }}
+      />
+    </>
+  );
+};
 
 // ─── Row menu ──────────────────────────────────────────────────────────
 const RowMenu = ({ onView, onAddBuyer, onDelete }: { onView: () => void; onAddBuyer: () => void; onDelete: () => void }) => (
