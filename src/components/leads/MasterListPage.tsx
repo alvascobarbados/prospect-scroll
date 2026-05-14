@@ -437,7 +437,22 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
         {kind === "supplier" && (
           <>
             <Field label="Name"><input className={inputCls} style={{ minHeight: 48 }} value={form.name ?? ""} onChange={(e) => setField("name", e.target.value)} /></Field>
-            <Field label="Country"><input className={inputCls} style={{ minHeight: 48 }} value={form.country ?? ""} onChange={(e) => setField("country", e.target.value)} /></Field>
+            <Field label="Origin">
+              <select
+                className={inputCls}
+                style={{ minHeight: 48 }}
+                value={form.origin_id ?? ""}
+                onChange={(e) => setField("origin_id", e.target.value || null)}
+              >
+                <option value="">— None —</option>
+                {[...md.origins].sort((a, b) => a.name.localeCompare(b.name)).map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+              {!form.origin_id && form.country && (
+                <div className="text-[11px] italic text-muted-foreground mt-1">Legacy country: {form.country}</div>
+              )}
+            </Field>
             <Field label="Default shipping">
               <select className={inputCls} style={{ minHeight: 48 }} value={form.default_shipping_mode ?? ""} onChange={(e) => setField("default_shipping_mode", e.target.value as ShippingMode || null)}>
                 <option value="">—</option><option value="Air">Air</option><option value="Ocean">Ocean</option><option value="Local">Local</option>
