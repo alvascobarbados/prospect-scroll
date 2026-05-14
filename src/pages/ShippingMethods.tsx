@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Search, MoreVertical, Trash2, FolderPlus, Layers } from "lucide-react";
+import { ArrowLeft, Plus, Search, MoreVertical, Trash2, FolderPlus, Layers, Info } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
@@ -241,6 +241,21 @@ export default function ShippingMethodsPage() {
         </header>
 
         <main className="max-w-6xl mx-auto px-4 sm:px-6 pb-16">
+          <div
+            className="mt-4 flex items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-[13px] leading-snug"
+            style={{
+              borderColor: "hsl(var(--brand-navy) / 0.18)",
+              background: "hsl(var(--brand-navy) / 0.04)",
+              color: "hsl(var(--brand-navy) / 0.85)",
+            }}
+            role="note"
+          >
+            <Info className="h-4 w-4 mt-0.5 shrink-0" />
+            <p>
+              Tier ranges are inclusive at the lower bound and exclusive at the upper bound.
+              A value equal to a tier&rsquo;s upper limit moves to the next tier.
+            </p>
+          </div>
           <div className="relative my-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search methods, origins or destinations…"
