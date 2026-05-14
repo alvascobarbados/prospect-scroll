@@ -79,7 +79,7 @@ export default function SettingsPage() {
       if (!Number.isFinite(n)) { toast.error("Must be a number"); return false; }
       value = n;
     } else value = raw.trim() || null;
-    const { error } = await supabase.from("rounding_rules").update({ [key]: value }).eq("id", id);
+    const { error } = await supabase.from("rounding_rules").update({ [key]: value } as any).eq("id", id);
     if (error) { toast.error(`Save failed: ${error.message}`); return false; }
     return true;
   };

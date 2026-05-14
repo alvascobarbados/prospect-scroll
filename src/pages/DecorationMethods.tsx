@@ -82,7 +82,7 @@ export default function DecorationMethodsPage() {
       if (!["A", "B", "C"].includes(v)) { toast.error("Sub-rule type must be A, B or C"); return false; }
       value = v;
     } else if (!value) value = null;
-    const { error } = await supabase.from("decoration_methods").update({ [key]: value }).eq("id", row.id);
+    const { error } = await supabase.from("decoration_methods").update({ [key]: value } as any).eq("id", row.id);
     if (error) { toast.error(`Save failed: ${error.message}`); return false; }
     return true;
   };
@@ -97,7 +97,7 @@ export default function DecorationMethodsPage() {
     } else if (key === "n_setup" || key === "n_run") {
       value = numOrZero(raw);
     } else if (!value) value = null;
-    const { error } = await supabase.from("method_details").update({ [key]: value }).eq("id", row.id);
+    const { error } = await supabase.from("method_details").update({ [key]: value } as any).eq("id", row.id);
     if (error) { toast.error(`Save failed: ${error.message}`); return false; }
     return true;
   };

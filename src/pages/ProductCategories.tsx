@@ -73,10 +73,10 @@ export default function ProductCategoriesPage() {
     } else if (key === "base_margin_pct" || key === "step_size_pct" || key === "duty_rate_pct") {
       value = numOrNull(raw);
       if (value === null && (key === "base_margin_pct" || key === "step_size_pct")) {
-        toast.error(`${key.replaceAll("_", " ")} is required`); return false;
+        toast.error(`${String(key).replace(/_/g, " ")} is required`); return false;
       }
     } else if (!value) value = null;
-    const { error } = await supabase.from("product_categories").update({ [key]: value }).eq("id", row.id);
+    const { error } = await supabase.from("product_categories").update({ [key]: value } as any).eq("id", row.id);
     if (error) { toast.error(`Save failed: ${error.message}`); return false; }
     return true;
   };
