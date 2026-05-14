@@ -486,8 +486,9 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
   const md = useMasterData();
   const [name, setName] = useState(initialName);
   const [country, setCountry] = useState<"Local" | "Regional">("Local");
+  const [destinationId, setDestinationId] = useState<string>("");
   const [incoterms, setIncoterms] = useState<"" | "FOB" | "CIF" | "LDP" | "LDF">("");
-  const [supCountry, setSupCountry] = useState("");
+  const [supOriginId, setSupOriginId] = useState<string>("");
   const [mode, setMode] = useState<ShippingMode>("Ocean");
   const [initials, setInitials] = useState("");
   const [fullName, setFullName] = useState("");
@@ -497,7 +498,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
   useEffect(() => {
     if (!open) return;
     setName(initialName);
-    setCountry("Local"); setIncoterms(""); setSupCountry(""); setMode("Ocean");
+    setCountry("Local"); setDestinationId(""); setIncoterms(""); setSupOriginId(""); setMode("Ocean");
     setInitials(""); setFullName(""); setTeamEmail(""); setUnit("");
   }, [open, initialName]);
 
