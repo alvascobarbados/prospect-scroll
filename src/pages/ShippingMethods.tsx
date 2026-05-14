@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Search, MoreVertical, Trash2, FolderPlus, Layers } from "lucide-react";
+import { ArrowLeft, Plus, Search, MoreVertical, Trash2, FolderPlus, Layers, Info } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
