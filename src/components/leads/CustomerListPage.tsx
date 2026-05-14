@@ -360,7 +360,7 @@ const CustomerGroup = ({
     return (
       <tr style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.07)" }} className="hover:bg-muted/20 transition-colors">
         <Td><EditableText key={`name-${nameRevert}`} value={customer.name} onSave={updateName} bold /></Td>
-        <Td><EditableSelect value={customer.country} options={COUNTRIES} onSave={updateCountry} /></Td>
+        <Td><DestinationSelect value={customer.destination_id ?? ""} fallback={customer.country} options={destOptions} onSave={updateDestination} /></Td>
         <Td><EditableSelect value={customer.incoterms ?? ""} options={INCOTERMS} onSave={updateIncoterms} placeholder="—" /></Td>
         <Td className="text-muted-foreground italic">—</Td>
         <Td className="text-muted-foreground italic">—</Td>
