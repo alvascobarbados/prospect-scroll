@@ -538,7 +538,7 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const value = useMemo<Ctx>(() => ({
-    customers, suppliers, teamMembers, products, buyers, loading,
+    customers, suppliers, teamMembers, products, buyers, origins, destinations, loading,
     getSupplierByAnyId, getTeamByInitials, buyersByCustomer,
     customerUsage, supplierUsage, teamUsage, productUsage,
     addCustomer, updateCustomer, deleteCustomer,
@@ -548,7 +548,7 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     addBuyer, updateBuyer, deleteBuyer,
     findCustomerByName, findBuyerByName, mergeCustomers, mergeBuyers,
   }), [
-    customers, suppliers, teamMembers, products, buyers, loading,
+    customers, suppliers, teamMembers, products, buyers, origins, destinations, loading,
     getSupplierByAnyId, getTeamByInitials, buyersByCustomer,
     customerUsage, supplierUsage, teamUsage, productUsage,
     addCustomer, updateCustomer, deleteCustomer,
