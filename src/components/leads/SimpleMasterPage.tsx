@@ -85,26 +85,34 @@ export function SimpleMasterPage<R extends { id: string; created_at?: string; up
       value = null;
     }
     if ((row as any)[key] === value) return true;
+    const prev = (row as any)[key];
+    setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, [key]: value } as R : r)));
     const { error } = await supabase.from(table).update({ [key]: value } as any).eq("id", row.id);
-    if (error) { toast.error(`Save failed: ${error.message}`); return false; }
+    if (error) {
+      setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, [key]: prev } as R : r)));
+      toast.error(`Save failed: ${error.message}`);
+      return false;
+    }
     return true;
   };
 
   const handleAdd = async () => {
     const insert: any = { ...(newRowDefaults ?? {}) };
-    // Required defaults to placeholders so the row appears immediately;
-    // user clicks in to overwrite.
     for (const c of columns) {
       if (c.nullable === false && !insert[c.key]) insert[c.key] = "NEW";
     }
-    const { error } = await supabase.from(table).insert(insert);
-    if (error) toast.error(`Add failed: ${error.message}`);
+    const { data, error } = await supabase.from(table).insert(insert).select().single();
+    if (error) { toast.error(`Add failed: ${error.message}`); return; }
+    if (data) setRows((rs) => [...rs.filter((r) => r.id !== (data as any).id), data as unknown as R]);
   };
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
-    const { error } = await supabase.from(table).delete().eq("id", confirmDelete.id);
-    if (error) toast.error(`Delete failed: ${error.message}`);
+    const id = confirmDelete.id;
+    const prev = rows;
+    setRows((rs) => rs.filter((r) => r.id !== id));
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    if (error) { setRows(prev); toast.error(`Delete failed: ${error.message}`); }
     else toast.success(`${rowLabel(confirmDelete)} deleted`);
     setConfirmDelete(null);
   };

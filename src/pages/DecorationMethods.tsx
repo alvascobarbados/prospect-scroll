@@ -82,8 +82,10 @@ export default function DecorationMethodsPage() {
       if (!["A", "B", "C"].includes(v)) { toast.error("Sub-rule type must be A, B or C"); return false; }
       value = v;
     } else if (!value) value = null;
+    const prev = methods;
+    setMethods((ms) => ms.map((m) => (m.id === row.id ? { ...m, [key]: value } as DMethod : m)));
     const { error } = await supabase.from("decoration_methods").update({ [key]: value } as any).eq("id", row.id);
-    if (error) { toast.error(`Save failed: ${error.message}`); return false; }
+    if (error) { setMethods(prev); toast.error(`Save failed: ${error.message}`); return false; }
     return true;
   };
 
@@ -97,37 +99,47 @@ export default function DecorationMethodsPage() {
     } else if (key === "n_setup" || key === "n_run") {
       value = numOrZero(raw);
     } else if (!value) value = null;
+    const prev = details;
+    setDetails((ds) => ds.map((d) => (d.id === row.id ? { ...d, [key]: value } as MDetail : d)));
     const { error } = await supabase.from("method_details").update({ [key]: value } as any).eq("id", row.id);
-    if (error) { toast.error(`Save failed: ${error.message}`); return false; }
+    if (error) { setDetails(prev); toast.error(`Save failed: ${error.message}`); return false; }
     return true;
   };
 
   const addMethod = async () => {
     const code = `NEW${Math.floor(Math.random() * 999)}`;
-    const { error } = await supabase.from("decoration_methods").insert({
+    const { data, error } = await supabase.from("decoration_methods").insert({
       code, name: "New decoration method", sub_rule_type: "A",
-    });
-    if (error) toast.error(`Add failed: ${error.message}`);
+    }).select().single();
+    if (error) { toast.error(`Add failed: ${error.message}`); return; }
+    if (data) setMethods((ms) => [...ms.filter((m) => m.id !== (data as any).id), data as DMethod]);
   };
   const addDetail = async (methodId: string, methodCode: string) => {
     const code = `${methodCode}-NEW${Math.floor(Math.random() * 999)}`;
-    const { error } = await supabase.from("method_details").insert({
+    const { data, error } = await supabase.from("method_details").insert({
       decoration_method_id: methodId, code, detail: "New detail", n_setup: 0, n_run: 0,
-    });
-    if (error) toast.error(`Add failed: ${error.message}`);
+    }).select().single();
+    if (error) { toast.error(`Add failed: ${error.message}`); return; }
+    if (data) setDetails((ds) => [...ds.filter((d) => d.id !== (data as any).id), data as MDetail]);
   };
 
   const handleDeleteMethod = async () => {
     if (!confirmDelMethod) return;
-    const { error } = await supabase.from("decoration_methods").delete().eq("id", confirmDelMethod.id);
-    if (error) toast.error(`Delete failed: ${error.message}`);
+    const id = confirmDelMethod.id;
+    const prev = methods;
+    setMethods((ms) => ms.filter((m) => m.id !== id));
+    const { error } = await supabase.from("decoration_methods").delete().eq("id", id);
+    if (error) { setMethods(prev); toast.error(`Delete failed: ${error.message}`); }
     else toast.success(`${confirmDelMethod.code} deleted`);
     setConfirmDelMethod(null);
   };
   const handleDeleteDetail = async () => {
     if (!confirmDelDetail) return;
-    const { error } = await supabase.from("method_details").delete().eq("id", confirmDelDetail.id);
-    if (error) toast.error(`Delete failed: ${error.message}`);
+    const id = confirmDelDetail.id;
+    const prev = details;
+    setDetails((ds) => ds.filter((d) => d.id !== id));
+    const { error } = await supabase.from("method_details").delete().eq("id", id);
+    if (error) { setDetails(prev); toast.error(`Delete failed: ${error.message}`); }
     else toast.success(`${confirmDelDetail.code} deleted`);
     setConfirmDelDetail(null);
   };
