@@ -29,6 +29,7 @@ export interface Customer {
   id: string;
   name: string;
   country: CustomerCountry;
+  destination_id?: string | null;
   incoterms?: CustomerIncoterms | null;
   // Legacy fields retained for now; not surfaced in the new UI.
   contact_name?: string | null;
@@ -39,6 +40,9 @@ export interface Customer {
   created_at: string;
   updated_at: string;
 }
+
+export interface OriginRecord { id: string; code: string; name: string; notes?: string | null }
+export interface DestinationRecord { id: string; code: string; name: string; notes?: string | null }
 
 export interface Buyer {
   id: string;
@@ -53,6 +57,7 @@ export interface SupplierRecord {
   id: string;
   name: string;
   country?: string | null;
+  origin_id?: string | null;
   default_shipping_mode?: ShippingMode | null;
   notes?: string | null;
   legacy_id?: string | null;
@@ -95,6 +100,8 @@ interface Ctx {
   teamMembers: TeamMember[];
   products: ProductRecord[];
   buyers: Buyer[];
+  origins: OriginRecord[];
+  destinations: DestinationRecord[];
   loading: boolean;
 
   // Resolve a supplier by either its UUID id or its legacy "sup-…" id.
@@ -157,18 +164,22 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [buyers, setBuyers] = useState<Buyer[]>([]);
+  const [origins, setOrigins] = useState<OriginRecord[]>([]);
+  const [destinations, setDestinations] = useState<DestinationRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Initial fetch + realtime
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [c, s, t, p, b] = await Promise.all([
+      const [c, s, t, p, b, o, d] = await Promise.all([
         supabase.from("customers").select("*").order("name"),
         supabase.from("suppliers").select("*").order("name"),
         supabase.from("team_members").select("*").order("initials"),
         supabase.from("products").select("*").order("name"),
         supabase.from("buyers").select("*").order("name"),
+        supabase.from("origins").select("*").order("name"),
+        supabase.from("destinations").select("*").order("name"),
       ]);
       if (!mounted) return;
       if (c.data) setCustomers(c.data as Customer[]);
@@ -176,6 +187,8 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
       if (t.data) setTeamMembers(t.data as TeamMember[]);
       if (p.data) setProducts(p.data as ProductRecord[]);
       if (b.data) setBuyers(b.data as Buyer[]);
+      if (o.data) setOrigins(o.data as OriginRecord[]);
+      if (d.data) setDestinations(d.data as DestinationRecord[]);
       setLoading(false);
     })();
 
@@ -200,6 +213,14 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "buyers" }, async () => {
         const { data } = await supabase.from("buyers").select("*").order("name");
         if (data) setBuyers(data as Buyer[]);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "origins" }, async () => {
+        const { data } = await supabase.from("origins").select("*").order("name");
+        if (data) setOrigins(data as OriginRecord[]);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "destinations" }, async () => {
+        const { data } = await supabase.from("destinations").select("*").order("name");
+        if (data) setDestinations(data as DestinationRecord[]);
       })
       .subscribe();
 
@@ -517,7 +538,7 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const value = useMemo<Ctx>(() => ({
-    customers, suppliers, teamMembers, products, buyers, loading,
+    customers, suppliers, teamMembers, products, buyers, origins, destinations, loading,
     getSupplierByAnyId, getTeamByInitials, buyersByCustomer,
     customerUsage, supplierUsage, teamUsage, productUsage,
     addCustomer, updateCustomer, deleteCustomer,
@@ -527,7 +548,7 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     addBuyer, updateBuyer, deleteBuyer,
     findCustomerByName, findBuyerByName, mergeCustomers, mergeBuyers,
   }), [
-    customers, suppliers, teamMembers, products, buyers, loading,
+    customers, suppliers, teamMembers, products, buyers, origins, destinations, loading,
     getSupplierByAnyId, getTeamByInitials, buyersByCustomer,
     customerUsage, supplierUsage, teamUsage, productUsage,
     addCustomer, updateCustomer, deleteCustomer,

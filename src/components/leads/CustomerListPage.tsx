@@ -197,7 +197,7 @@ export const CustomerListPage = () => {
               <thead>
                 <tr style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.1)", background: "hsl(var(--brand-navy) / 0.03)" }}>
                   <Th>Name</Th>
-                  <Th>Country</Th>
+                  <Th>Destination</Th>
                   <Th>Incoterms</Th>
                   <Th>Buyer</Th>
                   <Th>Email</Th>
@@ -341,21 +341,26 @@ const CustomerGroup = ({
     }
     catch (err: any) { toast.error(err?.message ?? "Save failed"); setNameRevert((n) => n + 1); }
   };
-  const updateCountry = async (v: string) => {
-    try { await md.updateCustomer(customer.id, { country: v as CustomerCountry }); }
+  const updateDestination = async (v: string) => {
+    try { await md.updateCustomer(customer.id, { destination_id: v || null }); }
     catch (err: any) { toast.error(err?.message ?? "Save failed"); }
   };
   const updateIncoterms = async (v: string) => {
     try { await md.updateCustomer(customer.id, { incoterms: (v || null) as any }); }
     catch (err: any) { toast.error(err?.message ?? "Save failed"); }
   };
+  const destOptions = useMemo(
+    () => [{ value: "", label: customer.country ? `— (${customer.country})` : "—" },
+           ...[...md.destinations].sort((a, b) => a.name.localeCompare(b.name)).map((d) => ({ value: d.id, label: d.name }))],
+    [md.destinations, customer.country],
+  );
 
   // 0 buyers → single empty buyer row
   if (buyers.length === 0) {
     return (
       <tr style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.07)" }} className="hover:bg-muted/20 transition-colors">
         <Td><EditableText key={`name-${nameRevert}`} value={customer.name} onSave={updateName} bold /></Td>
-        <Td><EditableSelect value={customer.country} options={COUNTRIES} onSave={updateCountry} /></Td>
+        <Td><DestinationSelect value={customer.destination_id ?? ""} fallback={customer.country} options={destOptions} onSave={updateDestination} /></Td>
         <Td><EditableSelect value={customer.incoterms ?? ""} options={INCOTERMS} onSave={updateIncoterms} placeholder="—" /></Td>
         <Td className="text-muted-foreground italic">—</Td>
         <Td className="text-muted-foreground italic">—</Td>
@@ -385,7 +390,7 @@ const CustomerGroup = ({
                 <EditableText key={`name-${nameRevert}`} value={customer.name} onSave={updateName} bold />
               </Td>
               <Td rowSpan={rowCount} className="align-top">
-                <EditableSelect value={customer.country} options={COUNTRIES} onSave={updateCountry} />
+                <DestinationSelect value={customer.destination_id ?? ""} fallback={customer.country} options={destOptions} onSave={updateDestination} />
               </Td>
               <Td rowSpan={rowCount} className="align-top">
                 <EditableSelect value={customer.incoterms ?? ""} options={INCOTERMS} onSave={updateIncoterms} placeholder="—" />
@@ -527,6 +532,23 @@ export const EditableSelect = ({
   );
 };
 
+const DestinationSelect = ({
+  value, fallback, options, onSave,
+}: { value: string; fallback?: string | null; options: { value: string; label: string }[]; onSave: (v: string) => void }) => (
+  <select
+    value={value}
+    onChange={(e) => onSave(e.target.value)}
+    className={cn(
+      "w-full px-1.5 py-0.5 rounded text-[13px] bg-transparent hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)] cursor-pointer",
+      !value && "italic text-muted-foreground",
+    )}
+    style={{ minHeight: 28, color: value ? "hsl(var(--brand-navy))" : undefined }}
+    title={!value && fallback ? `Legacy country: ${fallback}` : undefined}
+  >
+    {options.map((o) => <option key={o.value || "_"} value={o.value}>{o.label}</option>)}
+  </select>
+);
+
 // ─── Row menu ──────────────────────────────────────────────────────────
 const RowMenu = ({ onView, onAddBuyer, onDelete }: { onView: () => void; onAddBuyer: () => void; onDelete: () => void }) => (
   <Popover>
@@ -559,7 +581,7 @@ const AddCustomerSheet = ({ open, onClose }: { open: boolean; onClose: () => voi
   const md = useMasterData();
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [country, setCountry] = useState<CustomerCountry>("Local");
+  const [destinationId, setDestinationId] = useState<string>("");
   const [incoterms, setIncoterms] = useState<"" | CustomerIncoterms>("");
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
@@ -569,7 +591,7 @@ const AddCustomerSheet = ({ open, onClose }: { open: boolean; onClose: () => voi
 
   useEffect(() => {
     if (!open) return;
-    setName(""); setCountry("Local"); setIncoterms("");
+    setName(""); setDestinationId(""); setIncoterms("");
     setBuyerName(""); setBuyerEmail(""); setBuyerContact("");
     setConflict(null);
   }, [open]);
@@ -588,7 +610,7 @@ const AddCustomerSheet = ({ open, onClose }: { open: boolean; onClose: () => voi
     if (buyerEmail.trim() && !emailOk(buyerEmail.trim())) { toast.error("Invalid buyer email"); return; }
     setSaving(true);
     try {
-      const c = await md.addCustomer({ name: t, country, incoterms: (incoterms || null) as any });
+      const c = await md.addCustomer({ name: t, destination_id: destinationId || null, incoterms: (incoterms || null) as any });
       if (buyerName.trim()) {
         await md.addBuyer(c.id, {
           name: buyerName.trim(),
@@ -633,10 +655,12 @@ const AddCustomerSheet = ({ open, onClose }: { open: boolean; onClose: () => voi
           )}
         </div>
         <div>
-          <label className={labelCls}>Country</label>
-          <select value={country} onChange={(e) => setCountry(e.target.value as CustomerCountry)} className={inputCls} style={{ minHeight: 48 }}>
-            <option value="Local">Local</option>
-            <option value="Regional">Regional</option>
+          <label className={labelCls}>Destination</label>
+          <select value={destinationId} onChange={(e) => setDestinationId(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
+            <option value="">— None —</option>
+            {[...md.destinations].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
           </select>
         </div>
         <div>

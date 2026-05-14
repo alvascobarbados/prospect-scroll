@@ -486,8 +486,9 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
   const md = useMasterData();
   const [name, setName] = useState(initialName);
   const [country, setCountry] = useState<"Local" | "Regional">("Local");
+  const [destinationId, setDestinationId] = useState<string>("");
   const [incoterms, setIncoterms] = useState<"" | "FOB" | "CIF" | "LDP" | "LDF">("");
-  const [supCountry, setSupCountry] = useState("");
+  const [supOriginId, setSupOriginId] = useState<string>("");
   const [mode, setMode] = useState<ShippingMode>("Ocean");
   const [initials, setInitials] = useState("");
   const [fullName, setFullName] = useState("");
@@ -497,7 +498,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
   useEffect(() => {
     if (!open) return;
     setName(initialName);
-    setCountry("Local"); setIncoterms(""); setSupCountry(""); setMode("Ocean");
+    setCountry("Local"); setDestinationId(""); setIncoterms(""); setSupOriginId(""); setMode("Ocean");
     setInitials(""); setFullName(""); setTeamEmail(""); setUnit("");
   }, [open, initialName]);
 
@@ -518,6 +519,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         const c = await md.addCustomer({
           name: name.trim(),
           country,
+          destination_id: destinationId || null,
           incoterms: (incoterms || null) as any,
         });
         toast.success(`Customer "${c.name}" added`);
@@ -525,7 +527,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
       } else if (kind === "supplier") {
         const s = await md.addSupplier({
           name: name.trim(),
-          country: supCountry.trim() || undefined,
+          origin_id: supOriginId || null,
           default_shipping_mode: mode,
         });
         toast.success(`Supplier "${s.name}" added`);
@@ -580,7 +582,16 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         {kind === "customer" && (
           <>
             <div>
-              <label className={labelCls}>Country</label>
+              <label className={labelCls}>Destination</label>
+              <select value={destinationId} onChange={(e) => setDestinationId(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
+                <option value="">— None —</option>
+                {[...md.destinations].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Country (legacy)</label>
               <select value={country} onChange={(e) => setCountry(e.target.value as any)} className={inputCls} style={{ minHeight: 48 }}>
                 <option value="Local">Local</option>
                 <option value="Regional">Regional</option>
@@ -601,8 +612,13 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         {kind === "supplier" && (
           <>
             <div>
-              <label className={labelCls}>Country (optional)</label>
-              <input value={supCountry} onChange={(e) => setSupCountry(e.target.value)} className={inputCls} style={{ minHeight: 48 }} placeholder="e.g. China" />
+              <label className={labelCls}>Origin</label>
+              <select value={supOriginId} onChange={(e) => setSupOriginId(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
+                <option value="">— None —</option>
+                {[...md.origins].sort((a, b) => a.name.localeCompare(b.name)).map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={labelCls}>Default shipping</label>

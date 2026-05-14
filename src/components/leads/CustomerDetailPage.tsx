@@ -157,7 +157,7 @@ export const CustomerDetailPage = ({ customerId }: { customerId: string }) => {
                 {customer.name}
               </h1>
               <div className="text-[12px] text-muted-foreground">
-                {customer.country} · {projects.length} project{projects.length === 1 ? "" : "s"}
+                {(md.destinations.find((d) => d.id === customer.destination_id)?.name) ?? customer.country} · {projects.length} project{projects.length === 1 ? "" : "s"}
               </div>
             </div>
             <Popover>
@@ -192,7 +192,7 @@ export const CustomerDetailPage = ({ customerId }: { customerId: string }) => {
             <SectionHeader>Profile</SectionHeader>
             <SectionCard>
               <DetailRow label="Name" value={customer.name} onClick={() => setEditor("name")} />
-              <DetailRow label="Country" value={customer.country} onClick={() => setEditor("country")} />
+              <DetailRow label="Destination" value={(md.destinations.find((d) => d.id === customer.destination_id)?.name) ?? (customer.country ? `${customer.country} (legacy)` : undefined)} onClick={() => setEditor("country")} />
               <DetailRow label="Incoterms" value={customer.incoterms ?? undefined} onClick={() => setEditor("incoterms")} />
             </SectionCard>
           </section>
@@ -410,7 +410,7 @@ const CustomerFieldEditor = ({
         // Keep free-text project references in sync.
         await supabase.from("projects").update({ customer: t }).eq("customer", oldName);
       } else if (kind === "country") {
-        await md.updateCustomer(customer.id, { country: val as CustomerCountry });
+        await md.updateCustomer(customer.id, { destination_id: (val || null) as any });
       } else if (kind === "incoterms") {
         await md.updateCustomer(customer.id, { incoterms: (val || null) as any });
       }
@@ -424,7 +424,7 @@ const CustomerFieldEditor = ({
   const inputCls = "w-full rounded-xl border border-border bg-card px-3 py-2.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)]";
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={titles[kind]} onSave={submit} saveLabel="Save" saveDisabled={saving}>
+    <BottomSheet open={open} onClose={onClose} title={kind === "country" ? "Edit destination" : titles[kind]} onSave={submit} saveLabel="Save" saveDisabled={saving}>
       <div className="space-y-3">
         {kind === "name" && (
           <input
@@ -434,9 +434,11 @@ const CustomerFieldEditor = ({
           />
         )}
         {kind === "country" && (
-          <select defaultValue={customer.country} onChange={(e) => setVal(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
-            <option value="Local">Local</option>
-            <option value="Regional">Regional</option>
+          <select defaultValue={(customer as any).destination_id ?? ""} onChange={(e) => setVal(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
+            <option value="">— None —</option>
+            {[...md.destinations].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
           </select>
         )}
         {kind === "incoterms" && (

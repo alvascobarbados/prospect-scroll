@@ -27,7 +27,7 @@ import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import type { ShippingMode } from "@/data/pipelines";
 
 interface Column { key: string; label: string; align?: "left" | "right" }
-interface Row { id: string; cells: (string | number)[]; usage: number; raw: any }
+interface Row { id: string; cells: React.ReactNode[]; usage: number; raw: any }
 
 interface Props { kind: EntityKind }
 
@@ -69,17 +69,30 @@ export const MasterListPage = ({ kind }: Props) => {
     if (kind === "supplier") {
       const cols: Column[] = [
         { key: "name", label: "Name" },
-        { key: "country", label: "Country" },
+        { key: "origin", label: "Origin" },
         { key: "default_shipping_mode", label: "Default mode" },
         { key: "usage", label: "Used in", align: "right" },
       ];
+      const originById = new Map(md.origins.map((o) => [o.id, o.name]));
       const r: Row[] = md.suppliers
-        .filter((s) => !term || s.name.toLowerCase().includes(term) || (s.country ?? "").toLowerCase().includes(term))
-        .map((s) => ({
-          id: s.id, raw: s,
-          usage: md.supplierUsage(s.id, s.legacy_id),
-          cells: [s.name, s.country ?? "—", s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
-        }));
+        .filter((s) => {
+          if (!term) return true;
+          const oname = s.origin_id ? (originById.get(s.origin_id) ?? "") : "";
+          return s.name.toLowerCase().includes(term)
+            || oname.toLowerCase().includes(term)
+            || (s.country ?? "").toLowerCase().includes(term);
+        })
+        .map((s) => {
+          const oname = s.origin_id ? originById.get(s.origin_id) : null;
+          const originCell = oname
+            ? <span>{oname}</span>
+            : <span className="italic text-muted-foreground/70">{s.country ?? "—"}</span>;
+          return {
+            id: s.id, raw: s,
+            usage: md.supplierUsage(s.id, s.legacy_id),
+            cells: [s.name, originCell, s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
+          };
+        });
       return { columns: cols, rows: r };
     }
     if (kind === "team") {
@@ -118,12 +131,24 @@ export const MasterListPage = ({ kind }: Props) => {
     const colIdx = columns.findIndex((c) => c.key === sortKey);
     if (colIdx < 0) return rows;
     const dir = sortDir === "asc" ? 1 : -1;
+    const originById = new Map(md.origins.map((o) => [o.id, o.name]));
+    const sortVal = (r: Row): string | number => {
+      if (sortKey === "usage") return r.usage;
+      if (sortKey === "origin") {
+        const oname = r.raw.origin_id ? originById.get(r.raw.origin_id) : null;
+        return (oname ?? r.raw.country ?? "").toString().toLowerCase();
+      }
+      const c = r.cells[colIdx];
+      if (typeof c === "number") return c;
+      if (typeof c === "string") return c.toLowerCase();
+      return String(r.raw[sortKey] ?? "").toLowerCase();
+    };
     return [...rows].sort((a, b) => {
-      const av = a.cells[colIdx]; const bv = b.cells[colIdx];
+      const av = sortVal(a); const bv = sortVal(b);
       if (typeof av === "number" && typeof bv === "number") return dir * (av - bv);
       return dir * String(av).localeCompare(String(bv));
     });
-  }, [rows, columns, sortKey, sortDir]);
+  }, [rows, columns, sortKey, sortDir, md.origins]);
 
   const onSortClick = (key: string) => {
     if (sortKey === key) setSortDir((d) => d === "asc" ? "desc" : "asc");
@@ -352,7 +377,8 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
         });
       } else if (kind === "supplier") {
         await md.updateSupplier(ent.id, {
-          name: form.name, country: form.country || null,
+          name: form.name,
+          origin_id: form.origin_id || null,
           default_shipping_mode: form.default_shipping_mode || null, notes: form.notes || null,
         });
       } else if (kind === "team") {
@@ -411,7 +437,22 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
         {kind === "supplier" && (
           <>
             <Field label="Name"><input className={inputCls} style={{ minHeight: 48 }} value={form.name ?? ""} onChange={(e) => setField("name", e.target.value)} /></Field>
-            <Field label="Country"><input className={inputCls} style={{ minHeight: 48 }} value={form.country ?? ""} onChange={(e) => setField("country", e.target.value)} /></Field>
+            <Field label="Origin">
+              <select
+                className={inputCls}
+                style={{ minHeight: 48 }}
+                value={form.origin_id ?? ""}
+                onChange={(e) => setField("origin_id", e.target.value || null)}
+              >
+                <option value="">— None —</option>
+                {[...md.origins].sort((a, b) => a.name.localeCompare(b.name)).map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+              {!form.origin_id && form.country && (
+                <div className="text-[11px] italic text-muted-foreground mt-1">Legacy country: {form.country}</div>
+              )}
+            </Field>
             <Field label="Default shipping">
               <select className={inputCls} style={{ minHeight: 48 }} value={form.default_shipping_mode ?? ""} onChange={(e) => setField("default_shipping_mode", e.target.value as ShippingMode || null)}>
                 <option value="">—</option><option value="Air">Air</option><option value="Ocean">Ocean</option><option value="Local">Local</option>
