@@ -745,26 +745,128 @@ export type Database = {
         }
         Relationships: []
       }
+      shipping_method_routes: {
+        Row: {
+          created_at: string
+          destination_id: string
+          fixed_cost: number
+          id: string
+          notes: string | null
+          origin_id: string
+          shipping_method_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          destination_id: string
+          fixed_cost?: number
+          id?: string
+          notes?: string | null
+          origin_id: string
+          shipping_method_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          destination_id?: string
+          fixed_cost?: number
+          id?: string
+          notes?: string | null
+          origin_id?: string
+          shipping_method_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_method_routes_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "destinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_method_routes_origin_id_fkey"
+            columns: ["origin_id"]
+            isOneToOne: false
+            referencedRelation: "origins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_method_routes_shipping_method_id_fkey"
+            columns: ["shipping_method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_method_tiers: {
+        Row: {
+          band_from: number
+          band_to: number | null
+          created_at: string
+          id: string
+          notes: string | null
+          rate: number
+          route_id: string
+          updated_at: string
+        }
+        Insert: {
+          band_from?: number
+          band_to?: number | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rate?: number
+          route_id: string
+          updated_at?: string
+        }
+        Update: {
+          band_from?: number
+          band_to?: number | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rate?: number
+          route_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_method_tiers_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_method_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipping_methods: {
         Row: {
+          buffer_pct: number
           code: string
           created_at: string
+          fuel_surcharge_pct: number
           id: string
           name: string
           notes: string | null
           updated_at: string
         }
         Insert: {
+          buffer_pct?: number
           code: string
           created_at?: string
+          fuel_surcharge_pct?: number
           id?: string
           name: string
           notes?: string | null
           updated_at?: string
         }
         Update: {
+          buffer_pct?: number
           code?: string
           created_at?: string
+          fuel_surcharge_pct?: number
           id?: string
           name?: string
           notes?: string | null
