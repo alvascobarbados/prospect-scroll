@@ -29,6 +29,7 @@ export interface Customer {
   id: string;
   name: string;
   country: CustomerCountry;
+  destination_id?: string | null;
   incoterms?: CustomerIncoterms | null;
   // Legacy fields retained for now; not surfaced in the new UI.
   contact_name?: string | null;
@@ -39,6 +40,9 @@ export interface Customer {
   created_at: string;
   updated_at: string;
 }
+
+export interface OriginRecord { id: string; code: string; name: string; notes?: string | null }
+export interface DestinationRecord { id: string; code: string; name: string; notes?: string | null }
 
 export interface Buyer {
   id: string;
