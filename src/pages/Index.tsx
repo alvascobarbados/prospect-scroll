@@ -615,6 +615,19 @@ const Index = () => {
               <PipelineTabs active={activeTab} onChange={setActiveTab} counts={filteredCounts} completedCount={completedCount} pulse={pulsePipeline} loading={loading} />
             </div>
           </div>
+          {/* Mobile sub-stage row — only when active pipeline has sub-stages.
+              Lets the user filter by main + sub stage without opening the
+              filter sheet. Mirrors the desktop SubStageRow behavior. */}
+          {(activeTab === "sales" || activeTab === "design" || activeTab === "production" || activeTab === "shipping" || activeTab === "finance") && (
+            <div className="lg:hidden max-w-6xl mx-auto px-4 sm:px-6 pb-1.5 overflow-x-auto">
+              <SubStageRow
+                activeTab={activeTab}
+                selectedStage={subStage}
+                onSelect={setSubStage}
+                stageCounts={stageCounts}
+              />
+            </div>
+          )}
           {/* Desktop pipeline stat cards + persistent sub-stage row.
               Sub-stage row always exists (empty when active pipeline has no
               sub-stages) so the filter row never shifts vertically. */}
