@@ -9,6 +9,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Users, Factory, UserCircle2, Trash2, HelpCircle, Settings,
   Archive, KanbanSquare, ChevronLeft, Activity, LogOut,
+  Tags, Palette, Truck, MapPin, Globe2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -47,10 +48,16 @@ export const DesktopRail = ({ trashCount, archiveCount }: Props) => {
     { icon: KanbanSquare, label: "Pipeline", to: "/" },
     { icon: Activity, label: "Activity Log", to: "/activity" },
   ];
-  const teamItems: Item[] = [
+  const dataItems: Item[] = [
+    { icon: UserCircle2, label: "Users", to: "/users" },
     { icon: Users, label: "Customers", to: "/customers" },
     { icon: Factory, label: "Suppliers", to: "/suppliers" },
-    { icon: UserCircle2, label: "Team", to: "/team" },
+    { icon: Tags, label: "Product Categories", to: "/product-categories" },
+    { icon: Palette, label: "Decoration Methods", to: "/decoration-methods" },
+    { icon: Truck, label: "Shipping Methods", to: "/shipping-methods" },
+    { icon: MapPin, label: "Origins", to: "/origins" },
+    { icon: Globe2, label: "Destinations", to: "/destinations" },
+    { icon: Settings, label: "Settings", to: "/settings" },
   ];
   const otherItems: Item[] = [
     { icon: Archive, label: "Archive", to: "/archive", badge: archiveCount },
@@ -162,8 +169,8 @@ export const DesktopRail = ({ trashCount, archiveCount }: Props) => {
         <SectionLabel>Main</SectionLabel>
         {mainItems.map((it, i) => renderItem(it, "m" + i))}
 
-        <SectionLabel>Team</SectionLabel>
-        {teamItems.map((it, i) => renderItem(it, "t" + i))}
+        <SectionLabel>Data</SectionLabel>
+        {dataItems.map((it, i) => renderItem(it, "d" + i))}
 
         <SectionLabel>Other</SectionLabel>
         {otherItems.map((it, i) => renderItem(it, "o" + i))}
@@ -193,7 +200,6 @@ export const DesktopRail = ({ trashCount, archiveCount }: Props) => {
           </div>
         </div>
         {renderItem({ icon: HelpCircle, label: "Help", onClick: () => toast("Help docs coming soon") }, "fh")}
-        {renderItem({ icon: Settings, label: "Settings", onClick: () => toast("Settings coming soon") }, "fs")}
         {renderItem({ icon: LogOut, label: "Sign out", onClick: () => { void user.signOut(); } }, "fo")}
       </div>
     </aside>

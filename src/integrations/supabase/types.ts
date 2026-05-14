@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_label: string | null
+          display_order: number
+          id: string
+          key: string
+          section: string
+          updated_at: string
+          value: string | null
+          value_type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_label?: string | null
+          display_order?: number
+          id?: string
+          key: string
+          section: string
+          updated_at?: string
+          value?: string | null
+          value_type?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_label?: string | null
+          display_order?: number
+          id?: string
+          key?: string
+          section?: string
+          updated_at?: string
+          value?: string | null
+          value_type?: string
+        }
+        Relationships: []
+      }
       buyers: {
         Row: {
           contact: string | null
@@ -58,6 +97,7 @@ export type Database = {
           country: string
           created_at: string
           default_shipping_mode: string | null
+          destination_id: string | null
           email: string | null
           id: string
           incoterms: string | null
@@ -73,6 +113,7 @@ export type Database = {
           country?: string
           created_at?: string
           default_shipping_mode?: string | null
+          destination_id?: string | null
           email?: string | null
           id?: string
           incoterms?: string | null
@@ -88,6 +129,7 @@ export type Database = {
           country?: string
           created_at?: string
           default_shipping_mode?: string | null
+          destination_id?: string | null
           email?: string | null
           id?: string
           incoterms?: string | null
@@ -96,6 +138,71 @@ export type Database = {
           payment_terms?: string
           payment_terms_custom_days?: number | null
           phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "destinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decoration_methods: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          sub_rule_type: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          sub_rule_type: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          sub_rule_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      destinations: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -140,6 +247,121 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      method_details: {
+        Row: {
+          code: string
+          created_at: string
+          decoration_method_id: string
+          detail: string
+          id: string
+          n_run: number
+          n_setup: number
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          decoration_method_id: string
+          detail: string
+          id?: string
+          n_run?: number
+          n_setup?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          decoration_method_id?: string
+          detail?: string
+          id?: string
+          n_run?: number
+          n_setup?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "method_details_decoration_method_id_fkey"
+            columns: ["decoration_method_id"]
+            isOneToOne: false
+            referencedRelation: "decoration_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      origins: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_categories: {
+        Row: {
+          base_margin_pct: number
+          created_at: string
+          duty_rate_pct: number | null
+          id: string
+          name: string
+          notes: string | null
+          parent_id: string | null
+          step_size_pct: number
+          updated_at: string
+        }
+        Insert: {
+          base_margin_pct: number
+          created_at?: string
+          duty_rate_pct?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          parent_id?: string | null
+          step_size_pct: number
+          updated_at?: string
+        }
+        Update: {
+          base_margin_pct?: number
+          created_at?: string
+          duty_rate_pct?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          parent_id?: string | null
+          step_size_pct?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -451,6 +673,39 @@ export type Database = {
           },
         ]
       }
+      rounding_rules: {
+        Row: {
+          band_max: number | null
+          band_min: number
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          round_up_to: number
+          updated_at: string
+        }
+        Insert: {
+          band_max?: number | null
+          band_min: number
+          created_at?: string
+          description?: string | null
+          display_order: number
+          id?: string
+          round_up_to: number
+          updated_at?: string
+        }
+        Update: {
+          band_max?: number | null
+          band_min?: number
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          round_up_to?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shipments: {
         Row: {
           carrier: string | null
@@ -490,6 +745,33 @@ export type Database = {
         }
         Relationships: []
       }
+      shipping_methods: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           country: string
@@ -499,6 +781,7 @@ export type Database = {
           legacy_id: string | null
           name: string
           notes: string | null
+          origin_id: string | null
           updated_at: string
         }
         Insert: {
@@ -509,6 +792,7 @@ export type Database = {
           legacy_id?: string | null
           name: string
           notes?: string | null
+          origin_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -519,9 +803,18 @@ export type Database = {
           legacy_id?: string | null
           name?: string
           notes?: string | null
+          origin_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_origin_id_fkey"
+            columns: ["origin_id"]
+            isOneToOne: false
+            referencedRelation: "origins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members: {
         Row: {

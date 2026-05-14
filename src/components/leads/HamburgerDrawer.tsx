@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Factory, Users, HelpCircle, LogOut, Trash2, UserCircle2, Archive, KanbanSquare, Activity } from "lucide-react";
+import { X, Factory, Users, HelpCircle, LogOut, Trash2, UserCircle2, Archive, KanbanSquare, Activity, Tags, Palette, Truck, MapPin, Globe2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -92,10 +92,16 @@ export const HamburgerDrawer = ({
           <MenuItem icon={Activity}     label="Activity Log" onClick={() => { onClose(); navigate("/activity"); }} />
 
           <div className="my-3 mx-3 border-t" style={{ borderColor: "hsl(var(--brand-navy) / 0.1)" }} />
-          <div className="px-5 pb-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground/70 font-medium">Lists</div>
-          <MenuItem icon={Users}        label="Customers" onClick={() => { onClose(); navigate("/customers"); }} />
-          <MenuItem icon={Factory}      label="Suppliers" onClick={() => { onClose(); navigate("/suppliers"); }} />
-          <MenuItem icon={UserCircle2}  label="Team"      onClick={() => { onClose(); navigate("/team"); }} />
+          <div className="px-5 pb-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground/70 font-medium">Data</div>
+          <MenuItem icon={UserCircle2}  label="Users"              onClick={() => { onClose(); navigate("/users"); }} />
+          <MenuItem icon={Users}        label="Customers"          onClick={() => { onClose(); navigate("/customers"); }} />
+          <MenuItem icon={Factory}      label="Suppliers"          onClick={() => { onClose(); navigate("/suppliers"); }} />
+          <MenuItem icon={Tags}         label="Product Categories" onClick={() => { onClose(); navigate("/product-categories"); }} />
+          <MenuItem icon={Palette}      label="Decoration Methods" onClick={() => { onClose(); navigate("/decoration-methods"); }} />
+          <MenuItem icon={Truck}        label="Shipping Methods"   onClick={() => { onClose(); navigate("/shipping-methods"); }} />
+          <MenuItem icon={MapPin}       label="Origins"            onClick={() => { onClose(); navigate("/origins"); }} />
+          <MenuItem icon={Globe2}       label="Destinations"       onClick={() => { onClose(); navigate("/destinations"); }} />
+          <MenuItem icon={Settings}     label="Settings"           onClick={() => { onClose(); navigate("/settings"); }} />
 
           <div className="my-3 mx-3 border-t" style={{ borderColor: "hsl(var(--brand-navy) / 0.1)" }} />
           <MenuItem icon={Archive} label="Archive" badge={archiveCount} onClick={() => { onClose(); onOpenArchive(); }} />
