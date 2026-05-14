@@ -192,7 +192,7 @@ export const CustomerDetailPage = ({ customerId }: { customerId: string }) => {
             <SectionHeader>Profile</SectionHeader>
             <SectionCard>
               <DetailRow label="Name" value={customer.name} onClick={() => setEditor("name")} />
-              <DetailRow label="Country" value={customer.country} onClick={() => setEditor("country")} />
+              <DetailRow label="Destination" value={(md.destinations.find((d) => d.id === customer.destination_id)?.name) ?? (customer.country ? `${customer.country} (legacy)` : undefined)} onClick={() => setEditor("country")} />
               <DetailRow label="Incoterms" value={customer.incoterms ?? undefined} onClick={() => setEditor("incoterms")} />
             </SectionCard>
           </section>
