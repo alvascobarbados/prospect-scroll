@@ -138,6 +138,9 @@ interface Ctx {
   updateBuyer: (id: string, patch: Partial<Pick<Buyer, "name" | "email" | "contact">>) => Promise<void>;
   deleteBuyer: (id: string) => Promise<void>;
 
+  addOrigin: (input: { code: string; name: string; notes?: string | null }) => Promise<OriginRecord>;
+  addDestination: (input: { code: string; name: string; notes?: string | null }) => Promise<DestinationRecord>;
+
   // Case-insensitive lookups (used by merge prompts + add validation)
   findCustomerByName: (name: string, excludeId?: string) => Customer | undefined;
   findBuyerByName: (customerId: string, name: string, excludeId?: string) => Buyer | undefined;
@@ -374,6 +377,33 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.from("buyers").update(patch).eq("id", id);
     if (error) throw error;
   }, []);
+
+  // ─── Origins / Destinations ─────────────────────────────────────────────
+  const addOrigin = useCallback(async (input: { code: string; name: string; notes?: string | null }) => {
+    const code = input.code.trim().toUpperCase();
+    const dup = origins.find((o) => o.code.toUpperCase() === code);
+    if (dup) throw new Error(`duplicate code: ${code} already exists`);
+    const { data, error } = await supabase
+      .from("origins")
+      .insert({ code, name: input.name.trim(), notes: input.notes ?? null })
+      .select().single();
+    if (error) throw error;
+    setOrigins((prev) => [...prev.filter((o) => o.id !== data.id), data as OriginRecord].sort((a, b) => a.name.localeCompare(b.name)));
+    return data as OriginRecord;
+  }, [origins]);
+
+  const addDestination = useCallback(async (input: { code: string; name: string; notes?: string | null }) => {
+    const code = input.code.trim().toUpperCase();
+    const dup = destinations.find((d) => d.code.toUpperCase() === code);
+    if (dup) throw new Error(`duplicate code: ${code} already exists`);
+    const { data, error } = await supabase
+      .from("destinations")
+      .insert({ code, name: input.name.trim(), notes: input.notes ?? null })
+      .select().single();
+    if (error) throw error;
+    setDestinations((prev) => [...prev.filter((d) => d.id !== data.id), data as DestinationRecord].sort((a, b) => a.name.localeCompare(b.name)));
+    return data as DestinationRecord;
+  }, [destinations]);
   const deleteBuyer = useCallback(async (id: string) => {
     const { error } = await supabase.from("buyers").delete().eq("id", id);
     if (error) throw error;
@@ -546,6 +576,7 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     addTeamMember, updateTeamMember, deleteTeamMember,
     addProduct, updateProduct, deleteProduct,
     addBuyer, updateBuyer, deleteBuyer,
+    addOrigin, addDestination,
     findCustomerByName, findBuyerByName, mergeCustomers, mergeBuyers,
   }), [
     customers, suppliers, teamMembers, products, buyers, origins, destinations, loading,
@@ -556,6 +587,7 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     addTeamMember, updateTeamMember, deleteTeamMember,
     addProduct, updateProduct, deleteProduct,
     addBuyer, updateBuyer, deleteBuyer,
+    addOrigin, addDestination,
     findCustomerByName, findBuyerByName, mergeCustomers, mergeBuyers,
   ]);
 

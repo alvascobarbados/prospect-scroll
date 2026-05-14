@@ -3,7 +3,7 @@
  * when ?customer=ID is present. Mirrors TeamMemberPage structure:
  * sticky header → Profile → Buyers → Assigned Projects.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, MoreVertical, Trash2, UserPlus, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { SectionHeader, SectionCard, DetailRow } from "@/components/leads/Projec
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { MergeDialog } from "@/components/leads/MergeDialog";
 import { BottomSheet } from "@/components/leads/EditorSheets";
+import { CodedSelect } from "@/components/leads/EntityPicker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMasterData, type Buyer, type Customer, type CustomerCountry, type CustomerIncoterms } from "@/hooks/useMasterData";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -383,10 +384,14 @@ const CustomerFieldEditor = ({
   const [val, setVal] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useState(() => {});
+  useEffect(() => {
+    if (!open || !kind) return;
+    if (kind === "name") setVal(customer.name);
+    else if (kind === "country") setVal(((customer as any).destination_id ?? "") as string);
+    else if (kind === "incoterms") setVal(customer.incoterms ?? "");
+  }, [open, kind, customer]);
+
   if (!kind) return null;
-  // Initialise on open
-  if (open && val === "" && kind === "name") setVal(customer.name);
 
   const titles: Record<NonNullable<EditorKind>, string> = {
     name: "Edit name", country: "Edit country", incoterms: "Edit incoterms",
@@ -434,12 +439,13 @@ const CustomerFieldEditor = ({
           />
         )}
         {kind === "country" && (
-          <select defaultValue={(customer as any).destination_id ?? ""} onChange={(e) => setVal(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
-            <option value="">— None —</option>
-            {[...md.destinations].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+          <CodedSelect
+            kind="destination"
+            value={val}
+            onChange={setVal}
+            className={inputCls}
+            style={{ minHeight: 48 }}
+          />
         )}
         {kind === "incoterms" && (
           <select defaultValue={customer.incoterms ?? ""} onChange={(e) => setVal(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
