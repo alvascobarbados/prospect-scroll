@@ -582,7 +582,16 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         {kind === "customer" && (
           <>
             <div>
-              <label className={labelCls}>Country</label>
+              <label className={labelCls}>Destination</label>
+              <select value={destinationId} onChange={(e) => setDestinationId(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
+                <option value="">— None —</option>
+                {[...md.destinations].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Country (legacy)</label>
               <select value={country} onChange={(e) => setCountry(e.target.value as any)} className={inputCls} style={{ minHeight: 48 }}>
                 <option value="Local">Local</option>
                 <option value="Regional">Regional</option>
@@ -603,8 +612,13 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         {kind === "supplier" && (
           <>
             <div>
-              <label className={labelCls}>Country (optional)</label>
-              <input value={supCountry} onChange={(e) => setSupCountry(e.target.value)} className={inputCls} style={{ minHeight: 48 }} placeholder="e.g. China" />
+              <label className={labelCls}>Origin</label>
+              <select value={supOriginId} onChange={(e) => setSupOriginId(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
+                <option value="">— None —</option>
+                {[...md.origins].sort((a, b) => a.name.localeCompare(b.name)).map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={labelCls}>Default shipping</label>
