@@ -100,6 +100,8 @@ interface Ctx {
   teamMembers: TeamMember[];
   products: ProductRecord[];
   buyers: Buyer[];
+  origins: OriginRecord[];
+  destinations: DestinationRecord[];
   loading: boolean;
 
   // Resolve a supplier by either its UUID id or its legacy "sup-…" id.
