@@ -232,6 +232,30 @@ export default function SettingsPage() {
               </table>
             </div>
           </Section>
+
+          {isAdmin && (
+            <Section title="Data Maintenance">
+              <p className="text-xs text-muted-foreground mb-3">
+                Rebuilds foreign key links (project→buyer, customer→destination, supplier→origin) from legacy text fields. Safe to run anytime.
+              </p>
+              <div className="rounded-2xl border border-border/60 bg-card p-4">
+                <button
+                  onClick={runHealer}
+                  disabled={healing}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
+                  style={{ background: "hsl(var(--brand-orange))", color: "white" }}
+                >
+                  {healing ? "Healing…" : "Heal Data Relationships"}
+                </button>
+                {healResult && (
+                  <pre className="mt-4 p-3 rounded-lg text-[11px] overflow-auto max-h-96"
+                    style={{ background: "hsl(var(--brand-navy) / 0.05)", color: "hsl(var(--brand-navy))" }}>
+                    {JSON.stringify(healResult, null, 2)}
+                  </pre>
+                )}
+              </div>
+            </Section>
+          )}
         </main>
       </div>
     </DesktopAppShell>
