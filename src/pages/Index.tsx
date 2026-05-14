@@ -804,26 +804,30 @@ const Index = () => {
             );
           }
 
-          return pipeline.stages.map((stage) => (
-            <StageSection
-              key={stage.id}
-              title={stage.title}
-              stage={stage.id}
-              cards={visible.filter((c) => c.stage === stage.id)}
-              onOpenCard={setSelectedCard}
-              onOpenShipment={openShipmentById}
-              onSwipeForward={onSwipeForward}
-              onSwipeBack={onSwipeBack}
-              onOpenPicker={onOpenPicker}
-              emptyHint={
-                stage.id === "sourcing" ? "No projects here yet. New leads will appear in Sourcing."
-                : stage.id === "proposal" ? "No projects here. Move a sourced lead forward when you're ready to write the proposal."
-                : stage.id === "archive" ? "Nothing archived. Cold or lost projects will land here."
-                : stage.id === "invoice_required" ? "No projects awaiting an invoice."
-                : undefined
-              }
-            />
-          ));
+          // Mobile pipeline: flat list filtered by active stage + sub-stage
+          // pill. The sub-stage row above this main is the single filter UI;
+          // the old accordion-by-substage was redundant and has been removed.
+          if (visible.length === 0) {
+            return (
+              <p className="text-sm text-muted-foreground italic px-1 py-6">
+                No projects.
+              </p>
+            );
+          }
+          return (
+            <div className="flex flex-col gap-3">
+              {visible.map((c) => (
+                <ProjectCard
+                  key={c.id}
+                  card={c}
+                  onOpen={() => setSelectedCard(c)}
+                  onSwipeForward={() => onSwipeForward(c)}
+                  onSwipeBack={() => onSwipeBack(c)}
+                  onOpenPicker={() => onOpenPicker(c)}
+                />
+              ))}
+            </div>
+          );
         })()}
 
         <p className="text-center text-xs text-muted-foreground pt-4 pb-1">
