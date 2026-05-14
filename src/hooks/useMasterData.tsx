@@ -164,13 +164,15 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [buyers, setBuyers] = useState<Buyer[]>([]);
+  const [origins, setOrigins] = useState<OriginRecord[]>([]);
+  const [destinations, setDestinations] = useState<DestinationRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Initial fetch + realtime
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [c, s, t, p, b] = await Promise.all([
+      const [c, s, t, p, b, o, d] = await Promise.all([
         supabase.from("customers").select("*").order("name"),
         supabase.from("suppliers").select("*").order("name"),
         supabase.from("team_members").select("*").order("initials"),
