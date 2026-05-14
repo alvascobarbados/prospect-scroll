@@ -438,20 +438,14 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
           <>
             <Field label="Name"><input className={inputCls} style={{ minHeight: 48 }} value={form.name ?? ""} onChange={(e) => setField("name", e.target.value)} /></Field>
             <Field label="Origin">
-              <select
+              <CodedSelect
+                kind="origin"
+                value={form.origin_id ?? ""}
+                onChange={(id) => setField("origin_id", id || null)}
                 className={inputCls}
                 style={{ minHeight: 48 }}
-                value={form.origin_id ?? ""}
-                onChange={(e) => setField("origin_id", e.target.value || null)}
-              >
-                <option value="">— None —</option>
-                {[...md.origins].sort((a, b) => a.name.localeCompare(b.name)).map((o) => (
-                  <option key={o.id} value={o.id}>{o.name}</option>
-                ))}
-              </select>
-              {!form.origin_id && form.country && (
-                <div className="text-[11px] italic text-muted-foreground mt-1">Legacy country: {form.country}</div>
-              )}
+                fallbackHint={!form.origin_id && form.country ? `Legacy country: ${form.country}` : null}
+              />
             </Field>
             <Field label="Default shipping">
               <select className={inputCls} style={{ minHeight: 48 }} value={form.default_shipping_mode ?? ""} onChange={(e) => setField("default_shipping_mode", e.target.value as ShippingMode || null)}>
