@@ -197,7 +197,7 @@ export const CustomerListPage = () => {
               <thead>
                 <tr style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.1)", background: "hsl(var(--brand-navy) / 0.03)" }}>
                   <Th>Name</Th>
-                  <Th>Country</Th>
+                  <Th>Destination</Th>
                   <Th>Incoterms</Th>
                   <Th>Buyer</Th>
                   <Th>Email</Th>
