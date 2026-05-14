@@ -157,7 +157,7 @@ export const CustomerDetailPage = ({ customerId }: { customerId: string }) => {
                 {customer.name}
               </h1>
               <div className="text-[12px] text-muted-foreground">
-                {customer.country} · {projects.length} project{projects.length === 1 ? "" : "s"}
+                {(md.destinations.find((d) => d.id === customer.destination_id)?.name) ?? customer.country} · {projects.length} project{projects.length === 1 ? "" : "s"}
               </div>
             </div>
             <Popover>
