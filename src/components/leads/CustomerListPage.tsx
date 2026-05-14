@@ -341,14 +341,19 @@ const CustomerGroup = ({
     }
     catch (err: any) { toast.error(err?.message ?? "Save failed"); setNameRevert((n) => n + 1); }
   };
-  const updateCountry = async (v: string) => {
-    try { await md.updateCustomer(customer.id, { country: v as CustomerCountry }); }
+  const updateDestination = async (v: string) => {
+    try { await md.updateCustomer(customer.id, { destination_id: v || null }); }
     catch (err: any) { toast.error(err?.message ?? "Save failed"); }
   };
   const updateIncoterms = async (v: string) => {
     try { await md.updateCustomer(customer.id, { incoterms: (v || null) as any }); }
     catch (err: any) { toast.error(err?.message ?? "Save failed"); }
   };
+  const destOptions = useMemo(
+    () => [{ value: "", label: customer.country ? `— (${customer.country})` : "—" },
+           ...[...md.destinations].sort((a, b) => a.name.localeCompare(b.name)).map((d) => ({ value: d.id, label: d.name }))],
+    [md.destinations, customer.country],
+  );
 
   // 0 buyers → single empty buyer row
   if (buyers.length === 0) {
