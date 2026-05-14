@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sheet } from "@/components/leads/Sheet";
 import { useMasterData, EntityKind } from "@/hooks/useMasterData";
-import { InlineAdd } from "@/components/leads/EntityPicker";
+import { InlineAdd, CodedSelect } from "@/components/leads/EntityPicker";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { BottomSheet } from "@/components/leads/EditorSheets";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
