@@ -655,10 +655,12 @@ const AddCustomerSheet = ({ open, onClose }: { open: boolean; onClose: () => voi
           )}
         </div>
         <div>
-          <label className={labelCls}>Country</label>
-          <select value={country} onChange={(e) => setCountry(e.target.value as CustomerCountry)} className={inputCls} style={{ minHeight: 48 }}>
-            <option value="Local">Local</option>
-            <option value="Regional">Regional</option>
+          <label className={labelCls}>Destination</label>
+          <select value={destinationId} onChange={(e) => setDestinationId(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
+            <option value="">— None —</option>
+            {[...md.destinations].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
           </select>
         </div>
         <div>
