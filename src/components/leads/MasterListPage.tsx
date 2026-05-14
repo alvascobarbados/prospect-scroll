@@ -131,12 +131,24 @@ export const MasterListPage = ({ kind }: Props) => {
     const colIdx = columns.findIndex((c) => c.key === sortKey);
     if (colIdx < 0) return rows;
     const dir = sortDir === "asc" ? 1 : -1;
+    const originById = new Map(md.origins.map((o) => [o.id, o.name]));
+    const sortVal = (r: Row): string | number => {
+      if (sortKey === "usage") return r.usage;
+      if (sortKey === "origin") {
+        const oname = r.raw.origin_id ? originById.get(r.raw.origin_id) : null;
+        return (oname ?? r.raw.country ?? "").toString().toLowerCase();
+      }
+      const c = r.cells[colIdx];
+      if (typeof c === "number") return c;
+      if (typeof c === "string") return c.toLowerCase();
+      return String(r.raw[sortKey] ?? "").toLowerCase();
+    };
     return [...rows].sort((a, b) => {
-      const av = a.cells[colIdx]; const bv = b.cells[colIdx];
+      const av = sortVal(a); const bv = sortVal(b);
       if (typeof av === "number" && typeof bv === "number") return dir * (av - bv);
       return dir * String(av).localeCompare(String(bv));
     });
-  }, [rows, columns, sortKey, sortDir]);
+  }, [rows, columns, sortKey, sortDir, md.origins]);
 
   const onSortClick = (key: string) => {
     if (sortKey === key) setSortDir((d) => d === "asc" ? "desc" : "asc");
