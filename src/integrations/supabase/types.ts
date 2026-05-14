@@ -783,6 +783,8 @@ export type Database = {
           notes: string | null
           origin_id: string | null
           updated_at: string
+          volume_unit: string
+          weight_unit: string
         }
         Insert: {
           country?: string
@@ -794,6 +796,8 @@ export type Database = {
           notes?: string | null
           origin_id?: string | null
           updated_at?: string
+          volume_unit?: string
+          weight_unit?: string
         }
         Update: {
           country?: string
@@ -805,6 +809,8 @@ export type Database = {
           notes?: string | null
           origin_id?: string | null
           updated_at?: string
+          volume_unit?: string
+          weight_unit?: string
         }
         Relationships: [
           {
