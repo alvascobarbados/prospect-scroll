@@ -178,6 +178,8 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
         supabase.from("team_members").select("*").order("initials"),
         supabase.from("products").select("*").order("name"),
         supabase.from("buyers").select("*").order("name"),
+        supabase.from("origins").select("*").order("name"),
+        supabase.from("destinations").select("*").order("name"),
       ]);
       if (!mounted) return;
       if (c.data) setCustomers(c.data as Customer[]);
@@ -185,6 +187,8 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
       if (t.data) setTeamMembers(t.data as TeamMember[]);
       if (p.data) setProducts(p.data as ProductRecord[]);
       if (b.data) setBuyers(b.data as Buyer[]);
+      if (o.data) setOrigins(o.data as OriginRecord[]);
+      if (d.data) setDestinations(d.data as DestinationRecord[]);
       setLoading(false);
     })();
 
@@ -209,6 +213,14 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "buyers" }, async () => {
         const { data } = await supabase.from("buyers").select("*").order("name");
         if (data) setBuyers(data as Buyer[]);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "origins" }, async () => {
+        const { data } = await supabase.from("origins").select("*").order("name");
+        if (data) setOrigins(data as OriginRecord[]);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "destinations" }, async () => {
+        const { data } = await supabase.from("destinations").select("*").order("name");
+        if (data) setDestinations(data as DestinationRecord[]);
       })
       .subscribe();
 
