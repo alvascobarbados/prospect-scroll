@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Factory, Users, HelpCircle, LogOut, Trash2, UserCircle2, Archive, KanbanSquare, Activity } from "lucide-react";
+import { X, Factory, Users, HelpCircle, LogOut, Trash2, UserCircle2, Archive, KanbanSquare, Activity, Tags, Palette, Truck, MapPin, Globe2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
