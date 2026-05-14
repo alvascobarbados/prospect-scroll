@@ -587,6 +587,7 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     addTeamMember, updateTeamMember, deleteTeamMember,
     addProduct, updateProduct, deleteProduct,
     addBuyer, updateBuyer, deleteBuyer,
+    addOrigin, addDestination,
     findCustomerByName, findBuyerByName, mergeCustomers, mergeBuyers,
   ]);
 
