@@ -87,8 +87,10 @@ export default function SettingsPage() {
 
   const updateSetting = async (id: string, raw: string) => {
     const value = raw.trim() || null;
+    const prev = settings;
+    setSettings((s) => s.map((x) => (x.id === id ? { ...x, value } : x)));
     const { error } = await supabase.from("app_settings").update({ value }).eq("id", id);
-    if (error) { toast.error(`Save failed: ${error.message}`); return false; }
+    if (error) { setSettings(prev); toast.error(`Save failed: ${error.message}`); return false; }
     return true;
   };
 
@@ -104,21 +106,26 @@ export default function SettingsPage() {
       if (!Number.isFinite(n)) { toast.error("Must be a number"); return false; }
       value = n;
     } else value = raw.trim() || null;
+    const prev = rules;
+    setRules((rs) => rs.map((r) => (r.id === id ? { ...r, [key]: value } as RoundingRule : r)));
     const { error } = await supabase.from("rounding_rules").update({ [key]: value } as any).eq("id", id);
-    if (error) { toast.error(`Save failed: ${error.message}`); return false; }
+    if (error) { setRules(prev); toast.error(`Save failed: ${error.message}`); return false; }
     return true;
   };
 
   const addRule = async () => {
     const nextOrder = (rules.reduce((m, r) => Math.max(m, r.display_order), 0)) + 1;
-    const { error } = await supabase.from("rounding_rules").insert({
+    const { data, error } = await supabase.from("rounding_rules").insert({
       band_min: 0, band_max: null, round_up_to: 1, description: "New band", display_order: nextOrder,
-    });
-    if (error) toast.error(`Add failed: ${error.message}`);
+    }).select().single();
+    if (error) { toast.error(`Add failed: ${error.message}`); return; }
+    if (data) setRules((rs) => [...rs.filter((r) => r.id !== (data as any).id), data as RoundingRule]);
   };
   const deleteRule = async (id: string) => {
+    const prev = rules;
+    setRules((rs) => rs.filter((r) => r.id !== id));
     const { error } = await supabase.from("rounding_rules").delete().eq("id", id);
-    if (error) toast.error(`Delete failed: ${error.message}`);
+    if (error) { setRules(prev); toast.error(`Delete failed: ${error.message}`); }
   };
 
   return (

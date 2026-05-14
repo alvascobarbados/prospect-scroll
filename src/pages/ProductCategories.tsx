@@ -76,28 +76,35 @@ export default function ProductCategoriesPage() {
         toast.error(`${String(key).replace(/_/g, " ")} is required`); return false;
       }
     } else if (!value) value = null;
+    const prev = rows;
+    setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, [key]: value } as Category : r)));
     const { error } = await supabase.from("product_categories").update({ [key]: value } as any).eq("id", row.id);
-    if (error) { toast.error(`Save failed: ${error.message}`); return false; }
+    if (error) { setRows(prev); toast.error(`Save failed: ${error.message}`); return false; }
     return true;
   };
 
   const addParent = async () => {
-    const { error } = await supabase.from("product_categories").insert({
+    const { data, error } = await supabase.from("product_categories").insert({
       name: "New category", base_margin_pct: 0, step_size_pct: 0,
-    });
-    if (error) toast.error(`Add failed: ${error.message}`);
+    }).select().single();
+    if (error) { toast.error(`Add failed: ${error.message}`); return; }
+    if (data) setRows((rs) => [...rs.filter((r) => r.id !== (data as any).id), data as Category]);
   };
   const addSub = async (parentId: string) => {
-    const { error } = await supabase.from("product_categories").insert({
+    const { data, error } = await supabase.from("product_categories").insert({
       parent_id: parentId, name: "New subcategory", base_margin_pct: 0, step_size_pct: 0,
-    });
-    if (error) toast.error(`Add failed: ${error.message}`);
+    }).select().single();
+    if (error) { toast.error(`Add failed: ${error.message}`); return; }
+    if (data) setRows((rs) => [...rs.filter((r) => r.id !== (data as any).id), data as Category]);
   };
 
   const handleDelete = async () => {
     if (!confirmDelete) return;
-    const { error } = await supabase.from("product_categories").delete().eq("id", confirmDelete.id);
-    if (error) toast.error(`Delete failed: ${error.message}`);
+    const id = confirmDelete.id;
+    const prev = rows;
+    setRows((rs) => rs.filter((r) => r.id !== id));
+    const { error } = await supabase.from("product_categories").delete().eq("id", id);
+    if (error) { setRows(prev); toast.error(`Delete failed: ${error.message}`); }
     else toast.success(`${confirmDelete.name} deleted`);
     setConfirmDelete(null);
   };
