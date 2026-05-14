@@ -519,6 +519,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         const c = await md.addCustomer({
           name: name.trim(),
           country,
+          destination_id: destinationId || null,
           incoterms: (incoterms || null) as any,
         });
         toast.success(`Customer "${c.name}" added`);
@@ -526,7 +527,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
       } else if (kind === "supplier") {
         const s = await md.addSupplier({
           name: name.trim(),
-          country: supCountry.trim() || undefined,
+          origin_id: supOriginId || null,
           default_shipping_mode: mode,
         });
         toast.success(`Supplier "${s.name}" added`);
