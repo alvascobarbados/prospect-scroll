@@ -439,12 +439,13 @@ const CustomerFieldEditor = ({
           />
         )}
         {kind === "country" && (
-          <select defaultValue={(customer as any).destination_id ?? ""} onChange={(e) => setVal(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
-            <option value="">— None —</option>
-            {[...md.destinations].sort((a, b) => a.name.localeCompare(b.name)).map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+          <CodedSelect
+            kind="destination"
+            value={val}
+            onChange={setVal}
+            className={inputCls}
+            style={{ minHeight: 48 }}
+          />
         )}
         {kind === "incoterms" && (
           <select defaultValue={customer.incoterms ?? ""} onChange={(e) => setVal(e.target.value)} className={inputCls} style={{ minHeight: 48 }}>
