@@ -390,7 +390,7 @@ const CustomerGroup = ({
                 <EditableText key={`name-${nameRevert}`} value={customer.name} onSave={updateName} bold />
               </Td>
               <Td rowSpan={rowCount} className="align-top">
-                <EditableSelect value={customer.country} options={COUNTRIES} onSave={updateCountry} />
+                <DestinationSelect value={customer.destination_id ?? ""} fallback={customer.country} options={destOptions} onSave={updateDestination} />
               </Td>
               <Td rowSpan={rowCount} className="align-top">
                 <EditableSelect value={customer.incoterms ?? ""} options={INCOTERMS} onSave={updateIncoterms} placeholder="—" />
