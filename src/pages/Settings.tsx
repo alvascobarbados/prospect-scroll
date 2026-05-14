@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { EditableCell } from "@/components/leads/SimpleMasterPage";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface AppSetting {
   id: string; section: string; key: string;
@@ -32,8 +33,32 @@ const SECTION_ORDER = ["Currency & FX", "Customs & Duty", "Freight"];
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const me = useCurrentUser();
+  const isAdmin = (me.role || "").toLowerCase() === "admin";
   const [settings, setSettings] = useState<AppSetting[]>([]);
   const [rules, setRules] = useState<RoundingRule[]>([]);
+  const [healing, setHealing] = useState(false);
+  const [healResult, setHealResult] = useState<any>(null);
+
+  const runHealer = async () => {
+    setHealing(true);
+    setHealResult(null);
+    try {
+      const { data, error } = await supabase.rpc("heal_data_relationships" as any, {
+        p_actor_id: me.userId,
+        p_actor_name: me.fullName || me.userId,
+      });
+      if (error) { toast.error(`Heal failed: ${error.message}`); return; }
+      setHealResult(data);
+      const d: any = data;
+      toast.success(
+        `Healed ${d?.projects_buyer_id_healed ?? 0} projects, ` +
+        `${d?.customers_destination_id_healed ?? 0} customers, ` +
+        `${d?.suppliers_origin_id_healed ?? 0} suppliers`
+      );
+    } finally { setHealing(false); }
+  };
+
 
   useEffect(() => {
     let mounted = true;
@@ -207,6 +232,30 @@ export default function SettingsPage() {
               </table>
             </div>
           </Section>
+
+          {isAdmin && (
+            <Section title="Data Maintenance">
+              <p className="text-xs text-muted-foreground mb-3">
+                Rebuilds foreign key links (project→buyer, customer→destination, supplier→origin) from legacy text fields. Safe to run anytime.
+              </p>
+              <div className="rounded-2xl border border-border/60 bg-card p-4">
+                <button
+                  onClick={runHealer}
+                  disabled={healing}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
+                  style={{ background: "hsl(var(--brand-orange))", color: "white" }}
+                >
+                  {healing ? "Healing…" : "Heal Data Relationships"}
+                </button>
+                {healResult && (
+                  <pre className="mt-4 p-3 rounded-lg text-[11px] overflow-auto max-h-96"
+                    style={{ background: "hsl(var(--brand-navy) / 0.05)", color: "hsl(var(--brand-navy))" }}>
+                    {JSON.stringify(healResult, null, 2)}
+                  </pre>
+                )}
+              </div>
+            </Section>
+          )}
         </main>
       </div>
     </DesktopAppShell>

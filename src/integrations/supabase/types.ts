@@ -851,7 +851,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      heal_data_relationships: {
+        Args: { p_actor_id?: string; p_actor_name?: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
