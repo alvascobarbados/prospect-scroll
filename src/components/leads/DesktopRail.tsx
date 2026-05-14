@@ -169,8 +169,8 @@ export const DesktopRail = ({ trashCount, archiveCount }: Props) => {
         <SectionLabel>Main</SectionLabel>
         {mainItems.map((it, i) => renderItem(it, "m" + i))}
 
-        <SectionLabel>Team</SectionLabel>
-        {teamItems.map((it, i) => renderItem(it, "t" + i))}
+        <SectionLabel>Data</SectionLabel>
+        {dataItems.map((it, i) => renderItem(it, "d" + i))}
 
         <SectionLabel>Other</SectionLabel>
         {otherItems.map((it, i) => renderItem(it, "o" + i))}
