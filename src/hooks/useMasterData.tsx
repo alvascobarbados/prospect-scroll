@@ -138,6 +138,9 @@ interface Ctx {
   updateBuyer: (id: string, patch: Partial<Pick<Buyer, "name" | "email" | "contact">>) => Promise<void>;
   deleteBuyer: (id: string) => Promise<void>;
 
+  addOrigin: (input: { code: string; name: string; notes?: string | null }) => Promise<OriginRecord>;
+  addDestination: (input: { code: string; name: string; notes?: string | null }) => Promise<DestinationRecord>;
+
   // Case-insensitive lookups (used by merge prompts + add validation)
   findCustomerByName: (name: string, excludeId?: string) => Customer | undefined;
   findBuyerByName: (customerId: string, name: string, excludeId?: string) => Buyer | undefined;
