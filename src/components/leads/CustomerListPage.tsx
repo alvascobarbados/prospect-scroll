@@ -532,6 +532,23 @@ export const EditableSelect = ({
   );
 };
 
+const DestinationSelect = ({
+  value, fallback, options, onSave,
+}: { value: string; fallback?: string | null; options: { value: string; label: string }[]; onSave: (v: string) => void }) => (
+  <select
+    value={value}
+    onChange={(e) => onSave(e.target.value)}
+    className={cn(
+      "w-full px-1.5 py-0.5 rounded text-[13px] bg-transparent hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)] cursor-pointer",
+      !value && "italic text-muted-foreground",
+    )}
+    style={{ minHeight: 28, color: value ? "hsl(var(--brand-navy))" : undefined }}
+    title={!value && fallback ? `Legacy country: ${fallback}` : undefined}
+  >
+    {options.map((o) => <option key={o.value || "_"} value={o.value}>{o.label}</option>)}
+  </select>
+);
+
 // ─── Row menu ──────────────────────────────────────────────────────────
 const RowMenu = ({ onView, onAddBuyer, onDelete }: { onView: () => void; onAddBuyer: () => void; onDelete: () => void }) => (
   <Popover>
