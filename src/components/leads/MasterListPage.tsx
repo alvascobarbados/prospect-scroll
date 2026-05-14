@@ -15,7 +15,7 @@
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Search, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Search, ChevronUp, ChevronDown, Trash2, MoreVertical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sheet } from "@/components/leads/Sheet";
@@ -24,6 +24,7 @@ import { InlineAdd, CodedSelect } from "@/components/leads/EntityPicker";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { BottomSheet } from "@/components/leads/EditorSheets";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { ShippingMode } from "@/data/pipelines";
 
 interface Column { key: string; label: string; align?: "left" | "right" }
