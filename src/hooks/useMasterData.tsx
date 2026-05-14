@@ -53,11 +53,15 @@ export interface Buyer {
   created_at: string;
   updated_at: string;
 }
+export type WeightUnit = "kg" | "lbs";
+export type VolumeUnit = "cbm" | "cuft";
 export interface SupplierRecord {
   id: string;
   name: string;
   country?: string | null;
   origin_id?: string | null;
+  weight_unit: WeightUnit;
+  volume_unit: VolumeUnit;
   default_shipping_mode?: ShippingMode | null;
   notes?: string | null;
   legacy_id?: string | null;
@@ -310,11 +314,22 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const addSupplier = useCallback(async (input: Partial<SupplierRecord> & { name: string }) => {
-    const { data, error } = await supabase.from("suppliers").insert({ ...input }).select().single();
+    // Auto-default units from origin code (USA/Miami → imperial; rest → metric).
+    let weight_unit: WeightUnit = input.weight_unit ?? "kg";
+    let volume_unit: VolumeUnit = input.volume_unit ?? "cbm";
+    if (input.weight_unit === undefined && input.origin_id) {
+      const o = origins.find((x) => x.id === input.origin_id);
+      if (o && (o.code.toUpperCase() === "USA_NON_MIAMI" || o.code.toUpperCase() === "MIAMI")) {
+        weight_unit = "lbs"; volume_unit = "cuft";
+      }
+    }
+    const { data, error } = await supabase.from("suppliers")
+      .insert({ ...input, weight_unit, volume_unit })
+      .select().single();
     if (error) throw error;
     setSuppliers((prev) => [...prev.filter((s) => s.id !== data.id), data as SupplierRecord].sort((a, b) => a.name.localeCompare(b.name)));
     return data as SupplierRecord;
-  }, []);
+  }, [origins]);
   const updateSupplier = useCallback(async (id: string, patch: Partial<SupplierRecord>) => {
     setSuppliers((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s))
       .sort((a, b) => a.name.localeCompare(b.name)));

@@ -490,6 +490,9 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
   const [incoterms, setIncoterms] = useState<"" | "FOB" | "CIF" | "LDP" | "LDF">("");
   const [supOriginId, setSupOriginId] = useState<string>("");
   const [mode, setMode] = useState<ShippingMode>("Ocean");
+  const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
+  const [volumeUnit, setVolumeUnit] = useState<"cbm" | "cuft">("cbm");
+  const [unitsTouched, setUnitsTouched] = useState(false);
   const [initials, setInitials] = useState("");
   const [fullName, setFullName] = useState("");
   const [teamEmail, setTeamEmail] = useState("");
@@ -499,8 +502,22 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
     if (!open) return;
     setName(initialName);
     setCountry("Local"); setDestinationId(""); setIncoterms(""); setSupOriginId(""); setMode("Ocean");
+    setWeightUnit("kg"); setVolumeUnit("cbm"); setUnitsTouched(false);
     setInitials(""); setFullName(""); setTeamEmail(""); setUnit("");
   }, [open, initialName]);
+
+  // Auto-default units from origin (only until user touches a unit field).
+  useEffect(() => {
+    if (kind !== "supplier" || unitsTouched || !supOriginId) return;
+    const o = md.origins.find((x) => x.id === supOriginId);
+    if (!o) return;
+    const code = o.code.toUpperCase();
+    if (code === "USA_NON_MIAMI" || code === "MIAMI") {
+      setWeightUnit("lbs"); setVolumeUnit("cuft");
+    } else {
+      setWeightUnit("kg"); setVolumeUnit("cbm");
+    }
+  }, [supOriginId, unitsTouched, kind, md.origins]);
 
   const titles: Record<EntityKind, string> = {
     customer: "Add customer",
@@ -528,6 +545,8 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         const s = await md.addSupplier({
           name: name.trim(),
           origin_id: supOriginId || null,
+          weight_unit: weightUnit,
+          volume_unit: volumeUnit,
           default_shipping_mode: mode,
         });
         toast.success(`Supplier "${s.name}" added`);
@@ -621,6 +640,30 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
                 className={inputCls}
                 style={{ minHeight: 48 }}
               />
+            </div>
+            <div>
+              <label className={labelCls}>Weight unit</label>
+              <select
+                value={weightUnit}
+                onChange={(e) => { setWeightUnit(e.target.value as "kg" | "lbs"); setUnitsTouched(true); }}
+                className={inputCls}
+                style={{ minHeight: 48 }}
+              >
+                <option value="kg">kg</option>
+                <option value="lbs">lbs</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Volume unit</label>
+              <select
+                value={volumeUnit}
+                onChange={(e) => { setVolumeUnit(e.target.value as "cbm" | "cuft"); setUnitsTouched(true); }}
+                className={inputCls}
+                style={{ minHeight: 48 }}
+              >
+                <option value="cbm">cbm</option>
+                <option value="cuft">cuft</option>
+              </select>
             </div>
             <div>
               <label className={labelCls}>Default shipping</label>
