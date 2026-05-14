@@ -200,7 +200,6 @@ export const DesktopRail = ({ trashCount, archiveCount }: Props) => {
           </div>
         </div>
         {renderItem({ icon: HelpCircle, label: "Help", onClick: () => toast("Help docs coming soon") }, "fh")}
-        {renderItem({ icon: Settings, label: "Settings", onClick: () => toast("Settings coming soon") }, "fs")}
         {renderItem({ icon: LogOut, label: "Sign out", onClick: () => { void user.signOut(); } }, "fo")}
       </div>
     </aside>
