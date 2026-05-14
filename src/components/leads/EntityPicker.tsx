@@ -663,3 +663,202 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
     </BottomSheet>
   );
 };
+
+// ─── Origin / Destination add sheets + select wrappers ───────────────────
+// Mirrors InlineAdd's BottomSheet shape but stays type-safe by not extending
+// the EntityKind union (origins/destinations don't fit that 4-entity picker
+// pattern — they are flat code+name+notes records).
+
+const codeFromName = (name: string): string =>
+  name
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+interface AddSheetProps {
+  open: boolean;
+  initialName?: string;
+  onClose: () => void;
+  onCreated: (id: string) => void;
+}
+
+const CodedAddSheet = ({
+  open, initialName = "", onClose, onCreated,
+  title, kindLabel, save,
+}: AddSheetProps & {
+  title: string;
+  kindLabel: string;
+  save: (input: { code: string; name: string; notes?: string | null }) => Promise<{ id: string; name: string }>;
+}) => {
+  const [name, setName] = useState(initialName);
+  const [code, setCode] = useState(codeFromName(initialName));
+  const [codeTouched, setCodeTouched] = useState(false);
+  const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setName(initialName);
+    setCode(codeFromName(initialName));
+    setCodeTouched(false);
+    setNotes("");
+  }, [open, initialName]);
+
+  const onNameChange = (v: string) => {
+    setName(v);
+    if (!codeTouched) setCode(codeFromName(v));
+  };
+  const onCodeChange = (v: string) => {
+    setCodeTouched(true);
+    // uppercase + allow only A–Z 0–9 underscore while typing
+    setCode(v.toUpperCase().replace(/[^A-Z0-9_]/g, ""));
+  };
+
+  const valid = name.trim().length > 0 && code.trim().length > 0;
+
+  const submit = async () => {
+    try {
+      const rec = await save({
+        code: code.trim(),
+        name: name.trim(),
+        notes: notes.trim() || null,
+      });
+      toast.success(`${kindLabel} "${rec.name}" added`);
+      onCreated(rec.id);
+    } catch (err: any) {
+      const msg: string = err?.message ?? `Could not create ${kindLabel.toLowerCase()}`;
+      if (/duplicate/i.test(msg) || /unique/i.test(msg)) {
+        toast.error(`That ${kindLabel.toLowerCase()} code already exists.`);
+      } else {
+        toast.error(msg);
+      }
+    }
+  };
+
+  const inputCls = "w-full rounded-xl border border-border bg-card px-3 py-2.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)]";
+  const labelCls = "block text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium mb-1.5";
+
+  return (
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={title}
+      onSave={submit}
+      saveDisabled={!valid}
+      saveLabel="Add"
+    >
+      <div className="space-y-3">
+        <div>
+          <label className={labelCls}>Name</label>
+          <input value={name} onChange={(e) => onNameChange(e.target.value)} className={inputCls} style={{ minHeight: 48 }} autoFocus />
+        </div>
+        <div>
+          <label className={labelCls}>Code</label>
+          <input value={code} onChange={(e) => onCodeChange(e.target.value)} className={inputCls} style={{ minHeight: 48 }} placeholder="AUTO_FROM_NAME" />
+          <div className="text-[11px] text-muted-foreground mt-1">Used as the stable identifier. Must be unique.</div>
+        </div>
+        <div>
+          <label className={labelCls}>Notes (optional)</label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={inputCls} rows={2} />
+        </div>
+      </div>
+    </BottomSheet>
+  );
+};
+
+export const OriginAddSheet = ({ open, initialName, onClose, onCreated }: AddSheetProps) => {
+  const md = useMasterData();
+  return (
+    <CodedAddSheet
+      open={open}
+      initialName={initialName}
+      onClose={onClose}
+      onCreated={onCreated}
+      title="Add origin"
+      kindLabel="Origin"
+      save={(input) => md.addOrigin(input)}
+    />
+  );
+};
+
+export const DestinationAddSheet = ({ open, initialName, onClose, onCreated }: AddSheetProps) => {
+  const md = useMasterData();
+  return (
+    <CodedAddSheet
+      open={open}
+      initialName={initialName}
+      onClose={onClose}
+      onCreated={onCreated}
+      title="Add destination"
+      kindLabel="Destination"
+      save={(input) => md.addDestination(input)}
+    />
+  );
+};
+
+// ─── Form-style select with "+ Add new" button below ─────────────────────
+// Drop-in replacement for the bare `<select value=... onChange=...>` used in
+// supplier/customer forms. Mirrors the "+ Add new supplier"/"+ Add new
+// customer" button pattern used elsewhere (dashed orange border, Plus icon).
+type CodedKind = "origin" | "destination";
+
+interface CodedSelectProps {
+  kind: CodedKind;
+  value: string;
+  onChange: (id: string) => void;
+  className?: string;
+  style?: React.CSSProperties;
+  includeNoneOption?: boolean;
+  noneLabel?: string;
+  fallbackHint?: string | null;
+}
+
+export const CodedSelect = ({
+  kind, value, onChange, className, style,
+  includeNoneOption = true, noneLabel = "— None —", fallbackHint,
+}: CodedSelectProps) => {
+  const md = useMasterData();
+  const [adding, setAdding] = useState(false);
+  const list = kind === "origin" ? md.origins : md.destinations;
+
+  return (
+    <>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={className}
+        style={style}
+      >
+        {includeNoneOption && <option value="">{noneLabel}</option>}
+        {[...list].sort((a, b) => a.name.localeCompare(b.name)).map((r) => (
+          <option key={r.id} value={r.id}>{r.name}</option>
+        ))}
+      </select>
+      {fallbackHint && (
+        <div className="text-[11px] italic text-muted-foreground mt-1">{fallbackHint}</div>
+      )}
+      <button
+        type="button"
+        onClick={() => setAdding(true)}
+        className="mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed text-xs font-medium hover:bg-muted/40 transition-colors"
+        style={{ borderColor: "hsl(var(--brand-orange) / 0.55)", color: "hsl(var(--brand-orange))", minHeight: 36 }}
+      >
+        <Plus className="h-3.5 w-3.5" /> Add new {kind}
+      </button>
+      {kind === "origin" ? (
+        <OriginAddSheet
+          open={adding}
+          onClose={() => setAdding(false)}
+          onCreated={(id) => { setAdding(false); onChange(id); }}
+        />
+      ) : (
+        <DestinationAddSheet
+          open={adding}
+          onClose={() => setAdding(false)}
+          onCreated={(id) => { setAdding(false); onChange(id); }}
+        />
+      )}
+    </>
+  );
+};
+
