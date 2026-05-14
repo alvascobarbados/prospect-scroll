@@ -57,6 +57,7 @@ export interface SupplierRecord {
   id: string;
   name: string;
   country?: string | null;
+  origin_id?: string | null;
   default_shipping_mode?: ShippingMode | null;
   notes?: string | null;
   legacy_id?: string | null;
