@@ -384,10 +384,14 @@ const CustomerFieldEditor = ({
   const [val, setVal] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useState(() => {});
+  useEffect(() => {
+    if (!open || !kind) return;
+    if (kind === "name") setVal(customer.name);
+    else if (kind === "country") setVal(((customer as any).destination_id ?? "") as string);
+    else if (kind === "incoterms") setVal(customer.incoterms ?? "");
+  }, [open, kind, customer]);
+
   if (!kind) return null;
-  // Initialise on open
-  if (open && val === "" && kind === "name") setVal(customer.name);
 
   const titles: Record<NonNullable<EditorKind>, string> = {
     name: "Edit name", country: "Edit country", incoterms: "Edit incoterms",
