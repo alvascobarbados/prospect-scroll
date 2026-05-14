@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { EditableCell } from "@/components/leads/SimpleMasterPage";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface AppSetting {
   id: string; section: string; key: string;
