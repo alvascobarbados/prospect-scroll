@@ -69,17 +69,30 @@ export const MasterListPage = ({ kind }: Props) => {
     if (kind === "supplier") {
       const cols: Column[] = [
         { key: "name", label: "Name" },
-        { key: "country", label: "Country" },
+        { key: "origin", label: "Origin" },
         { key: "default_shipping_mode", label: "Default mode" },
         { key: "usage", label: "Used in", align: "right" },
       ];
+      const originById = new Map(md.origins.map((o) => [o.id, o.name]));
       const r: Row[] = md.suppliers
-        .filter((s) => !term || s.name.toLowerCase().includes(term) || (s.country ?? "").toLowerCase().includes(term))
-        .map((s) => ({
-          id: s.id, raw: s,
-          usage: md.supplierUsage(s.id, s.legacy_id),
-          cells: [s.name, s.country ?? "—", s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
-        }));
+        .filter((s) => {
+          if (!term) return true;
+          const oname = s.origin_id ? (originById.get(s.origin_id) ?? "") : "";
+          return s.name.toLowerCase().includes(term)
+            || oname.toLowerCase().includes(term)
+            || (s.country ?? "").toLowerCase().includes(term);
+        })
+        .map((s) => {
+          const oname = s.origin_id ? originById.get(s.origin_id) : null;
+          const originCell = oname
+            ? <span>{oname}</span>
+            : <span className="italic text-muted-foreground/70">{s.country ?? "—"}</span>;
+          return {
+            id: s.id, raw: s,
+            usage: md.supplierUsage(s.id, s.legacy_id),
+            cells: [s.name, originCell, s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
+          };
+        });
       return { columns: cols, rows: r };
     }
     if (kind === "team") {
