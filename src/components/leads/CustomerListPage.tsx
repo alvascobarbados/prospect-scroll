@@ -581,7 +581,7 @@ const AddCustomerSheet = ({ open, onClose }: { open: boolean; onClose: () => voi
   const md = useMasterData();
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [country, setCountry] = useState<CustomerCountry>("Local");
+  const [destinationId, setDestinationId] = useState<string>("");
   const [incoterms, setIncoterms] = useState<"" | CustomerIncoterms>("");
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
@@ -591,7 +591,7 @@ const AddCustomerSheet = ({ open, onClose }: { open: boolean; onClose: () => voi
 
   useEffect(() => {
     if (!open) return;
-    setName(""); setCountry("Local"); setIncoterms("");
+    setName(""); setDestinationId(""); setIncoterms("");
     setBuyerName(""); setBuyerEmail(""); setBuyerContact("");
     setConflict(null);
   }, [open]);
@@ -610,7 +610,7 @@ const AddCustomerSheet = ({ open, onClose }: { open: boolean; onClose: () => voi
     if (buyerEmail.trim() && !emailOk(buyerEmail.trim())) { toast.error("Invalid buyer email"); return; }
     setSaving(true);
     try {
-      const c = await md.addCustomer({ name: t, country, incoterms: (incoterms || null) as any });
+      const c = await md.addCustomer({ name: t, destination_id: destinationId || null, incoterms: (incoterms || null) as any });
       if (buyerName.trim()) {
         await md.addBuyer(c.id, {
           name: buyerName.trim(),
