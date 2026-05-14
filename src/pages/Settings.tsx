@@ -33,8 +33,32 @@ const SECTION_ORDER = ["Currency & FX", "Customs & Duty", "Freight"];
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const me = useCurrentUser();
+  const isAdmin = (me.role || "").toLowerCase() === "admin";
   const [settings, setSettings] = useState<AppSetting[]>([]);
   const [rules, setRules] = useState<RoundingRule[]>([]);
+  const [healing, setHealing] = useState(false);
+  const [healResult, setHealResult] = useState<any>(null);
+
+  const runHealer = async () => {
+    setHealing(true);
+    setHealResult(null);
+    try {
+      const { data, error } = await supabase.rpc("heal_data_relationships" as any, {
+        p_actor_id: me.userId,
+        p_actor_name: me.displayName || me.userId,
+      });
+      if (error) { toast.error(`Heal failed: ${error.message}`); return; }
+      setHealResult(data);
+      const d: any = data;
+      toast.success(
+        `Healed ${d?.projects_buyer_id_healed ?? 0} projects, ` +
+        `${d?.customers_destination_id_healed ?? 0} customers, ` +
+        `${d?.suppliers_origin_id_healed ?? 0} suppliers`
+      );
+    } finally { setHealing(false); }
+  };
+
 
   useEffect(() => {
     let mounted = true;
