@@ -377,7 +377,8 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
         });
       } else if (kind === "supplier") {
         await md.updateSupplier(ent.id, {
-          name: form.name, country: form.country || null,
+          name: form.name,
+          origin_id: form.origin_id || null,
           default_shipping_mode: form.default_shipping_mode || null, notes: form.notes || null,
         });
       } else if (kind === "team") {
