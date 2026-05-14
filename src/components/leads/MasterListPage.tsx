@@ -70,6 +70,8 @@ export const MasterListPage = ({ kind }: Props) => {
       const cols: Column[] = [
         { key: "name", label: "Name" },
         { key: "origin", label: "Origin" },
+        { key: "weight_unit", label: "Weight" },
+        { key: "volume_unit", label: "Volume" },
         { key: "default_shipping_mode", label: "Default mode" },
         { key: "usage", label: "Used in", align: "right" },
       ];
@@ -90,7 +92,7 @@ export const MasterListPage = ({ kind }: Props) => {
           return {
             id: s.id, raw: s,
             usage: md.supplierUsage(s.id, s.legacy_id),
-            cells: [s.name, originCell, s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
+            cells: [s.name, originCell, s.weight_unit ?? "kg", s.volume_unit ?? "cbm", s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
           };
         });
       return { columns: cols, rows: r };
@@ -379,6 +381,8 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
         await md.updateSupplier(ent.id, {
           name: form.name,
           origin_id: form.origin_id || null,
+          weight_unit: form.weight_unit || "kg",
+          volume_unit: form.volume_unit || "cbm",
           default_shipping_mode: form.default_shipping_mode || null, notes: form.notes || null,
         });
       } else if (kind === "team") {
@@ -446,6 +450,18 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
                 style={{ minHeight: 48 }}
                 fallbackHint={!form.origin_id && form.country ? `Legacy country: ${form.country}` : null}
               />
+            </Field>
+            <Field label="Weight unit">
+              <select className={inputCls} style={{ minHeight: 48 }} value={form.weight_unit ?? "kg"} onChange={(e) => setField("weight_unit", e.target.value)}>
+                <option value="kg">kg</option>
+                <option value="lbs">lbs</option>
+              </select>
+            </Field>
+            <Field label="Volume unit">
+              <select className={inputCls} style={{ minHeight: 48 }} value={form.volume_unit ?? "cbm"} onChange={(e) => setField("volume_unit", e.target.value)}>
+                <option value="cbm">cbm</option>
+                <option value="cuft">cuft</option>
+              </select>
             </Field>
             <Field label="Default shipping">
               <select className={inputCls} style={{ minHeight: 48 }} value={form.default_shipping_mode ?? ""} onChange={(e) => setField("default_shipping_mode", e.target.value as ShippingMode || null)}>
