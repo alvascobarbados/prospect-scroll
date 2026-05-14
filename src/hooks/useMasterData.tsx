@@ -298,6 +298,8 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     return data as Customer;
   }, []);
   const updateCustomer = useCallback(async (id: string, patch: Partial<Customer>) => {
+    setCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c))
+      .sort((a, b) => a.name.localeCompare(b.name)));
     const { error } = await supabase.from("customers").update(patch).eq("id", id);
     if (error) throw error;
   }, []);
@@ -314,6 +316,8 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     return data as SupplierRecord;
   }, []);
   const updateSupplier = useCallback(async (id: string, patch: Partial<SupplierRecord>) => {
+    setSuppliers((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s))
+      .sort((a, b) => a.name.localeCompare(b.name)));
     const { error } = await supabase.from("suppliers").update(patch).eq("id", id);
     if (error) throw error;
   }, []);
@@ -334,6 +338,8 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   const updateTeamMember = useCallback(async (id: string, patch: Partial<TeamMember>) => {
     const p = patch.initials ? { ...patch, initials: patch.initials.toUpperCase() } : patch;
+    setTeamMembers((prev) => prev.map((t) => (t.id === id ? { ...t, ...p } : t))
+      .sort((a, b) => a.initials.localeCompare(b.initials)));
     const { error } = await supabase.from("team_members").update(p).eq("id", id);
     if (error) throw error;
   }, []);
@@ -350,6 +356,8 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     return data as ProductRecord;
   }, []);
   const updateProduct = useCallback(async (id: string, patch: Partial<ProductRecord>) => {
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p))
+      .sort((a, b) => a.name.localeCompare(b.name)));
     const { error } = await supabase.from("products").update(patch).eq("id", id);
     if (error) throw error;
   }, []);
@@ -374,6 +382,8 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     return data as Buyer;
   }, []);
   const updateBuyer = useCallback(async (id: string, patch: Partial<Pick<Buyer, "name" | "email" | "contact">>) => {
+    setBuyers((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b))
+      .sort((a, b) => a.name.localeCompare(b.name)));
     const { error } = await supabase.from("buyers").update(patch).eq("id", id);
     if (error) throw error;
   }, []);
