@@ -133,7 +133,7 @@ export const TeamListPage = () => {
           className="sticky top-0 z-20 backdrop-blur-md border-b"
           style={{ backgroundColor: "hsl(var(--background) / 0.92)", borderColor: "hsl(var(--brand-navy) / 0.12)" }}
         >
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-[max(env(safe-area-inset-top),12px)] pb-3 flex items-center gap-3">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-[max(env(safe-area-inset-top),12px)] pb-3 flex items-center gap-3">
             <button onClick={() => navigate("/")} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted/50">
               <ArrowLeft className="h-5 w-5" style={{ color: "hsl(var(--brand-navy))" }} />
             </button>
@@ -156,7 +156,7 @@ export const TeamListPage = () => {
           </div>
         </header>
 
-        <main className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 pb-16">
           <div className="relative my-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input

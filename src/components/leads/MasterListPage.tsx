@@ -15,7 +15,7 @@
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Search, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Search, ChevronUp, ChevronDown, Trash2, MoreVertical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sheet } from "@/components/leads/Sheet";
@@ -24,6 +24,7 @@ import { InlineAdd, CodedSelect } from "@/components/leads/EntityPicker";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { BottomSheet } from "@/components/leads/EditorSheets";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { ShippingMode } from "@/data/pipelines";
 
 interface Column { key: string; label: string; align?: "left" | "right" }
@@ -213,7 +214,7 @@ export const MasterListPage = ({ kind }: Props) => {
         className="sticky top-0 z-20 backdrop-blur-md border-b"
         style={{ backgroundColor: "hsl(var(--background) / 0.92)", borderColor: "hsl(var(--brand-navy) / 0.12)" }}
       >
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-[max(env(safe-area-inset-top),12px)] pb-3 flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-[max(env(safe-area-inset-top),12px)] pb-3 flex items-center gap-3">
           <button
             onClick={() => navigate("/")}
             aria-label="Back"
@@ -240,7 +241,7 @@ export const MasterListPage = ({ kind }: Props) => {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pb-16">
         {/* Search */}
         <div className="relative my-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -253,60 +254,106 @@ export const MasterListPage = ({ kind }: Props) => {
           />
         </div>
 
-        {/* Header row */}
-        <div
-          className="grid gap-3 px-3 py-2 text-[10px] uppercase tracking-[0.18em] font-medium text-muted-foreground"
-          style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
-        >
-          {columns.map((c) => (
-            <button
-              key={c.key}
-              onClick={() => onSortClick(c.key)}
-              className={cn(
-                "inline-flex items-center gap-1 hover:text-foreground transition-colors",
-                c.align === "right" && "justify-end",
-              )}
-            >
-              {c.label}
-              {sortKey === c.key && (
-                sortDir === "asc"
-                  ? <ChevronUp className="h-3 w-3" />
-                  : <ChevronDown className="h-3 w-3" />
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Rows */}
-        <ul className="space-y-1.5">
-          {sorted.map((r) => (
-            <li key={r.id}>
-              <button
-                onClick={() => setEditingId(r.id)}
-                className="w-full grid gap-3 px-3 py-3 text-left rounded-xl border border-border/60 bg-card hover:bg-muted/40 transition-colors"
-                style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, minHeight: 56 }}
-              >
-                {r.cells.map((cell, i) => (
-                  <span
-                    key={i}
+        {/* Table */}
+        <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
+          <table className="w-full text-[13px] border-collapse">
+            <thead>
+              <tr style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.1)", background: "hsl(var(--brand-navy) / 0.03)" }}>
+                {columns.map((c) => (
+                  <th
+                    key={c.key}
                     className={cn(
-                      "text-[14px] truncate",
-                      i === 0 ? "font-medium text-foreground" : "text-muted-foreground",
-                      columns[i].align === "right" && "text-right tabular",
+                      "text-[10px] uppercase tracking-[0.18em] font-semibold px-3 py-2.5 select-none",
+                      c.align === "right" ? "text-right" : "text-left",
                     )}
+                    style={{ color: "hsl(var(--brand-navy) / 0.65)" }}
                   >
-                    {columns[i].key === "usage" ? `${cell} project${cell === 1 ? "" : "s"}` : cell}
-                  </span>
+                    <button
+                      onClick={() => onSortClick(c.key)}
+                      className={cn(
+                        "inline-flex items-center gap-1 hover:text-foreground transition-colors",
+                        c.align === "right" && "justify-end",
+                      )}
+                    >
+                      {c.label}
+                      {sortKey === c.key && (
+                        sortDir === "asc"
+                          ? <ChevronUp className="h-3 w-3" />
+                          : <ChevronDown className="h-3 w-3" />
+                      )}
+                    </button>
+                  </th>
                 ))}
-              </button>
-            </li>
-          ))}
-          {sorted.length === 0 && (
-            <li className="text-sm text-muted-foreground italic px-3 py-12 text-center">
-              {q ? "No matches." : `No ${cfg.title.toLowerCase()} yet.`}
-            </li>
-          )}
-        </ul>
+                <th className="w-8" />
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((r) => (
+                <tr
+                  key={r.id}
+                  className="hover:bg-muted/20 transition-colors"
+                  style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.07)" }}
+                >
+                  {r.cells.map((cell, i) => {
+                    const col = columns[i];
+                    const isUsage = col.key === "usage";
+                    const isEmpty = cell === "—" || cell === null || cell === undefined || cell === "";
+                    return (
+                      <td
+                        key={i}
+                        className={cn(
+                          "px-3 py-2.5 text-[13px] align-middle",
+                          col.align === "right" && "text-right tabular",
+                          i === 0 ? "font-medium" : "",
+                          isEmpty && !isUsage && "text-muted-foreground italic",
+                        )}
+                        style={{ color: i === 0 ? "hsl(var(--brand-navy))" : undefined }}
+                      >
+                        {isUsage ? `${cell} project${cell === 1 ? "" : "s"}` : cell}
+                      </td>
+                    );
+                  })}
+                  <td className="px-2 py-2 align-middle w-8">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className="p-1 rounded hover:bg-muted/50"
+                          aria-label="Row actions"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-4 w-4" style={{ color: "hsl(var(--brand-navy) / 0.6)" }} />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-44 p-1">
+                        <button
+                          onClick={() => setEditingId(r.id)}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-sm hover:bg-muted/50"
+                        >
+                          <Pencil className="h-4 w-4" /> Edit
+                        </button>
+                        <div className="my-1 h-px" style={{ backgroundColor: "hsl(var(--brand-navy) / 0.1)" }} />
+                        <button
+                          onClick={() => setConfirmDelete({ id: r.id, label: r.cells[0] as string, usage: r.usage })}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-sm hover:bg-destructive/10"
+                          style={{ color: "hsl(var(--urgent))" }}
+                        >
+                          <Trash2 className="h-4 w-4" /> Delete
+                        </button>
+                      </PopoverContent>
+                    </Popover>
+                  </td>
+                </tr>
+              ))}
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={columns.length + 1} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
+                    {q ? "No matches." : `No ${cfg.title.toLowerCase()} yet.`}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </main>
 
       {/* Add new */}
