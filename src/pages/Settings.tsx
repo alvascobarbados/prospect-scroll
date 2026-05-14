@@ -46,7 +46,7 @@ export default function SettingsPage() {
     try {
       const { data, error } = await supabase.rpc("heal_data_relationships" as any, {
         p_actor_id: me.userId,
-        p_actor_name: me.displayName || me.userId,
+        p_actor_name: me.fullName || me.userId,
       });
       if (error) { toast.error(`Heal failed: ${error.message}`); return; }
       setHealResult(data);
