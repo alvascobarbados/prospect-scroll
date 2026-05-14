@@ -27,7 +27,7 @@ import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import type { ShippingMode } from "@/data/pipelines";
 
 interface Column { key: string; label: string; align?: "left" | "right" }
-interface Row { id: string; cells: (string | number)[]; usage: number; raw: any }
+interface Row { id: string; cells: React.ReactNode[]; usage: number; raw: any }
 
 interface Props { kind: EntityKind }
 
