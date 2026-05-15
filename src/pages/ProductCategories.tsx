@@ -353,7 +353,7 @@ const CodeCell = ({
 }: {
   row: Category;
   parentCode: string | null;
-  onSave: (raw: string) => Promise<boolean>;
+  onSave: (raw: string) => Promise<string | null>;
 }) => {
   const isSub = !!row.parent_id;
   const maxLen = isSub ? 3 : 2;
@@ -383,20 +383,9 @@ const CodeCell = ({
   }
 
   const commit = async () => {
-    const ok = await onSave(draft);
-    if (ok) { setEditing(false); setError(null); return; }
-    // Re-run validator locally to surface the message inline (onSave already
-    // returned false, so no DB write occurred).
-    // We don't have the existing[] list here; surface a generic length / prefix
-    // message via the helper using just the parent code rule (uniqueness errors
-    // will have already been surfaced via toast in the parent if needed).
-    if (draft && draft.length !== maxLen) {
-      setError(`Code must be exactly ${maxLen} characters`);
-    } else if (isSub && parentCode && draft.slice(0, 2).toUpperCase() !== parentCode.toUpperCase()) {
-      setError(`Must start with parent code ${parentCode.toUpperCase()}`);
-    } else {
-      setError("Code already in use");
-    }
+    const err = await onSave(draft);
+    if (err === null) { setEditing(false); setError(null); return; }
+    setError(err);
   };
 
   return (
