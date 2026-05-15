@@ -70,6 +70,7 @@ export const MasterListPage = ({ kind }: Props) => {
     if (kind === "supplier") {
       const cols: Column[] = [
         { key: "name", label: "Name" },
+        { key: "code", label: "Code" },
         { key: "origin", label: "Origin" },
         { key: "weight_unit", label: "Weight" },
         { key: "volume_unit", label: "Volume" },
@@ -82,6 +83,7 @@ export const MasterListPage = ({ kind }: Props) => {
           if (!term) return true;
           const oname = s.origin_id ? (originById.get(s.origin_id) ?? "") : "";
           return s.name.toLowerCase().includes(term)
+            || (s.code ?? "").toLowerCase().includes(term)
             || oname.toLowerCase().includes(term)
             || (s.country ?? "").toLowerCase().includes(term);
         })
@@ -90,10 +92,13 @@ export const MasterListPage = ({ kind }: Props) => {
           const originCell = oname
             ? <span>{oname}</span>
             : <span className="italic text-muted-foreground/70">{s.country ?? "—"}</span>;
+          const codeCell = s.code
+            ? <span className="font-mono text-[12px] tracking-wider" style={{ color: "hsl(var(--brand-navy))" }}>{s.code}</span>
+            : <span className="text-muted-foreground/60">—</span>;
           return {
             id: s.id, raw: s,
             usage: md.supplierUsage(s.id, s.legacy_id),
-            cells: [s.name, originCell, s.weight_unit ?? "kg", s.volume_unit ?? "cbm", s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
+            cells: [s.name, codeCell, originCell, s.weight_unit ?? "kg", s.volume_unit ?? "cbm", s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
           };
         });
       return { columns: cols, rows: r };

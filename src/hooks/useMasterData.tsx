@@ -58,6 +58,7 @@ export type VolumeUnit = "cbm" | "cuft";
 export interface SupplierRecord {
   id: string;
   name: string;
+  code?: string | null;
   country?: string | null;
   origin_id?: string | null;
   weight_unit: WeightUnit;
