@@ -5,7 +5,7 @@
  * Add Supplier opens the existing InlineAdd BottomSheet (kind="supplier").
  * Three-dots row menu provides Delete only.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Search, MoreVertical, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { InlineAdd, OriginAddSheet } from "@/components/leads/EntityPicker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMasterData, type SupplierRecord } from "@/hooks/useMasterData";
 import { EditableText, EditableSelect } from "@/components/leads/CustomerListPage";
+import { sanitizeSupplierCodeInput, isSupplierCodeChar, validateSupplierCode } from "@/lib/supplierCode";
 import type { ShippingMode } from "@/data/pipelines";
 
 const WEIGHT_OPTIONS = ["kg", "lbs"] as const;
