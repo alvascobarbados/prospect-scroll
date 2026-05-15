@@ -5,7 +5,7 @@
  * Add Supplier opens the existing InlineAdd BottomSheet (kind="supplier").
  * Three-dots row menu provides Delete only.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Search, MoreVertical, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { InlineAdd, OriginAddSheet } from "@/components/leads/EntityPicker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMasterData, type SupplierRecord } from "@/hooks/useMasterData";
 import { EditableText, EditableSelect } from "@/components/leads/CustomerListPage";
+import { sanitizeSupplierCodeInput, isSupplierCodeChar, validateSupplierCode } from "@/lib/supplierCode";
 import type { ShippingMode } from "@/data/pipelines";
 
 const WEIGHT_OPTIONS = ["kg", "lbs"] as const;
@@ -186,7 +187,6 @@ const Td = ({ children, className, align }: { children?: React.ReactNode; classN
 const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelete: () => void }) => {
   const md = useMasterData();
   const [nameRevert, setNameRevert] = useState(0);
-  const [codeRevert, setCodeRevert] = useState(0);
   const usage = md.supplierUsage(supplier.id, supplier.legacy_id);
 
   const updateName = async (v: string) => {
@@ -199,22 +199,10 @@ const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelet
     catch (err: any) { toast.error(err?.message ?? "Save failed"); setNameRevert((n) => n + 1); }
   };
 
-  const updateCode = async (v: string) => {
-    const raw = (v ?? "").trim().toUpperCase();
-    const cleaned = raw.replace(/[^A-Z0-9]/g, "").slice(0, 3);
-    const current = (supplier.code ?? "").toUpperCase();
-    if (cleaned === current) { setCodeRevert((n) => n + 1); return; }
-    if (cleaned && cleaned.length !== 3) {
-      toast.error("Code must be exactly 3 letters or digits");
-      setCodeRevert((n) => n + 1);
-      return;
-    }
-    if (cleaned) {
-      const dup = md.suppliers.find((s) => s.id !== supplier.id && (s.code ?? "").toUpperCase() === cleaned);
-      if (dup) { toast.error(`Code already in use by ${dup.name}`); setCodeRevert((n) => n + 1); return; }
-    }
-    try { await md.updateSupplier(supplier.id, { code: cleaned || null }); }
-    catch (err: any) { toast.error(err?.message ?? "Save failed"); setCodeRevert((n) => n + 1); }
+  const saveCode = async (next: string | null) => {
+    if ((next ?? null) === (supplier.code ?? null)) return;
+    try { await md.updateSupplier(supplier.id, { code: next }); }
+    catch (err: any) { toast.error(err?.message ?? "Save failed"); throw err; }
   };
 
   const updateOrigin = async (id: string) => {
@@ -244,14 +232,11 @@ const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelet
     <tr className="hover:bg-muted/20 transition-colors" style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.07)" }}>
       <Td><EditableText key={`name-${nameRevert}`} value={supplier.name} onSave={updateName} bold /></Td>
       <Td>
-        <span className="font-mono tracking-wider text-[12px]">
-          <EditableText
-            key={`code-${codeRevert}`}
-            value={supplier.code ?? ""}
-            placeholder="—"
-            onSave={updateCode}
-          />
-        </span>
+        <EditableCode
+          supplierId={supplier.id}
+          value={supplier.code ?? ""}
+          onSave={saveCode}
+        />
       </Td>
       <Td>
         <OriginSelect
@@ -351,5 +336,108 @@ const OriginSelect = ({
         onCreated={(id) => { setAdding(false); onSave(id); }}
       />
     </>
+  );
+};
+
+// ─── Editable supplier-code cell ────────────────────────────────────
+// Restricts keystrokes to A-Z/0-9, auto-uppercases, caps at 3 chars.
+// Inline error UI (red border + message). Esc reverts. Blur/Enter saves
+// only when valid. Allows clearing back to NULL.
+const EditableCode = ({
+  supplierId, value, onSave,
+}: {
+  supplierId: string;
+  value: string;
+  onSave: (next: string | null) => Promise<void>;
+}) => {
+  const md = useMasterData();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [error, setError] = useState<string | null>(null);
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      setDraft(value);
+      setError(null);
+      setTimeout(() => ref.current?.select(), 0);
+    }
+  }, [editing, value]);
+
+  // Live-validate the draft so the error message updates as the user types.
+  useEffect(() => {
+    if (!editing) return;
+    const cleaned = sanitizeSupplierCodeInput(draft);
+    if (!cleaned) { setError(null); return; }
+    if (cleaned.length !== 3) { setError("Code must be exactly 3 characters"); return; }
+    const dup = md.suppliers.find(
+      (s) => s.id !== supplierId && (s.code ?? "").toUpperCase() === cleaned,
+    );
+    setError(dup ? `Code already in use by ${dup.name}` : null);
+  }, [draft, editing, md.suppliers, supplierId]);
+
+  const commit = async () => {
+    const result = validateSupplierCode(draft, md.suppliers, supplierId);
+    if (result.ok === false) {
+      setError(result.error);
+      ref.current?.focus();
+      return;
+    }
+    setEditing(false);
+    setError(null);
+    if ((result.value ?? null) === (value || null)) return;
+    try { await onSave(result.value); }
+    catch { /* parent toasted */ }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <input
+          ref={ref}
+          value={draft}
+          onChange={(e) => setDraft(sanitizeSupplierCodeInput(e.target.value))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); commit(); return; }
+            if (e.key === "Escape") {
+              setDraft(value); setError(null); setEditing(false);
+              return;
+            }
+            if (e.key.length === 1 && !isSupplierCodeChar(e.key) && !e.metaKey && !e.ctrlKey) {
+              e.preventDefault();
+            }
+          }}
+          onBlur={commit}
+          maxLength={3}
+          inputMode="text"
+          autoCapitalize="characters"
+          spellCheck={false}
+          className={cn(
+            "w-[64px] px-1.5 py-0.5 rounded border bg-background text-[12px] font-mono tracking-wider uppercase focus:outline-none focus:ring-2",
+            error
+              ? "border-[hsl(var(--urgent))] focus:ring-[hsl(var(--urgent)/0.4)]"
+              : "border-[hsl(var(--brand-navy)/0.3)] focus:ring-[hsl(var(--brand-navy)/0.4)]",
+          )}
+        />
+        {error && (
+          <span className="text-[10px]" style={{ color: "hsl(var(--urgent))" }}>{error}</span>
+        )}
+      </div>
+    );
+  }
+
+  const isEmpty = !value;
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className={cn(
+        "w-full text-left px-1.5 py-0.5 rounded hover:bg-muted/40 truncate font-mono tracking-wider text-[12px]",
+        isEmpty && "italic text-muted-foreground",
+      )}
+      style={{ minHeight: 28 }}
+    >
+      {value || "—"}
+    </button>
   );
 };

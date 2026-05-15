@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/popover";
 import { useMasterData, EntityKind } from "@/hooks/useMasterData";
 import type { ShippingMode } from "@/data/pipelines";
+import { sanitizeSupplierCodeInput, validateSupplierCode } from "@/lib/supplierCode";
 
 type Presentation = "sheet" | "popover";
 
@@ -547,21 +548,14 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         toast.success(`Customer "${c.name}" added`);
         onCreated(c.name);
       } else if (kind === "supplier") {
-        const codeRaw = supCode.trim().toUpperCase();
-        if (codeRaw) {
-          if (!/^[A-Z0-9]{3}$/.test(codeRaw)) {
-            toast.error("Code must be exactly 3 letters or digits");
-            return;
-          }
-          const dup = md.suppliers.find((s) => (s.code ?? "").toUpperCase() === codeRaw);
-          if (dup) {
-            toast.error(`Code already in use by ${dup.name}`);
-            return;
-          }
+        const codeCheck = validateSupplierCode(supCode, md.suppliers);
+        if (codeCheck.ok === false) {
+          toast.error(codeCheck.error);
+          return;
         }
         const s = await md.addSupplier({
           name: name.trim(),
-          code: codeRaw || null,
+          code: codeCheck.value,
           origin_id: supOriginId || null,
           weight_unit: weightUnit,
           volume_unit: volumeUnit,
@@ -653,7 +647,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
               <label className={labelCls}>Code (optional)</label>
               <input
                 value={supCode}
-                onChange={(e) => setSupCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3))}
+                onChange={(e) => setSupCode(sanitizeSupplierCodeInput(e.target.value))}
                 maxLength={3}
                 className={inputCls}
                 style={{ minHeight: 48, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", letterSpacing: "0.08em" }}
