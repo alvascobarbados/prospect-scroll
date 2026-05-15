@@ -1,9 +1,19 @@
 /**
  * Product Categories — parent/child rendering like Customers/Buyers.
+ *
  * Top-level categories (parent_id = null) render as bold rows; subcategories
  * (parent_id = parent.id) render nested underneath with indented Name.
+ *
+ * CODE column (leftmost-data) is inline-editable using the shared
+ * src/lib/categoryCode.ts helpers — 2 chars for categories, 3 chars for
+ * subcategories (first 2 must equal parent code), uppercase alphanumeric,
+ * case-insensitively unique. Empty saves NULL.
+ *
+ * Add Category / Add Subcategory pre-fill base_margin_pct + step_size_pct
+ * from the "Pricing Defaults" rows in app_settings, so the values stay
+ * editable globally without code changes.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Search, MoreVertical, Trash2, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -13,10 +23,17 @@ import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { EditableCell } from "@/components/leads/SimpleMasterPage";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  isCategoryCodeChar,
+  sanitizeCategoryCodeInput,
+  validateCategoryCode,
+  type CategoryCodeRef,
+} from "@/lib/categoryCode";
 
 interface Category {
   id: string;
   parent_id: string | null;
+  code: string | null;
   name: string;
   base_margin_pct: number | null;
   step_size_pct: number | null;
@@ -31,40 +48,66 @@ const numOrNull = (raw: string): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+const DEFAULT_MARGIN_FALLBACK = 40;
+const DEFAULT_STEP_FALLBACK = 5;
+
 export default function ProductCategoriesPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<Category[]>([]);
   const [q, setQ] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<Category | null>(null);
+  const [defaultMargin, setDefaultMargin] = useState<number>(DEFAULT_MARGIN_FALLBACK);
+  const [defaultStep, setDefaultStep] = useState<number>(DEFAULT_STEP_FALLBACK);
 
+  // Load categories + pricing defaults; subscribe to changes on both tables.
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      const { data, error } = await supabase.from("product_categories").select("*").order("name");
+      const [cats, settings] = await Promise.all([
+        supabase.from("product_categories").select("*").order("name"),
+        supabase
+          .from("app_settings")
+          .select("key,value")
+          .in("key", ["default_category_margin_pct", "default_category_step_size_pct"]),
+      ]);
       if (!mounted) return;
-      if (error) { toast.error(`Load failed: ${error.message}`); return; }
-      setRows((data ?? []) as Category[]);
+      if (cats.error) { toast.error(`Load failed: ${cats.error.message}`); }
+      else setRows((cats.data ?? []) as Category[]);
+      if (settings.data) {
+        for (const s of settings.data as { key: string; value: string | null }[]) {
+          const n = s.value == null ? NaN : Number(s.value);
+          if (!Number.isFinite(n)) continue;
+          if (s.key === "default_category_margin_pct") setDefaultMargin(n);
+          if (s.key === "default_category_step_size_pct") setDefaultStep(n);
+        }
+      }
     };
     load();
     const ch = supabase.channel("master-product_categories")
       .on("postgres_changes", { event: "*", schema: "public", table: "product_categories" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "app_settings" }, load)
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, []);
 
   const groups = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const parents = rows.filter((r) => !r.parent_id).sort((a, b) => a.name.localeCompare(b.name));
+    const parents = rows.filter((r) => !r.parent_id).sort((a, b) => (a.code ?? "zz").localeCompare(b.code ?? "zz"));
     return parents.map((p) => {
       const subs = rows
         .filter((r) => r.parent_id === p.id)
-        .sort((a, b) => a.name.localeCompare(b.name));
-      const matchSelf = !term || p.name.toLowerCase().includes(term);
-      const matchSub = subs.filter((s) => s.name.toLowerCase().includes(term));
+        .sort((a, b) => (a.code ?? "zzz").localeCompare(b.code ?? "zzz"));
+      const matchSelf = !term || p.name.toLowerCase().includes(term) || (p.code ?? "").toLowerCase().includes(term);
+      const matchSub = subs.filter((s) => s.name.toLowerCase().includes(term) || (s.code ?? "").toLowerCase().includes(term));
       const include = matchSelf || matchSub.length > 0;
       return { parent: p, subs, include };
     }).filter((g) => g.include);
   }, [rows, q]);
+
+  const codeRefs = useMemo<CategoryCodeRef[]>(
+    () => rows.map((r) => ({ id: r.id, name: r.name, code: r.code })),
+    [rows],
+  );
 
   const updateField = async (row: Category, key: keyof Category, raw: string) => {
     let value: any = raw.trim();
@@ -83,16 +126,38 @@ export default function ProductCategoriesPage() {
     return true;
   };
 
+  // Code save uses the shared validator. Returns null on success or an
+  // inline error string on failure (so the CodeCell can surface it).
+  const updateCode = async (row: Category, raw: string): Promise<string | null> => {
+    const parent = row.parent_id ? rows.find((r) => r.id === row.parent_id) ?? null : null;
+    const v = validateCategoryCode(raw, {
+      isSubcategory: !!row.parent_id,
+      parentCode: parent?.code ?? null,
+      existing: codeRefs,
+      excludeId: row.id,
+    });
+    if (v.ok === false) return v.error;
+    const prev = rows;
+    setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, code: v.value } as Category : r)));
+    const { error } = await supabase
+      .from("product_categories")
+      .update({ code: v.value } as any)
+      .eq("id", row.id);
+    if (error) { setRows(prev); return error.message; }
+    return null;
+  };
+
   const addParent = async () => {
     const { data, error } = await supabase.from("product_categories").insert({
-      name: "New category", base_margin_pct: 0, step_size_pct: 0,
+      name: "New category", base_margin_pct: defaultMargin, step_size_pct: defaultStep,
     }).select().single();
     if (error) { toast.error(`Add failed: ${error.message}`); return; }
     if (data) setRows((rs) => [...rs.filter((r) => r.id !== (data as any).id), data as Category]);
   };
   const addSub = async (parentId: string) => {
     const { data, error } = await supabase.from("product_categories").insert({
-      parent_id: parentId, name: "New subcategory", base_margin_pct: 0, step_size_pct: 0,
+      parent_id: parentId, name: "New subcategory",
+      base_margin_pct: defaultMargin, step_size_pct: defaultStep,
     }).select().single();
     if (error) { toast.error(`Add failed: ${error.message}`); return; }
     if (data) setRows((rs) => [...rs.filter((r) => r.id !== (data as any).id), data as Category]);
@@ -145,6 +210,7 @@ export default function ProductCategoriesPage() {
             <table className="w-full text-[13px] border-collapse">
               <thead>
                 <tr style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.1)", background: "hsl(var(--brand-navy) / 0.03)" }}>
+                  <Th className="w-20">Code</Th>
                   <Th>Name</Th>
                   <Th>Base Margin %</Th>
                   <Th>Step Size %</Th>
@@ -160,12 +226,13 @@ export default function ProductCategoriesPage() {
                     parent={parent}
                     subs={subs}
                     onUpdate={updateField}
+                    onUpdateCode={updateCode}
                     onDelete={(c) => setConfirmDelete(c)}
                     onAddSub={() => addSub(parent.id)}
                   />
                 ))}
                 {groups.length === 0 && (
-                  <tr><td colSpan={6} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
+                  <tr><td colSpan={7} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
                     {q ? "No matches." : "No categories yet."}
                   </td></tr>
                 )}
@@ -194,30 +261,43 @@ const Th = ({ children, className }: { children?: React.ReactNode; className?: s
 );
 
 const CategoryGroup = ({
-  parent, subs, onUpdate, onDelete, onAddSub,
+  parent, subs, onUpdate, onUpdateCode, onDelete, onAddSub,
 }: {
   parent: Category; subs: Category[];
   onUpdate: (row: Category, key: keyof Category, raw: string) => Promise<boolean>;
+  onUpdateCode: (row: Category, raw: string) => Promise<string | null>;
   onDelete: (row: Category) => void;
   onAddSub: () => void;
 }) => (
   <>
-    <CategoryRow row={parent} bold onUpdate={onUpdate} onDelete={onDelete} onAddSub={onAddSub} />
+    <CategoryRow row={parent} parentCode={null} bold onUpdate={onUpdate} onUpdateCode={onUpdateCode} onDelete={onDelete} onAddSub={onAddSub} />
     {subs.map((s) => (
-      <CategoryRow key={s.id} row={s} indent onUpdate={onUpdate} onDelete={onDelete} />
+      <CategoryRow
+        key={s.id}
+        row={s}
+        parentCode={parent.code}
+        indent
+        onUpdate={onUpdate}
+        onUpdateCode={onUpdateCode}
+        onDelete={onDelete}
+      />
     ))}
   </>
 );
 
 const CategoryRow = ({
-  row, bold, indent, onUpdate, onDelete, onAddSub,
+  row, parentCode, bold, indent, onUpdate, onUpdateCode, onDelete, onAddSub,
 }: {
-  row: Category; bold?: boolean; indent?: boolean;
+  row: Category; parentCode: string | null; bold?: boolean; indent?: boolean;
   onUpdate: (row: Category, key: keyof Category, raw: string) => Promise<boolean>;
+  onUpdateCode: (row: Category, raw: string) => Promise<string | null>;
   onDelete: (row: Category) => void;
   onAddSub?: () => void;
 }) => (
   <tr className="hover:bg-muted/20 transition-colors" style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.07)" }}>
+    <td className="px-3 py-2 align-top">
+      <CodeCell row={row} parentCode={parentCode} onSave={(raw) => onUpdateCode(row, raw)} />
+    </td>
     <td className="px-3 py-2 align-top" style={indent ? { paddingLeft: 28 } : undefined}>
       <div className={cn(bold && "font-semibold")}>
         <EditableCell value={row.name} onSave={(v) => onUpdate(row, "name", v)} />
@@ -262,3 +342,79 @@ const CategoryRow = ({
     </td>
   </tr>
 );
+
+// ─── Inline-editable CODE cell ───────────────────────────────────────────
+// Strict: keystroke filter (alphanumeric only), auto-uppercase, length cap
+// (2 for category, 3 for subcategory). On commit runs the shared validator;
+// on failure shows inline red border + error and keeps the cell open. Esc
+// reverts. Empty saves NULL. Display em-dash when NULL.
+const CodeCell = ({
+  row, parentCode, onSave,
+}: {
+  row: Category;
+  parentCode: string | null;
+  onSave: (raw: string) => Promise<string | null>;
+}) => {
+  const isSub = !!row.parent_id;
+  const maxLen = isSub ? 3 : 2;
+  const stored = row.code ?? "";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(stored);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (!editing) { setDraft(stored); setError(null); } }, [stored, editing]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  if (!editing) {
+    const empty = !stored;
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className={cn(
+          "w-full text-left rounded px-1 py-0.5 -mx-1 hover:bg-muted/40 min-h-[1.5rem] font-mono",
+          empty && "text-muted-foreground italic",
+        )}
+      >
+        {empty ? "—" : stored}
+      </button>
+    );
+  }
+
+  const commit = async () => {
+    const err = await onSave(draft);
+    if (err === null) { setEditing(false); setError(null); return; }
+    setError(err);
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => {
+          setDraft(sanitizeCategoryCodeInput(e.target.value, isSub));
+          if (error) setError(null);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); return; }
+          if (e.key === "Escape") { setDraft(stored); setError(null); setEditing(false); return; }
+          if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey && !isCategoryCodeChar(e.key)) {
+            e.preventDefault();
+          }
+        }}
+        onBlur={commit}
+        maxLength={maxLen}
+        className={cn(
+          "w-full rounded border bg-background px-1.5 py-0.5 text-[13px] font-mono uppercase focus:outline-none focus:ring-2",
+          error
+            ? "border-destructive focus:ring-destructive/40"
+            : "border-[hsl(var(--brand-navy)/0.25)] focus:ring-[hsl(var(--brand-navy)/0.4)]",
+        )}
+        style={{ textTransform: "uppercase" }}
+      />
+      {error && <p className="text-[11px] text-destructive leading-tight">{error}</p>}
+    </div>
+  );
+};

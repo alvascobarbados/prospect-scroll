@@ -325,6 +325,7 @@ export type Database = {
       product_categories: {
         Row: {
           base_margin_pct: number
+          code: string | null
           created_at: string
           duty_rate_pct: number | null
           id: string
@@ -336,6 +337,7 @@ export type Database = {
         }
         Insert: {
           base_margin_pct: number
+          code?: string | null
           created_at?: string
           duty_rate_pct?: number | null
           id?: string
@@ -347,6 +349,7 @@ export type Database = {
         }
         Update: {
           base_margin_pct?: number
+          code?: string | null
           created_at?: string
           duty_rate_pct?: number | null
           id?: string
