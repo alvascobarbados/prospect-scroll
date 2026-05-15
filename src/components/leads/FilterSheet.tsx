@@ -15,7 +15,7 @@ interface Props {
   onChange: (next: FilterState) => void;
   customers: string[];
   projectNames: string[];
-  suppliers: { id: string; name: string }[];
+  suppliers: { id: string; name: string; code?: string | null }[];
   salesReps: string[];
 }
 
