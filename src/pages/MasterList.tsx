@@ -4,6 +4,7 @@ import { TeamListPage } from "@/components/leads/TeamListPage";
 import { TeamMemberPage } from "@/components/leads/TeamMemberPage";
 import { CustomerListPage } from "@/components/leads/CustomerListPage";
 import { CustomerDetailPage } from "@/components/leads/CustomerDetailPage";
+import { SupplierListPage } from "@/components/leads/SupplierListPage";
 import type { EntityKind } from "@/hooks/useMasterData";
 
 export const MasterList = ({ kind }: { kind: EntityKind }) => {
@@ -18,6 +19,7 @@ export const MasterList = ({ kind }: { kind: EntityKind }) => {
     if (customerId) return <CustomerDetailPage customerId={customerId} />;
     return <CustomerListPage />;
   }
+  if (kind === "supplier") return <SupplierListPage />;
   return <MasterListPage kind={kind} />;
 };
 export default MasterList;
