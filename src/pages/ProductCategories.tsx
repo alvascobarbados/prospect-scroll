@@ -265,7 +265,7 @@ const CategoryGroup = ({
 }: {
   parent: Category; subs: Category[];
   onUpdate: (row: Category, key: keyof Category, raw: string) => Promise<boolean>;
-  onUpdateCode: (row: Category, raw: string) => Promise<boolean>;
+  onUpdateCode: (row: Category, raw: string) => Promise<string | null>;
   onDelete: (row: Category) => void;
   onAddSub: () => void;
 }) => (
@@ -290,7 +290,7 @@ const CategoryRow = ({
 }: {
   row: Category; parentCode: string | null; bold?: boolean; indent?: boolean;
   onUpdate: (row: Category, key: keyof Category, raw: string) => Promise<boolean>;
-  onUpdateCode: (row: Category, raw: string) => Promise<boolean>;
+  onUpdateCode: (row: Category, raw: string) => Promise<string | null>;
   onDelete: (row: Category) => void;
   onAddSub?: () => void;
 }) => (
