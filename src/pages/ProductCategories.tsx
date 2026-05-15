@@ -126,9 +126,9 @@ export default function ProductCategoriesPage() {
     return true;
   };
 
-  // Code save uses the shared validator; returns false to keep the cell open
-  // when validation fails so the inline error stays visible.
-  const updateCode = async (row: Category, raw: string): Promise<boolean> => {
+  // Code save uses the shared validator. Returns null on success or an
+  // inline error string on failure (so the CodeCell can surface it).
+  const updateCode = async (row: Category, raw: string): Promise<string | null> => {
     const parent = row.parent_id ? rows.find((r) => r.id === row.parent_id) ?? null : null;
     const v = validateCategoryCode(raw, {
       isSubcategory: !!row.parent_id,
@@ -136,15 +136,15 @@ export default function ProductCategoriesPage() {
       existing: codeRefs,
       excludeId: row.id,
     });
-    if (!v.ok) return false;
+    if (!v.ok) return v.error;
     const prev = rows;
     setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, code: v.value } as Category : r)));
     const { error } = await supabase
       .from("product_categories")
       .update({ code: v.value } as any)
       .eq("id", row.id);
-    if (error) { setRows(prev); toast.error(`Save failed: ${error.message}`); return false; }
-    return true;
+    if (error) { setRows(prev); return error.message; }
+    return null;
   };
 
   const addParent = async () => {
