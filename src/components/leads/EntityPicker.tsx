@@ -650,6 +650,18 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         {kind === "supplier" && (
           <>
             <div>
+              <label className={labelCls}>Code (optional)</label>
+              <input
+                value={supCode}
+                onChange={(e) => setSupCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3))}
+                maxLength={3}
+                className={inputCls}
+                style={{ minHeight: 48, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", letterSpacing: "0.08em" }}
+                placeholder="SAD"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Three-character supplier code (e.g. SAD for Shanghai Admax).</p>
+            </div>
+            <div>
               <label className={labelCls}>Origin</label>
               <CodedSelect
                 kind="origin"
