@@ -876,6 +876,7 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          code: string | null
           country: string
           created_at: string
           default_shipping_mode: string | null
@@ -889,6 +890,7 @@ export type Database = {
           weight_unit: string
         }
         Insert: {
+          code?: string | null
           country?: string
           created_at?: string
           default_shipping_mode?: string | null
@@ -902,6 +904,7 @@ export type Database = {
           weight_unit?: string
         }
         Update: {
+          code?: string | null
           country?: string
           created_at?: string
           default_shipping_mode?: string | null
