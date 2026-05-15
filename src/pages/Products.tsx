@@ -625,7 +625,7 @@ interface DraftRowProps {
   onCancel: () => void;
   onBlurRow: (e: React.FocusEvent<HTMLTableRowElement>) => void;
   subcategoryGroups: { parent: Cat; subs: Cat[] }[];
-  supplierOptions: { id: string; name: string; origin_id: string | null; code: string | null }[];
+  supplierOptions: { id: string; name: string; origin_id?: string | null; code?: string | null }[];
   origins: { id: string; code: string | null; name: string }[];
   itemNumberPreview: string | null;
   subCode: string | null;
@@ -730,7 +730,7 @@ interface BlockProps {
   bandsByDecoration: Map<string, Band[]>;
   products: Product[];
   subcategoryGroups: { parent: Cat; subs: Cat[] }[];
-  supplierOptions: { id: string; name: string; origin_id: string | null; code: string | null }[];
+  supplierOptions: { id: string; name: string; origin_id?: string | null; code?: string | null }[];
   decorationGroups: { parent: DecorationMethodRow; details: MethodDetail[] }[];
   subcategoryDisplay: (id: string | null | undefined) => string;
   supplierDisplay: (id: string | null | undefined) => string;
