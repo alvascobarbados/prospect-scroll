@@ -2,20 +2,14 @@
  * Products — master catalog with three-tier hierarchy:
  *   Product → Decoration → Band
  *
- * Default view: expanded merged-cell layout. Product identity/specs span
- * all rows under that product (rowSpan = total band count, min 1).
- * Decoration cells span their bands (rowSpan = band count, min 1).
- * Band cells are individual rows.
- *
- * Per-product collapse to a compact summary row (chevron at left). Global
- * Expand-all / Collapse-all buttons. Collapsed state persists in
- * sessionStorage for the session.
- *
- * Inline editing on every product cell. Subcategory / Supplier changes
- * trigger a renumber-confirmation dialog because chars 1-3 / char 7 of
- * the primary_item_number recompute. Sequence (chars 4-6) is editable
- * directly with uniqueness validation. Origin is never displayed —
- * derived from supplier.origin_id at save time.
+ * Phase 2.1 corrections:
+ *  - Inline-row Add Product (no BottomSheet)
+ *  - Band sub-grid retained; explicit "+ Add band" row at end of each
+ *    decoration; explicit "+ Add decoration" row at end of each product.
+ *    New decoration auto-creates 4 empty band rows.
+ *  - All dropdowns use Radix Select (or Radix Popover for qty quick-pick).
+ *  - Display labels: name only (no [CODE] prefix). Codes still drive the
+ *    primary_item_number composition under the hood.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -28,13 +22,16 @@ import { cn } from "@/lib/utils";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel,
+} from "@/components/ui/select";
 import { EditableCell } from "@/components/leads/SimpleMasterPage";
-import { AddProductSheet } from "@/components/leads/AddProductSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useMasterData } from "@/hooks/useMasterData";
 import { originLetterFromCode } from "@/lib/originLetter";
 import {
   composePrimaryItemNumber, parsePrimaryItemNumber, sanitizeSequenceInput,
+  nextSequenceFor,
 } from "@/lib/productItemNumber";
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -68,6 +65,8 @@ interface MethodDetail { id: string; decoration_method_id: string; code: string;
 interface DecorationMethodRow { id: string; code: string; name: string }
 
 const SS_KEY = "alvasco.products.collapsed";
+const QTY_QUICK_PICKS = [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+
 const numOrNull = (raw: string): number | null => {
   const t = raw.trim(); if (!t) return null;
   const n = Number(t); return Number.isFinite(n) ? n : null;
@@ -79,6 +78,15 @@ const intOrNull = (raw: string): number | null => {
 const fmtMoney = (n: number | null | undefined) =>
   n == null ? "—" : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const dash = (v: any) => (v == null || v === "" ? "—" : v);
+
+// ── Draft row (inline-row Add Product) state ──────────────────────────
+interface Draft {
+  subcategoryId: string;
+  supplierId: string;
+  name: string;
+  sequence: string; // 3-digit user-editable; "" until auto-suggested
+}
+const EMPTY_DRAFT: Draft = { subcategoryId: "", supplierId: "", name: "", sequence: "" };
 
 export default function ProductsPage() {
   const navigate = useNavigate();
@@ -92,7 +100,7 @@ export default function ProductsPage() {
   const [decoMethods, setDecoMethods] = useState<DecorationMethodRow[]>([]);
 
   const [q, setQ] = useState("");
-  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState<Draft | null>(null);
   const [confirmDeleteProduct, setConfirmDeleteProduct] = useState<Product | null>(null);
   const [confirmDeleteDecoration, setConfirmDeleteDecoration] = useState<Decoration | null>(null);
   const [confirmDeleteBand, setConfirmDeleteBand] = useState<Band | null>(null);
@@ -160,15 +168,14 @@ export default function ProductsPage() {
     return m;
   }, [bands]);
 
+  // Display helpers — name only (no [CODE] prefix anywhere on this page)
   const subcategoryDisplay = (id: string | null | undefined) => {
     if (!id) return "—";
-    const c = catById.get(id); if (!c) return "—";
-    return c.code ? `[${c.code}] ${c.name}` : c.name;
+    return catById.get(id)?.name ?? "—";
   };
   const supplierDisplay = (id: string | null | undefined) => {
     if (!id) return "—";
-    const s = md.suppliers.find((x) => x.id === id); if (!s) return "—";
-    return s.code ? `[${s.code}] ${s.name}` : s.name;
+    return md.suppliers.find((x) => x.id === id)?.name ?? "—";
   };
   const supplierUnits = (id: string | null | undefined) => {
     const s = id ? md.suppliers.find((x) => x.id === id) : null;
@@ -177,11 +184,32 @@ export default function ProductsPage() {
   };
   const methodDetailDisplay = (id: string | null | undefined) => {
     if (!id) return "—";
-    const m = methodDetailById.get(id); if (!m) return "—";
-    const parent = decoMethodById.get(m.decoration_method_id);
-    const left = parent ? `${parent.name}` : "";
-    return `${left ? left + " ▸ " : ""}[${m.code}] ${m.detail}`;
+    return methodDetailById.get(id)?.detail ?? "—";
   };
+
+  // Subcategory options grouped by parent (for Radix Select)
+  const subcategoryGroups = useMemo(() => {
+    const parents = cats.filter((c) => !c.parent_id).sort((a, b) => a.name.localeCompare(b.name));
+    return parents.map((p) => ({
+      parent: p,
+      subs: cats.filter((c) => c.parent_id === p.id).sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+  }, [cats]);
+
+  const supplierOptions = useMemo(
+    () => [...md.suppliers].sort((a, b) => a.name.localeCompare(b.name)),
+    [md.suppliers],
+  );
+
+  const decorationGroups = useMemo(() => {
+    const parents = [...decoMethods].sort((a, b) => a.name.localeCompare(b.name));
+    return parents.map((p) => ({
+      parent: p,
+      details: methodDetails
+        .filter((m) => m.decoration_method_id === p.id)
+        .sort((a, b) => a.detail.localeCompare(b.detail)),
+    })).filter((g) => g.details.length > 0);
+  }, [decoMethods, methodDetails]);
 
   // ── Filter ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -225,7 +253,6 @@ export default function ProductsPage() {
     const seq = parsed?.sequence ?? "001";
     const newNum = composePrimaryItemNumber(newSub.code, seq, letter);
     if (newNum === product.primary_item_number) {
-      // No renumber — apply patch silently.
       await updateProduct(product.id, {
         subcategory_id: newSubId, supplier_id: newSupId,
         origin_id: newSup.origin_id!,
@@ -251,21 +278,28 @@ export default function ProductsPage() {
 
   // ── Decoration / Band CRUD ──────────────────────────────────────────
   const addDecoration = async (productId: string) => {
-    // Default to first available method_detail; user changes inline.
     const first = methodDetails[0];
     if (!first) { toast.error("Add a Decoration Method first."); return; }
     const existing = decorations.filter((d) => d.product_id === productId);
-    // pick a method_detail not already used on this product
     const used = new Set(existing.map((d) => d.method_detail_id));
     const pick = methodDetails.find((m) => !used.has(m.id)) ?? first;
     if (used.has(pick.id)) {
       toast.error("All decoration methods already assigned to this product.");
       return;
     }
-    const { error } = await supabase.from("product_decorations").insert({
+    const ins = await supabase.from("product_decorations").insert({
       product_id: productId, method_detail_id: pick.id, sort_order: existing.length,
-    });
-    if (error) toast.error(`Add failed: ${error.message}`);
+    }).select("id").single();
+    if (ins.error) { toast.error(`Add failed: ${ins.error.message}`); return; }
+    // Pre-populate 4 empty band rows at the standard quick-pick quantities.
+    const seedQtys = [100, 250, 500, 1000];
+    const decoId = (ins.data as { id: string }).id;
+    const { error: bErr } = await supabase.from("product_decoration_bands").insert(
+      seedQtys.map((qty) => ({
+        product_decoration_id: decoId, qty, unit_cost: 0, setup_cost: 0,
+      })),
+    );
+    if (bErr) toast.error(`Seed bands failed: ${bErr.message}`);
   };
   const updateDecoration = async (id: string, patch: Partial<Decoration>) => {
     const { error } = await supabase.from("product_decorations").update(patch as any).eq("id", id);
@@ -275,21 +309,113 @@ export default function ProductsPage() {
     const { error } = await supabase.from("product_decorations").delete().eq("id", id);
     if (error) toast.error(`Delete failed: ${error.message}`);
   };
-  const addBand = async (decorationId: string) => {
+  const addBand = async (decorationId: string, qty?: number) => {
     const existing = bands.filter((b) => b.product_decoration_id === decorationId);
-    const nextQty = existing.length === 0 ? 1 : Math.max(...existing.map((b) => b.qty)) + 1;
+    const used = new Set(existing.map((b) => b.qty));
+    let nextQty = qty ?? 0;
+    if (!nextQty) {
+      // Pick first quick-pick not already in use; fallback to max+1.
+      nextQty = QTY_QUICK_PICKS.find((q) => !used.has(q))
+        ?? (existing.length ? Math.max(...existing.map((b) => b.qty)) + 1 : 1);
+    }
+    if (used.has(nextQty)) { toast.error(`Qty ${nextQty} already exists on this decoration.`); return; }
     const { error } = await supabase.from("product_decoration_bands").insert({
       product_decoration_id: decorationId, qty: nextQty, unit_cost: 0, setup_cost: 0,
     });
     if (error) toast.error(`Add failed: ${error.message}`);
   };
-  const updateBand = async (id: string, patch: Partial<Band>) => {
+  const updateBand = async (id: string, patch: Partial<Band>): Promise<boolean> => {
+    if (patch.qty != null) {
+      const target = bands.find((b) => b.id === id);
+      if (target) {
+        const dup = bands.find((b) => b.id !== id
+          && b.product_decoration_id === target.product_decoration_id
+          && b.qty === patch.qty);
+        if (dup) { toast.error(`Qty ${patch.qty} already exists on this decoration.`); return false; }
+      }
+    }
     const { error } = await supabase.from("product_decoration_bands").update(patch as any).eq("id", id);
-    if (error) toast.error(`Save failed: ${error.message}`);
+    if (error) { toast.error(`Save failed: ${error.message}`); return false; }
+    return true;
   };
   const deleteBand = async (id: string) => {
     const { error } = await supabase.from("product_decoration_bands").delete().eq("id", id);
     if (error) toast.error(`Delete failed: ${error.message}`);
+  };
+
+  // ── Draft (inline Add Product) ──────────────────────────────────────
+  const startDraft = () => { if (!draft) setDraft({ ...EMPTY_DRAFT }); };
+  const cancelDraft = () => setDraft(null);
+
+  // Existing item numbers used for sequence auto-suggest.
+  const existingItemNumbers = useMemo(() => products.map((p) => p.primary_item_number), [products]);
+
+  // Compute supplier origin letter for draft.
+  const draftSupplier = draft ? md.suppliers.find((s) => s.id === draft.supplierId) : null;
+  const draftOrigin = draftSupplier?.origin_id
+    ? md.origins.find((o) => o.id === draftSupplier.origin_id) : null;
+  const draftOriginLetter = originLetterFromCode(draftOrigin?.code);
+  const draftSubcategory = draft ? catById.get(draft.subcategoryId) : null;
+  const draftSubCode = draftSubcategory?.code ?? null;
+
+  // Auto-suggest sequence when subcategory + origin become available and
+  // user has not typed a sequence yet.
+  useEffect(() => {
+    if (!draft) return;
+    if (draft.sequence) return;
+    if (!draftSubCode || !draftOriginLetter) return;
+    // sequence is per (subcategory, origin) → filter existing numbers by both.
+    const filteredNums = existingItemNumbers.filter((n) => {
+      const p = parsePrimaryItemNumber(n);
+      return !!p && p.subcategoryCode === draftSubCode && p.originLetter === draftOriginLetter;
+    });
+    const next = nextSequenceFor(draftSubCode, filteredNums);
+    setDraft((d) => (d ? { ...d, sequence: next } : d));
+  }, [draft, draftSubCode, draftOriginLetter, existingItemNumbers]);
+
+  const draftItemNumber = (() => {
+    if (!draft) return null;
+    if (!draftSubCode || !draftOriginLetter || !draft.sequence) return null;
+    return composePrimaryItemNumber(draftSubCode, draft.sequence, draftOriginLetter);
+  })();
+
+  const draftCanSave = !!(draft && draft.subcategoryId && draft.supplierId
+    && draft.name.trim() && draftItemNumber);
+
+  const draftIsEmpty = !!draft
+    && !draft.subcategoryId && !draft.supplierId && !draft.name.trim();
+
+  // Save draft (called on row-level blur once required fields populated).
+  const savingRef = useRef(false);
+  const saveDraft = async () => {
+    if (!draft || savingRef.current) return;
+    if (!draftCanSave || !draftItemNumber || !draftSupplier) return;
+    // Uniqueness check
+    const dup = products.find((p) => p.primary_item_number === draftItemNumber);
+    if (dup) {
+      toast.error(`Item number ${draftItemNumber} already in use by ${dup.name}.`);
+      return;
+    }
+    savingRef.current = true;
+    const { error } = await supabase.from("products").insert({
+      primary_item_number: draftItemNumber,
+      name: draft.name.trim(),
+      subcategory_id: draft.subcategoryId,
+      origin_id: draftSupplier.origin_id!,
+      supplier_id: draftSupplier.id,
+    });
+    savingRef.current = false;
+    if (error) { toast.error(`Add failed: ${error.message}`); return; }
+    toast.success(`Created ${draftItemNumber}`);
+    setDraft(null);
+  };
+
+  // Row-level blur handler: called when focus leaves the draft row entirely.
+  const handleDraftRowBlur = (e: React.FocusEvent<HTMLTableRowElement>) => {
+    const next = e.relatedTarget as Node | null;
+    if (next && e.currentTarget.contains(next)) return;
+    if (draftIsEmpty) { setDraft(null); return; }
+    if (draftCanSave) void saveDraft();
   };
 
   const allCollapsed = filtered.length > 0 && filtered.every((p) => collapsed.has(p.id));
@@ -324,8 +450,8 @@ export default function ProductsPage() {
               style={{ minHeight: 40, color: "hsl(var(--brand-navy))" }}>
               <Layers className="h-4 w-4" /> {allCollapsed ? "Expand all" : "Collapse all"}
             </button>
-            <button onClick={() => setAdding(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold transition-colors"
+            <button onClick={startDraft} disabled={!!draft}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
               style={{ background: "hsl(var(--brand-orange))", color: "white", minHeight: 40 }}>
               <Plus className="h-4 w-4" /> Add Product
             </button>
@@ -369,6 +495,20 @@ export default function ProductsPage() {
                 </tr>
               </thead>
               <tbody>
+                {draft && (
+                  <DraftRow
+                    draft={draft}
+                    setDraft={setDraft}
+                    onCancel={cancelDraft}
+                    onBlurRow={handleDraftRowBlur}
+                    subcategoryGroups={subcategoryGroups}
+                    supplierOptions={supplierOptions}
+                    origins={md.origins}
+                    itemNumberPreview={draftItemNumber}
+                    subCode={draftSubCode}
+                    originLetter={draftOriginLetter}
+                  />
+                )}
                 {filtered.map((p) => (
                   <ProductBlock
                     key={p.id}
@@ -378,8 +518,9 @@ export default function ProductsPage() {
                     decorations={decorationsByProduct.get(p.id) ?? []}
                     bandsByDecoration={bandsByDecoration}
                     products={products}
-                    cats={cats}
-                    methodDetails={methodDetails}
+                    subcategoryGroups={subcategoryGroups}
+                    supplierOptions={supplierOptions}
+                    decorationGroups={decorationGroups}
                     subcategoryDisplay={subcategoryDisplay}
                     supplierDisplay={supplierDisplay}
                     supplierUnits={supplierUnits}
@@ -389,13 +530,13 @@ export default function ProductsPage() {
                     onAddDecoration={() => addDecoration(p.id)}
                     onUpdateDecoration={updateDecoration}
                     onDeleteDecoration={(d) => setConfirmDeleteDecoration(d)}
-                    onAddBand={(decId) => addBand(decId)}
+                    onAddBand={(decId, qty) => addBand(decId, qty)}
                     onUpdateBand={updateBand}
                     onDeleteBand={(b) => setConfirmDeleteBand(b)}
                     onDeleteProduct={() => setConfirmDeleteProduct(p)}
                   />
                 ))}
-                {filtered.length === 0 && (
+                {filtered.length === 0 && !draft && (
                   <tr><td colSpan={20} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
                     {q ? "No matches." : "No products yet — click + Add Product."}
                   </td></tr>
@@ -404,8 +545,6 @@ export default function ProductsPage() {
             </table>
           </div>
         </main>
-
-        <AddProductSheet open={adding} onClose={() => setAdding(false)} />
 
         <ConfirmDialog
           open={!!confirmDeleteProduct}
@@ -476,7 +615,113 @@ const Th = ({ children, className, align }: { children?: React.ReactNode; classN
 const cellBorder: React.CSSProperties = { borderBottom: "1px solid hsl(var(--brand-navy) / 0.07)", borderRight: "1px solid hsl(var(--brand-navy) / 0.04)" };
 const productBorder: React.CSSProperties = { borderTop: "2px solid hsl(var(--brand-navy) / 0.14)" };
 
-// ── ProductBlock — renders all rows for a single product ──────────────
+// ─────────────────────────────────────────────────────────────────────
+// Inline draft row (Add Product)
+// ─────────────────────────────────────────────────────────────────────
+
+interface DraftRowProps {
+  draft: Draft;
+  setDraft: React.Dispatch<React.SetStateAction<Draft | null>>;
+  onCancel: () => void;
+  onBlurRow: (e: React.FocusEvent<HTMLTableRowElement>) => void;
+  subcategoryGroups: { parent: Cat; subs: Cat[] }[];
+  supplierOptions: { id: string; name: string; origin_id?: string | null; code?: string | null }[];
+  origins: { id: string; code: string | null; name: string }[];
+  itemNumberPreview: string | null;
+  subCode: string | null;
+  originLetter: string | null;
+}
+
+const DraftRow = (p: DraftRowProps) => {
+  const supplier = p.supplierOptions.find((s) => s.id === p.draft.supplierId);
+  const supplierHasNoOrigin = !!supplier && !p.originLetter;
+  return (
+    <tr style={{ ...productBorder, background: "hsl(var(--brand-orange) / 0.04)" }} onBlur={p.onBlurRow}>
+      <td className="px-2 py-1.5 align-top" style={cellBorder}>
+        <button onClick={p.onCancel} className="p-0.5 rounded hover:bg-muted/40 text-muted-foreground"
+          aria-label="Cancel new product">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </td>
+      <td className="align-top" style={cellBorder}>
+        <DraftItemNumberCell
+          subCode={p.subCode}
+          originLetter={p.originLetter}
+          sequence={p.draft.sequence}
+          onSequence={(seq) => p.setDraft((d) => (d ? { ...d, sequence: seq } : d))}
+        />
+      </td>
+      <td className="align-top" style={cellBorder}>
+        <input
+          autoFocus
+          placeholder="Product name…"
+          value={p.draft.name}
+          onChange={(e) => p.setDraft((d) => (d ? { ...d, name: e.target.value } : d))}
+          className="w-full px-1.5 py-1 rounded text-[13px] bg-transparent border border-transparent hover:border-[hsl(var(--brand-navy)/0.2)] focus:outline-none focus:border-[hsl(var(--brand-navy)/0.4)] focus:ring-1 focus:ring-[hsl(var(--brand-navy)/0.4)] font-medium"
+          style={{ color: "hsl(var(--brand-navy))" }}
+        />
+      </td>
+      <td className="align-top" style={cellBorder}>
+        <SubcategorySelect
+          value={p.draft.subcategoryId}
+          groups={p.subcategoryGroups}
+          placeholder="Pick subcategory"
+          onChange={(id) => p.setDraft((d) => (d ? { ...d, subcategoryId: id, sequence: "" } : d))}
+        />
+      </td>
+      <td className="align-top" style={cellBorder}>
+        <SupplierSelect
+          value={p.draft.supplierId}
+          options={p.supplierOptions}
+          placeholder="Pick supplier"
+          onChange={(id) => p.setDraft((d) => (d ? { ...d, supplierId: id, sequence: "" } : d))}
+        />
+        {supplierHasNoOrigin && (
+          <div className="px-1.5 text-[11px]" style={{ color: "hsl(var(--urgent))" }}>
+            Supplier needs an origin assigned.
+          </div>
+        )}
+      </td>
+      <td colSpan={9} className="align-top px-2 py-1.5 text-[11px] italic text-muted-foreground" style={cellBorder}>
+        Fill subcategory, supplier and name — extra specs can be added after the product saves.
+      </td>
+      <td colSpan={5} className="align-top px-2 py-1.5 text-[11px] italic text-muted-foreground" style={cellBorder}>
+        Decorations &amp; pricing bands appear after save.
+      </td>
+    </tr>
+  );
+};
+
+// Item-# cell for the draft row — grayed prefix/suffix, only middle 3 editable.
+const DraftItemNumberCell = ({
+  subCode, originLetter, sequence, onSequence,
+}: {
+  subCode: string | null; originLetter: string | null;
+  sequence: string; onSequence: (s: string) => void;
+}) => {
+  const left = subCode ?? "___";
+  const right = originLetter ?? "_";
+  return (
+    <div className="px-1.5 py-1 inline-flex items-center font-mono tracking-wider text-[13px]"
+      style={{ color: "hsl(var(--brand-navy))" }}>
+      <span className="text-muted-foreground/70">{left}</span>
+      <input
+        value={sequence}
+        onChange={(e) => onSequence(sanitizeSequenceInput(e.target.value))}
+        placeholder="___"
+        disabled={!subCode || !originLetter}
+        className="w-[44px] mx-0.5 px-1 py-0 border border-[hsl(var(--brand-navy)/0.25)] rounded bg-background focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)] font-mono text-[13px] text-center disabled:bg-muted/40"
+        maxLength={3} inputMode="numeric"
+      />
+      <span className="text-muted-foreground/70">{right}</span>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// ProductBlock — renders all rows for a single existing product
+// ─────────────────────────────────────────────────────────────────────
+
 interface BlockProps {
   product: Product;
   collapsed: boolean;
@@ -484,8 +729,9 @@ interface BlockProps {
   decorations: Decoration[];
   bandsByDecoration: Map<string, Band[]>;
   products: Product[];
-  cats: Cat[];
-  methodDetails: MethodDetail[];
+  subcategoryGroups: { parent: Cat; subs: Cat[] }[];
+  supplierOptions: { id: string; name: string; origin_id?: string | null; code?: string | null }[];
+  decorationGroups: { parent: DecorationMethodRow; details: MethodDetail[] }[];
   subcategoryDisplay: (id: string | null | undefined) => string;
   supplierDisplay: (id: string | null | undefined) => string;
   supplierUnits: (id: string | null | undefined) => { weight: string; dim: string };
@@ -495,8 +741,8 @@ interface BlockProps {
   onAddDecoration: () => void;
   onUpdateDecoration: (id: string, patch: Partial<Decoration>) => Promise<void>;
   onDeleteDecoration: (d: Decoration) => void;
-  onAddBand: (decorationId: string) => void;
-  onUpdateBand: (id: string, patch: Partial<Band>) => Promise<void>;
+  onAddBand: (decorationId: string, qty?: number) => void;
+  onUpdateBand: (id: string, patch: Partial<Band>) => Promise<boolean>;
   onDeleteBand: (b: Band) => void;
   onDeleteProduct: () => void;
 }
@@ -504,11 +750,40 @@ interface BlockProps {
 const ProductBlock = (props: BlockProps) => {
   const { product, collapsed, onToggle, decorations, bandsByDecoration } = props;
   const units = props.supplierUnits(product.supplier_id);
-  const decorationsForRender = decorations.length === 0 ? [null] : decorations;
-  const bandCounts = decorationsForRender.map((d) =>
-    d ? Math.max(1, (bandsByDecoration.get(d.id) ?? []).length) : 1,
-  );
-  const totalRows = bandCounts.reduce((a, b) => a + b, 0);
+
+  // Build the row plan: each decoration emits (band rows…) + (add-band row).
+  // Then one final (add-decoration row) at the end of the product.
+  // When zero decorations exist, only the add-decoration row is emitted.
+  type RowKind =
+    | { type: "band"; decoration: Decoration; band: Band | null; isFirstOfDecoration: boolean; decorationRowSpan: number }
+    | { type: "add-band"; decoration: Decoration; isFirstOfDecoration: boolean; decorationRowSpan: number }
+    | { type: "add-decoration" };
+
+  const plan: RowKind[] = [];
+  const decorationRowSpans: number[] = [];
+  decorations.forEach((d) => {
+    const list = bandsByDecoration.get(d.id) ?? [];
+    const bandRowsForRender: (Band | null)[] = list.length === 0 ? [null] : list;
+    const span = bandRowsForRender.length + 1; // bands (or empty) + add-band row
+    decorationRowSpans.push(span);
+    bandRowsForRender.forEach((b, bIdx) => {
+      plan.push({
+        type: "band",
+        decoration: d,
+        band: b,
+        isFirstOfDecoration: bIdx === 0,
+        decorationRowSpan: span,
+      });
+    });
+    plan.push({
+      type: "add-band",
+      decoration: d,
+      isFirstOfDecoration: bandRowsForRender.length === 0,
+      decorationRowSpan: span,
+    });
+  });
+  plan.push({ type: "add-decoration" });
+  const totalRows = plan.length; // product cells span everything
 
   if (collapsed) {
     const decoCount = decorations.length;
@@ -554,118 +829,121 @@ const ProductBlock = (props: BlockProps) => {
     );
   }
 
-  // Expanded — emit totalRows TR's
+  // Expanded — emit one TR per plan entry.
   const rows: JSX.Element[] = [];
-  let rowIdx = 0;
-  decorationsForRender.forEach((d, dIdx) => {
-    const bandList = d ? (bandsByDecoration.get(d.id) ?? []) : [];
-    const bandRowsForRender: (Band | null)[] = bandList.length === 0 ? [null] : bandList;
-    bandRowsForRender.forEach((b, bIdx) => {
-      const isFirstRowOfProduct = rowIdx === 0;
-      const isFirstRowOfDecoration = bIdx === 0;
+  plan.forEach((entry, idx) => {
+    const isFirstRowOfProduct = idx === 0;
+
+    // Product cells (rendered only on first row, rowSpan=totalRows).
+    const productCells = isFirstRowOfProduct ? (
+      <>
+        <td rowSpan={totalRows} className="px-2 py-1.5 align-top" style={cellBorder}>
+          <button onClick={onToggle} className="p-0.5 rounded hover:bg-muted/40" aria-label="Collapse">
+            <ChevronDown className="h-4 w-4" style={{ color: "hsl(var(--brand-navy))" }} />
+          </button>
+        </td>
+        <td rowSpan={totalRows} className="align-top" style={cellBorder}>
+          <ItemNumberCell product={product}
+            onUpdate={(seq) => {
+              const parsed = parsePrimaryItemNumber(product.primary_item_number);
+              if (!parsed) return Promise.resolve(false);
+              const newNum = composePrimaryItemNumber(parsed.subcategoryCode, seq, parsed.originLetter);
+              if (newNum === product.primary_item_number) return Promise.resolve(true);
+              const dup = props.products.find((q) => q.id !== product.id && q.primary_item_number === newNum);
+              if (dup) { toast.error(`Item number ${newNum} already in use by ${dup.name}.`); return Promise.resolve(false); }
+              return props.onUpdateProduct(product.id, { primary_item_number: newNum });
+            }}
+          />
+        </td>
+        <td rowSpan={totalRows} className="align-top font-medium" style={{ ...cellBorder, color: "hsl(var(--brand-navy))" }}>
+          <EditableCell value={product.name}
+            onSave={async (v) => v.trim() ? props.onUpdateProduct(product.id, { name: v.trim() }) : false} />
+        </td>
+        <td rowSpan={totalRows} className="align-top" style={cellBorder}>
+          <SubcategorySelect value={product.subcategory_id} groups={props.subcategoryGroups}
+            onChange={(id) => { if (id !== product.subcategory_id) props.onRequestRenumber(product, { subcategoryId: id }); }} />
+        </td>
+        <td rowSpan={totalRows} className="align-top" style={cellBorder}>
+          <SupplierSelect value={product.supplier_id} options={props.supplierOptions}
+            onChange={(id) => { if (id !== product.supplier_id) props.onRequestRenumber(product, { supplierId: id }); }} />
+        </td>
+        <td rowSpan={totalRows} className="align-top" style={cellBorder}>
+          <EditableCell value={product.supplier_item_name ?? ""}
+            onSave={async (v) => props.onUpdateProduct(product.id, { supplier_item_name: v.trim() || null })} />
+        </td>
+        <td rowSpan={totalRows} className="align-top" style={cellBorder}>
+          <EditableCell value={product.supplier_item_number ?? ""}
+            onSave={async (v) => props.onUpdateProduct(product.id, { supplier_item_number: v.trim() || null })} />
+        </td>
+        <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
+          <NumericCell value={product.carton_pack} suffix="" min={1} integer
+            onSave={(n) => props.onUpdateProduct(product.id, { carton_pack: n })} />
+        </td>
+        <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
+          <NumericCell value={product.carton_length} suffix={` ${units.dim}`} min={0.01}
+            onSave={(n) => props.onUpdateProduct(product.id, { carton_length: n })} />
+        </td>
+        <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
+          <NumericCell value={product.carton_width} suffix={` ${units.dim}`} min={0.01}
+            onSave={(n) => props.onUpdateProduct(product.id, { carton_width: n })} />
+        </td>
+        <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
+          <NumericCell value={product.carton_height} suffix={` ${units.dim}`} min={0.01}
+            onSave={(n) => props.onUpdateProduct(product.id, { carton_height: n })} />
+        </td>
+        <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
+          <NumericCell value={product.carton_weight} suffix={` ${units.weight}`} min={0.01}
+            onSave={(n) => props.onUpdateProduct(product.id, { carton_weight: n })} />
+        </td>
+        <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
+          <NumericCell value={product.production_days} suffix=" days" min={1} integer
+            onSave={(n) => props.onUpdateProduct(product.id, { production_days: n })} />
+        </td>
+        <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
+          <NumericCell value={product.moq} suffix="" min={1} integer
+            onSave={(n) => props.onUpdateProduct(product.id, { moq: n })} />
+        </td>
+      </>
+    ) : null;
+
+    // Right-most actions cell — RowMenu only on first row, rowSpan=totalRows.
+    const actionsCell = isFirstRowOfProduct ? (
+      <td rowSpan={totalRows} className="align-top px-1 py-1" style={cellBorder}>
+        <RowMenu onDelete={props.onDeleteProduct} extra={<>
+          <button onClick={props.onAddDecoration}
+            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted flex items-center gap-2"
+            style={{ color: "hsl(var(--brand-navy))" }}>
+            <ListPlus className="h-4 w-4" /> Add decoration
+          </button>
+        </>} />
+      </td>
+    ) : null;
+
+    if (entry.type === "band") {
+      const { decoration: d, band: b, isFirstOfDecoration, decorationRowSpan } = entry;
+      // For the decoration cells, rowSpan = decorationRowSpan (bands + add-band row).
       rows.push(
-        <tr key={`${product.id}-${dIdx}-${bIdx}`}
+        <tr key={`p-${product.id}-row-${idx}`}
           className="hover:bg-muted/10"
           style={isFirstRowOfProduct ? productBorder : undefined}>
-          {isFirstRowOfProduct && (
+          {productCells}
+          {isFirstOfDecoration && (
             <>
-              <td rowSpan={totalRows} className="px-2 py-1.5 align-top" style={cellBorder}>
-                <button onClick={onToggle} className="p-0.5 rounded hover:bg-muted/40" aria-label="Collapse">
-                  <ChevronDown className="h-4 w-4" style={{ color: "hsl(var(--brand-navy))" }} />
-                </button>
+              <td rowSpan={decorationRowSpan} className="align-top" style={cellBorder}>
+                <DecorationCell decoration={d} groups={props.decorationGroups}
+                  onChange={(mid) => props.onUpdateDecoration(d.id, { method_detail_id: mid })} />
               </td>
-              <td rowSpan={totalRows} className="align-top" style={cellBorder}>
-                <ItemNumberCell product={product} products={props.products}
-                  onUpdate={(seq) => {
-                    const parsed = parsePrimaryItemNumber(product.primary_item_number);
-                    if (!parsed) return Promise.resolve(false);
-                    const newNum = composePrimaryItemNumber(parsed.subcategoryCode, seq, parsed.originLetter);
-                    if (newNum === product.primary_item_number) return Promise.resolve(true);
-                    const dup = props.products.find((p) => p.id !== product.id && p.primary_item_number === newNum);
-                    if (dup) { toast.error(`Item number ${newNum} already in use by ${dup.name}.`); return Promise.resolve(false); }
-                    return props.onUpdateProduct(product.id, { primary_item_number: newNum });
-                  }}
-                />
-              </td>
-              <td rowSpan={totalRows} className="align-top font-medium" style={{ ...cellBorder, color: "hsl(var(--brand-navy))" }}>
-                <EditableCell value={product.name}
-                  onSave={async (v) => v.trim() ? props.onUpdateProduct(product.id, { name: v.trim() }) : false} />
-              </td>
-              <td rowSpan={totalRows} className="align-top" style={cellBorder}>
-                <SubcategorySelectCell value={product.subcategory_id} cats={props.cats}
-                  display={props.subcategoryDisplay(product.subcategory_id)}
-                  onChange={(id) => props.onRequestRenumber(product, { subcategoryId: id })} />
-              </td>
-              <td rowSpan={totalRows} className="align-top" style={cellBorder}>
-                <SupplierSelectCell value={product.supplier_id}
-                  display={props.supplierDisplay(product.supplier_id)}
-                  onChange={(id) => props.onRequestRenumber(product, { supplierId: id })} />
-              </td>
-              <td rowSpan={totalRows} className="align-top" style={cellBorder}>
-                <EditableCell value={product.supplier_item_name ?? ""}
-                  onSave={async (v) => props.onUpdateProduct(product.id, { supplier_item_name: v.trim() || null })} />
-              </td>
-              <td rowSpan={totalRows} className="align-top" style={cellBorder}>
-                <EditableCell value={product.supplier_item_number ?? ""}
-                  onSave={async (v) => props.onUpdateProduct(product.id, { supplier_item_number: v.trim() || null })} />
-              </td>
-              <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
-                <NumericCell value={product.carton_pack} suffix="" min={1} integer
-                  onSave={(n) => props.onUpdateProduct(product.id, { carton_pack: n })} />
-              </td>
-              <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
-                <NumericCell value={product.carton_length} suffix={` ${units.dim}`} min={0.01}
-                  onSave={(n) => props.onUpdateProduct(product.id, { carton_length: n })} />
-              </td>
-              <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
-                <NumericCell value={product.carton_width} suffix={` ${units.dim}`} min={0.01}
-                  onSave={(n) => props.onUpdateProduct(product.id, { carton_width: n })} />
-              </td>
-              <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
-                <NumericCell value={product.carton_height} suffix={` ${units.dim}`} min={0.01}
-                  onSave={(n) => props.onUpdateProduct(product.id, { carton_height: n })} />
-              </td>
-              <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
-                <NumericCell value={product.carton_weight} suffix={` ${units.weight}`} min={0.01}
-                  onSave={(n) => props.onUpdateProduct(product.id, { carton_weight: n })} />
-              </td>
-              <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
-                <NumericCell value={product.production_days} suffix=" days" min={1} integer
-                  onSave={(n) => props.onUpdateProduct(product.id, { production_days: n })} />
-              </td>
-              <td rowSpan={totalRows} className="align-top text-right" style={cellBorder}>
-                <NumericCell value={product.moq} suffix="" min={1} integer
-                  onSave={(n) => props.onUpdateProduct(product.id, { moq: n })} />
-              </td>
-            </>
-          )}
-          {isFirstRowOfDecoration && (
-            <>
-              <td rowSpan={bandCounts[dIdx]} className="align-top" style={cellBorder}>
-                {d ? (
-                  <DecorationCell decoration={d} methodDetails={props.methodDetails}
-                    display={props.methodDetailDisplay(d.method_detail_id)}
-                    onChange={(mid) => props.onUpdateDecoration(d.id, { method_detail_id: mid })} />
-                ) : (
-                  <button onClick={props.onAddDecoration}
-                    className="w-full text-left px-2 py-1 text-[12px] italic text-muted-foreground hover:bg-muted/40 rounded inline-flex items-center gap-1">
-                    <Plus className="h-3 w-3" /> Add decoration
-                  </button>
-                )}
-              </td>
-              <td rowSpan={bandCounts[dIdx]} className="align-top" style={cellBorder}>
-                {d && (
-                  <EditableCell value={d.notes ?? ""} placeholder="—"
-                    onSave={async (v) => { await props.onUpdateDecoration(d.id, { notes: v.trim() || null }); return true; }} />
-                )}
+              <td rowSpan={decorationRowSpan} className="align-top" style={cellBorder}>
+                <EditableCell value={d.notes ?? ""} placeholder="—"
+                  onSave={async (v) => { await props.onUpdateDecoration(d.id, { notes: v.trim() || null }); return true; }} />
               </td>
             </>
           )}
           {b ? (
             <>
               <td className="align-top text-right" style={cellBorder}>
-                <NumericCell value={b.qty} suffix="" min={1} integer
-                  onSave={(n) => n != null ? props.onUpdateBand(b.id, { qty: n }).then(() => true) : Promise.resolve(false)} />
+                <QtyCell value={b.qty}
+                  onSave={(n) => props.onUpdateBand(b.id, { qty: n })} />
               </td>
               <td className="align-top text-right" style={cellBorder}>
                 <NumericCell value={b.unit_cost} suffix="" prefix="$" min={0}
@@ -677,40 +955,11 @@ const ProductBlock = (props: BlockProps) => {
               </td>
             </>
           ) : (
-            <td colSpan={3} className="align-top px-2 py-1" style={cellBorder}>
-              {d && (
-                <button onClick={() => props.onAddBand(d.id)}
-                  className="text-[12px] italic text-muted-foreground hover:text-[hsl(var(--brand-orange))] inline-flex items-center gap-1">
-                  <Plus className="h-3 w-3" /> Add band
-                </button>
-              )}
+            <td colSpan={3} className="align-top px-2 py-1 text-[12px] italic text-muted-foreground" style={cellBorder}>
+              No bands yet.
             </td>
           )}
-          {/* Actions cell */}
-          {isFirstRowOfProduct ? (
-            <td rowSpan={totalRows} className="align-top px-1 py-1" style={cellBorder}>
-              <RowMenu
-                onDelete={props.onDeleteProduct}
-                extra={<>
-                  <button onClick={props.onAddDecoration}
-                    className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted flex items-center gap-2"
-                    style={{ color: "hsl(var(--brand-navy))" }}>
-                    <ListPlus className="h-4 w-4" /> Add decoration
-                  </button>
-                </>}
-              />
-            </td>
-          ) : (b && bIdx === bandRowsForRender.length - 1 && d) ? (
-            // last band row of a decoration — band/decoration menus inline via small popover
-            <td className="align-top px-1 py-1" style={cellBorder}>
-              <SmallMenu
-                items={[
-                  { label: "Add band", icon: <Plus className="h-4 w-4" />, onClick: () => props.onAddBand(d.id) },
-                  { label: "Delete decoration", icon: <Trash2 className="h-4 w-4" />, destructive: true, onClick: () => props.onDeleteDecoration(d) },
-                ]}
-              />
-            </td>
-          ) : (
+          {actionsCell ?? (
             <td className="align-top px-1 py-1" style={cellBorder}>
               {b && (
                 <SmallMenu items={[
@@ -721,16 +970,66 @@ const ProductBlock = (props: BlockProps) => {
           )}
         </tr>,
       );
-      rowIdx++;
-    });
+    } else if (entry.type === "add-band") {
+      const { decoration: d, isFirstOfDecoration, decorationRowSpan } = entry;
+      rows.push(
+        <tr key={`p-${product.id}-row-${idx}`} className="hover:bg-muted/10"
+          style={isFirstRowOfProduct ? productBorder : undefined}>
+          {productCells}
+          {isFirstOfDecoration && (
+            <>
+              <td rowSpan={decorationRowSpan} className="align-top" style={cellBorder}>
+                <DecorationCell decoration={d} groups={props.decorationGroups}
+                  onChange={(mid) => props.onUpdateDecoration(d.id, { method_detail_id: mid })} />
+              </td>
+              <td rowSpan={decorationRowSpan} className="align-top" style={cellBorder}>
+                <EditableCell value={d.notes ?? ""} placeholder="—"
+                  onSave={async (v) => { await props.onUpdateDecoration(d.id, { notes: v.trim() || null }); return true; }} />
+              </td>
+            </>
+          )}
+          <td colSpan={3} className="align-top px-2 py-1" style={cellBorder}>
+            <button onClick={() => props.onAddBand(d.id)}
+              className="text-[12px] italic text-muted-foreground hover:text-[hsl(var(--brand-orange))] inline-flex items-center gap-1">
+              <Plus className="h-3 w-3" /> Add band
+            </button>
+          </td>
+          {actionsCell ?? (
+            <td className="align-top px-1 py-1" style={cellBorder}>
+              <SmallMenu items={[
+                { label: "Delete decoration", icon: <Trash2 className="h-4 w-4" />, destructive: true, onClick: () => props.onDeleteDecoration(d) },
+              ]} />
+            </td>
+          )}
+        </tr>,
+      );
+    } else {
+      // add-decoration row
+      rows.push(
+        <tr key={`p-${product.id}-row-${idx}`} className="hover:bg-muted/10"
+          style={isFirstRowOfProduct ? productBorder : undefined}>
+          {productCells}
+          <td colSpan={5} className="align-top px-2 py-1" style={cellBorder}>
+            <button onClick={props.onAddDecoration}
+              className="text-[12px] italic text-muted-foreground hover:text-[hsl(var(--brand-orange))] inline-flex items-center gap-1">
+              <Plus className="h-3 w-3" /> Add decoration
+            </button>
+          </td>
+          {actionsCell ?? <td className="align-top px-1 py-1" style={cellBorder} />}
+        </tr>,
+      );
+    }
   });
+
   return <>{rows}</>;
 };
 
-// ── Item-number cell — sequence (chars 4-6) editable, others read-only ─
+// ─────────────────────────────────────────────────────────────────────
+// Existing-product Item-# cell (chars 4–6 editable)
+// ─────────────────────────────────────────────────────────────────────
 const ItemNumberCell = ({
   product, onUpdate,
-}: { product: Product; products: Product[]; onUpdate: (seq: string) => Promise<boolean> }) => {
+}: { product: Product; onUpdate: (seq: string) => Promise<boolean> }) => {
   const parsed = parsePrimaryItemNumber(product.primary_item_number);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(parsed?.sequence ?? "");
@@ -741,7 +1040,7 @@ const ItemNumberCell = ({
   if (editing) {
     return (
       <div className="px-1.5 py-1 inline-flex items-center font-mono tracking-wider text-[13px]" style={{ color: "hsl(var(--brand-navy))" }}>
-        <span className="text-muted-foreground">{parsed.subcategoryCode}</span>
+        <span className="text-muted-foreground/70">{parsed.subcategoryCode}</span>
         <input ref={ref} value={draft}
           onChange={(e) => setDraft(sanitizeSequenceInput(e.target.value))}
           onBlur={async () => {
@@ -757,7 +1056,7 @@ const ItemNumberCell = ({
           className="w-[44px] mx-0.5 px-1 py-0 border border-[hsl(var(--brand-navy)/0.4)] rounded bg-background focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)] font-mono text-[13px] text-center"
           maxLength={3} inputMode="numeric"
         />
-        <span className="text-muted-foreground">{parsed.originLetter}</span>
+        <span className="text-muted-foreground/70">{parsed.originLetter}</span>
       </div>
     );
   }
@@ -771,79 +1070,148 @@ const ItemNumberCell = ({
   );
 };
 
-// ── Subcategory select ──────────────────────────────────────────────
-const SubcategorySelectCell = ({
-  value, cats, display, onChange,
-}: { value: string; cats: Cat[]; display: string; onChange: (id: string) => void }) => {
-  const parents = cats.filter((c) => !c.parent_id);
-  const subsByParent = new Map<string, Cat[]>();
-  for (const c of cats) if (c.parent_id) {
-    const arr = subsByParent.get(c.parent_id) ?? []; arr.push(c); subsByParent.set(c.parent_id, arr);
-  }
-  return (
-    <select value={value} onChange={(e) => { if (e.target.value !== value) onChange(e.target.value); }}
-      className="w-full px-1.5 py-1 rounded text-[12.5px] bg-transparent hover:bg-muted/40 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)]"
-      style={{ color: "hsl(var(--brand-navy))" }} title={display}>
-      {parents.map((p) => (
-        <optgroup key={p.id} label={`${p.code ?? "??"} ${p.name}`}>
-          {(subsByParent.get(p.id) ?? []).map((s) => (
-            <option key={s.id} value={s.id}>[{s.code ?? "???"}] {s.name}</option>
+// ─────────────────────────────────────────────────────────────────────
+// Radix Select wrappers — name-only labels, parent groupings.
+// ─────────────────────────────────────────────────────────────────────
+
+const inlineTriggerClass =
+  "h-auto min-h-[28px] w-full px-1.5 py-1 rounded text-[12.5px] bg-transparent border border-transparent hover:border-[hsl(var(--brand-navy)/0.2)] hover:bg-muted/40 focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)] focus:ring-offset-0";
+
+const SubcategorySelect = ({
+  value, groups, onChange, placeholder,
+}: {
+  value: string;
+  groups: { parent: Cat; subs: Cat[] }[];
+  onChange: (id: string) => void;
+  placeholder?: string;
+}) => (
+  <Select value={value || undefined} onValueChange={onChange}>
+    <SelectTrigger className={inlineTriggerClass} style={{ color: "hsl(var(--brand-navy))" }}>
+      <SelectValue placeholder={placeholder ?? "—"} />
+    </SelectTrigger>
+    <SelectContent className="max-h-[60vh]">
+      {groups.map((g) => (
+        <SelectGroup key={g.parent.id}>
+          <SelectLabel className="text-[10px] uppercase tracking-[0.16em]"
+            style={{ color: "hsl(var(--brand-navy) / 0.65)" }}>
+            {g.parent.name}
+          </SelectLabel>
+          {g.subs.map((s) => (
+            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
           ))}
-        </optgroup>
+        </SelectGroup>
       ))}
-    </select>
-  );
-};
+    </SelectContent>
+  </Select>
+);
 
-// ── Supplier select ─────────────────────────────────────────────────
-const SupplierSelectCell = ({
-  value, display, onChange,
-}: { value: string; display: string; onChange: (id: string) => void }) => {
-  const md = useMasterData();
-  return (
-    <select value={value} onChange={(e) => { if (e.target.value !== value) onChange(e.target.value); }}
-      className="w-full px-1.5 py-1 rounded text-[12.5px] bg-transparent hover:bg-muted/40 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)]"
-      style={{ color: "hsl(var(--brand-navy))" }} title={display}>
-      {[...md.suppliers].sort((a, b) => a.name.localeCompare(b.name)).map((s) => {
-        const o = s.origin_id ? md.origins.find((x) => x.id === s.origin_id) : null;
-        return (
-          <option key={s.id} value={s.id}>
-            {s.code ? `[${s.code}] ` : ""}{s.name}{o ? ` (${o.name})` : ""}
-          </option>
-        );
-      })}
-    </select>
-  );
-};
+const SupplierSelect = ({
+  value, options, onChange, placeholder,
+}: {
+  value: string;
+  options: { id: string; name: string }[];
+  onChange: (id: string) => void;
+  placeholder?: string;
+}) => (
+  <Select value={value || undefined} onValueChange={onChange}>
+    <SelectTrigger className={inlineTriggerClass} style={{ color: "hsl(var(--brand-navy))" }}>
+      <SelectValue placeholder={placeholder ?? "—"} />
+    </SelectTrigger>
+    <SelectContent className="max-h-[60vh]">
+      {options.map((s) => (
+        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+);
 
-// ── Decoration cell — pick a method_detail ─────────────────────────
 const DecorationCell = ({
-  decoration, methodDetails, display, onChange,
-}: { decoration: Decoration; methodDetails: MethodDetail[]; display: string; onChange: (id: string) => void }) => {
-  // Group by parent decoration_method_id
-  const byMethod = new Map<string, MethodDetail[]>();
-  for (const m of methodDetails) {
-    const arr = byMethod.get(m.decoration_method_id) ?? []; arr.push(m); byMethod.set(m.decoration_method_id, arr);
-  }
+  decoration, groups, onChange,
+}: {
+  decoration: Decoration;
+  groups: { parent: DecorationMethodRow; details: MethodDetail[] }[];
+  onChange: (id: string) => void;
+}) => (
+  <Select value={decoration.method_detail_id} onValueChange={onChange}>
+    <SelectTrigger className={inlineTriggerClass} style={{ color: "hsl(var(--brand-navy))" }}>
+      <SelectValue placeholder="—" />
+    </SelectTrigger>
+    <SelectContent className="max-h-[60vh]">
+      {groups.map((g) => (
+        <SelectGroup key={g.parent.id}>
+          <SelectLabel className="text-[10px] uppercase tracking-[0.16em]"
+            style={{ color: "hsl(var(--brand-navy) / 0.65)" }}>
+            {g.parent.name}
+          </SelectLabel>
+          {g.details.map((m) => (
+            <SelectItem key={m.id} value={m.id}>{m.detail}</SelectItem>
+          ))}
+        </SelectGroup>
+      ))}
+    </SelectContent>
+  </Select>
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// Qty cell — Popover quick-pick + free-text input
+// ─────────────────────────────────────────────────────────────────────
+const QtyCell = ({
+  value, onSave,
+}: { value: number; onSave: (n: number) => Promise<boolean> }) => {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => { setDraft(String(value)); }, [value]);
+
+  const commit = async (n: number) => {
+    if (!Number.isFinite(n) || n < 1) { toast.error("Qty must be ≥ 1"); return false; }
+    if (n === value) { setOpen(false); return true; }
+    const ok = await onSave(Math.floor(n));
+    if (ok) setOpen(false);
+    return ok;
+  };
+
   return (
-    <select value={decoration.method_detail_id} onChange={(e) => onChange(e.target.value)}
-      className="w-full px-1.5 py-1 rounded text-[12.5px] bg-transparent hover:bg-muted/40 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)]"
-      style={{ color: "hsl(var(--brand-navy))" }} title={display}>
-      {[...byMethod.entries()].map(([mid, list]) => {
-        const parentLabel = list[0]?.code?.split("-")[0] ?? "";
-        return (
-          <optgroup key={mid} label={parentLabel}>
-            {list.map((md) => (
-              <option key={md.id} value={md.id}>[{md.code}] {md.detail}</option>
-            ))}
-          </optgroup>
-        );
-      })}
-    </select>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="w-full px-2 py-1 rounded text-right tabular-nums hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)]"
+          style={{ color: "hsl(var(--brand-navy))" }}>
+          {value.toLocaleString()}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 p-2">
+        <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1.5 px-1">Quick pick</div>
+        <div className="grid grid-cols-3 gap-1 mb-2">
+          {QTY_QUICK_PICKS.map((q) => (
+            <button key={q} onClick={() => commit(q)}
+              className={cn(
+                "px-2 py-1 rounded text-[12px] tabular-nums border border-border hover:bg-muted/60",
+                q === value && "bg-[hsl(var(--brand-navy))] text-white border-[hsl(var(--brand-navy))]",
+              )}>
+              {q.toLocaleString()}
+            </button>
+          ))}
+        </div>
+        <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1 px-1">Custom</div>
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, ""))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); void commit(parseInt(draft, 10)); }
+            if (e.key === "Escape") { setDraft(String(value)); setOpen(false); }
+          }}
+          inputMode="numeric"
+          className="w-full px-2 py-1 rounded border border-input bg-background text-[13px] text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-navy)/0.4)]"
+        />
+      </PopoverContent>
+    </Popover>
   );
 };
 
-// ── Numeric cell with optional unit suffix / prefix ────────────────
+// ─────────────────────────────────────────────────────────────────────
+// Numeric cell with optional unit suffix / prefix
+// ─────────────────────────────────────────────────────────────────────
 const NumericCell = ({
   value, suffix, prefix, min, integer, onSave,
 }: {
@@ -851,7 +1219,6 @@ const NumericCell = ({
   suffix?: string; prefix?: string; min?: number; integer?: boolean;
   onSave: (next: number | null) => Promise<boolean | void>;
 }) => {
-  const display = value == null ? "—" : `${prefix ?? ""}${value}${suffix ?? ""}`;
   return (
     <EditableCell
       value={value == null ? "" : String(value)}
@@ -860,13 +1227,16 @@ const NumericCell = ({
         const v = integer ? intOrNull(raw) : numOrNull(raw);
         if (raw.trim() && v == null) { toast.error("Must be a number"); return false; }
         if (v != null && min != null && v < min) { toast.error(`Must be ≥ ${min}`); return false; }
+        const _ = prefix; const __ = suffix; void _; void __;
         return onSave(v);
       }}
     />
   );
 };
 
-// ── Row menu (3-dots) — Delete + extras ───────────────────────────
+// ─────────────────────────────────────────────────────────────────────
+// Row menus
+// ─────────────────────────────────────────────────────────────────────
 const RowMenu = ({ onDelete, extra }: { onDelete: () => void; extra?: React.ReactNode }) => (
   <Popover>
     <PopoverTrigger asChild>
