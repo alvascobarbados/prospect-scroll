@@ -297,7 +297,7 @@ export const DesktopFilterBar = ({ value, onChange, customers, suppliers, salesR
           <MultiSearchDropdown
             label="Supplier"
             values={value.supplierIds}
-            options={[{ id: "__unassigned", label: "Unassigned" }, ...suppliers.map((s) => ({ id: s.id, label: s.name }))]}
+            options={[{ id: "__unassigned", label: "Unassigned" }, ...suppliers.map((s) => ({ id: s.id, label: s.code ? `[${s.code}] ${s.name}` : s.name }))]}
             onChange={(next) => onChange({ ...value, supplierIds: next })}
           />
         </Group>
