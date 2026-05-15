@@ -187,7 +187,6 @@ const Td = ({ children, className, align }: { children?: React.ReactNode; classN
 const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelete: () => void }) => {
   const md = useMasterData();
   const [nameRevert, setNameRevert] = useState(0);
-  const [codeRevert, setCodeRevert] = useState(0);
   const usage = md.supplierUsage(supplier.id, supplier.legacy_id);
 
   const updateName = async (v: string) => {
@@ -200,22 +199,10 @@ const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelet
     catch (err: any) { toast.error(err?.message ?? "Save failed"); setNameRevert((n) => n + 1); }
   };
 
-  const updateCode = async (v: string) => {
-    const raw = (v ?? "").trim().toUpperCase();
-    const cleaned = raw.replace(/[^A-Z0-9]/g, "").slice(0, 3);
-    const current = (supplier.code ?? "").toUpperCase();
-    if (cleaned === current) { setCodeRevert((n) => n + 1); return; }
-    if (cleaned && cleaned.length !== 3) {
-      toast.error("Code must be exactly 3 letters or digits");
-      setCodeRevert((n) => n + 1);
-      return;
-    }
-    if (cleaned) {
-      const dup = md.suppliers.find((s) => s.id !== supplier.id && (s.code ?? "").toUpperCase() === cleaned);
-      if (dup) { toast.error(`Code already in use by ${dup.name}`); setCodeRevert((n) => n + 1); return; }
-    }
-    try { await md.updateSupplier(supplier.id, { code: cleaned || null }); }
-    catch (err: any) { toast.error(err?.message ?? "Save failed"); setCodeRevert((n) => n + 1); }
+  const saveCode = async (next: string | null) => {
+    if ((next ?? null) === (supplier.code ?? null)) return;
+    try { await md.updateSupplier(supplier.id, { code: next }); }
+    catch (err: any) { toast.error(err?.message ?? "Save failed"); throw err; }
   };
 
   const updateOrigin = async (id: string) => {
