@@ -378,7 +378,7 @@ const EditableCode = ({
 
   const commit = async () => {
     const result = validateSupplierCode(draft, md.suppliers, supplierId);
-    if (!result.ok) {
+    if (result.ok === false) {
       setError(result.error);
       ref.current?.focus();
       return;
