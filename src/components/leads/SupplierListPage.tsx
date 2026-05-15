@@ -232,14 +232,11 @@ const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelet
     <tr className="hover:bg-muted/20 transition-colors" style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.07)" }}>
       <Td><EditableText key={`name-${nameRevert}`} value={supplier.name} onSave={updateName} bold /></Td>
       <Td>
-        <span className="font-mono tracking-wider text-[12px]">
-          <EditableText
-            key={`code-${codeRevert}`}
-            value={supplier.code ?? ""}
-            placeholder="—"
-            onSave={updateCode}
-          />
-        </span>
+        <EditableCode
+          supplierId={supplier.id}
+          value={supplier.code ?? ""}
+          onSave={saveCode}
+        />
       </Td>
       <Td>
         <OriginSelect
