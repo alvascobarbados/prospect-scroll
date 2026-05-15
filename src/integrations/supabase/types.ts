@@ -369,32 +369,176 @@ export type Database = {
           },
         ]
       }
-      products: {
+      product_decoration_bands: {
         Row: {
           created_at: string
-          default_unit: string | null
           id: string
-          name: string
-          notes: string | null
+          product_decoration_id: string
+          qty: number
+          setup_cost: number
+          unit_cost: number
           updated_at: string
         }
         Insert: {
           created_at?: string
-          default_unit?: string | null
           id?: string
-          name: string
-          notes?: string | null
+          product_decoration_id: string
+          qty: number
+          setup_cost?: number
+          unit_cost: number
           updated_at?: string
         }
         Update: {
           created_at?: string
-          default_unit?: string | null
           id?: string
-          name?: string
-          notes?: string | null
+          product_decoration_id?: string
+          qty?: number
+          setup_cost?: number
+          unit_cost?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "product_decoration_bands_product_decoration_id_fkey"
+            columns: ["product_decoration_id"]
+            isOneToOne: false
+            referencedRelation: "product_decorations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_decorations: {
+        Row: {
+          created_at: string
+          id: string
+          method_detail_id: string
+          notes: string | null
+          product_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          method_detail_id: string
+          notes?: string | null
+          product_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          method_detail_id?: string
+          notes?: string | null
+          product_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_decorations_method_detail_id_fkey"
+            columns: ["method_detail_id"]
+            isOneToOne: false
+            referencedRelation: "method_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_decorations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          carton_height: number | null
+          carton_length: number | null
+          carton_pack: number | null
+          carton_weight: number | null
+          carton_width: number | null
+          created_at: string
+          id: string
+          moq: number | null
+          name: string
+          notes: string | null
+          origin_id: string
+          primary_item_number: string
+          production_days: number | null
+          subcategory_id: string
+          supplier_description: string | null
+          supplier_id: string
+          supplier_item_name: string | null
+          supplier_item_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          carton_height?: number | null
+          carton_length?: number | null
+          carton_pack?: number | null
+          carton_weight?: number | null
+          carton_width?: number | null
+          created_at?: string
+          id?: string
+          moq?: number | null
+          name: string
+          notes?: string | null
+          origin_id: string
+          primary_item_number: string
+          production_days?: number | null
+          subcategory_id: string
+          supplier_description?: string | null
+          supplier_id: string
+          supplier_item_name?: string | null
+          supplier_item_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          carton_height?: number | null
+          carton_length?: number | null
+          carton_pack?: number | null
+          carton_weight?: number | null
+          carton_width?: number | null
+          created_at?: string
+          id?: string
+          moq?: number | null
+          name?: string
+          notes?: string | null
+          origin_id?: string
+          primary_item_number?: string
+          production_days?: number | null
+          subcategory_id?: string
+          supplier_description?: string | null
+          supplier_id?: string
+          supplier_item_name?: string | null
+          supplier_item_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_origin_id_fkey"
+            columns: ["origin_id"]
+            isOneToOne: false
+            referencedRelation: "origins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_log_entries: {
         Row: {
