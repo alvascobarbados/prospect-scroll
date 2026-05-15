@@ -647,7 +647,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
               <label className={labelCls}>Code (optional)</label>
               <input
                 value={supCode}
-                onChange={(e) => setSupCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3))}
+                onChange={(e) => setSupCode(sanitizeSupplierCodeInput(e.target.value))}
                 maxLength={3}
                 className={inputCls}
                 style={{ minHeight: 48, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", letterSpacing: "0.08em" }}
