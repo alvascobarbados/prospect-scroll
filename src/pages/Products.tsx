@@ -502,7 +502,7 @@ export default function ProductsPage() {
                     onCancel={cancelDraft}
                     onBlurRow={handleDraftRowBlur}
                     subcategoryGroups={subcategoryGroups}
-                    supplierOptions={supplierOptions}
+                    supplierOptions={supplierOptions as any}
                     origins={md.origins}
                     itemNumberPreview={draftItemNumber}
                     subCode={draftSubCode}
@@ -519,7 +519,7 @@ export default function ProductsPage() {
                     bandsByDecoration={bandsByDecoration}
                     products={products}
                     subcategoryGroups={subcategoryGroups}
-                    supplierOptions={supplierOptions}
+                    supplierOptions={supplierOptions as any}
                     decorationGroups={decorationGroups}
                     subcategoryDisplay={subcategoryDisplay}
                     supplierDisplay={supplierDisplay}
