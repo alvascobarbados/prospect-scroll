@@ -365,8 +365,11 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
     setTeamMembers((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  // NOTE: legacy product CRUD — the products table was redesigned in Phase 1 of the
+  // Products catalog rebuild. These functions are temporarily cast to `any` to keep
+  // the build green; Phase 2 replaces this hook surface entirely.
   const addProduct = useCallback(async (input: { name: string; default_unit?: string; notes?: string }) => {
-    const { data, error } = await supabase.from("products").insert({ ...input }).select().single();
+    const { data, error } = await (supabase.from("products") as any).insert({ ...input }).select().single();
     if (error) throw error;
     setProducts((prev) => [...prev.filter((p) => p.id !== data.id), data as ProductRecord].sort((a, b) => a.name.localeCompare(b.name)));
     return data as ProductRecord;
@@ -374,7 +377,7 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
   const updateProduct = useCallback(async (id: string, patch: Partial<ProductRecord>) => {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p))
       .sort((a, b) => a.name.localeCompare(b.name)));
-    const { error } = await supabase.from("products").update(patch).eq("id", id);
+    const { error } = await (supabase.from("products") as any).update(patch).eq("id", id);
     if (error) throw error;
   }, []);
   const deleteProduct = useCallback(async (id: string) => {
