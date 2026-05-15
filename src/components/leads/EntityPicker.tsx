@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/popover";
 import { useMasterData, EntityKind } from "@/hooks/useMasterData";
 import type { ShippingMode } from "@/data/pipelines";
+import { sanitizeSupplierCodeInput, validateSupplierCode } from "@/lib/supplierCode";
 
 type Presentation = "sheet" | "popover";
 
