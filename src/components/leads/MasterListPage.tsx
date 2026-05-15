@@ -430,8 +430,25 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
           incoterms: (form.incoterms || null) as any,
         });
       } else if (kind === "supplier") {
+        const codeRaw = (form.code ?? "").trim().toUpperCase();
+        if (codeRaw) {
+          if (!/^[A-Z0-9]{3}$/.test(codeRaw)) {
+            toast.error("Code must be exactly 3 letters or digits");
+            setSaving(false);
+            return;
+          }
+          const dup = md.suppliers.find(
+            (s) => s.id !== ent.id && (s.code ?? "").toUpperCase() === codeRaw,
+          );
+          if (dup) {
+            toast.error(`Code already in use by ${dup.name}`);
+            setSaving(false);
+            return;
+          }
+        }
         await md.updateSupplier(ent.id, {
           name: form.name,
+          code: codeRaw || null,
           origin_id: form.origin_id || null,
           weight_unit: form.weight_unit || "kg",
           volume_unit: form.volume_unit || "cbm",
@@ -493,6 +510,17 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
         {kind === "supplier" && (
           <>
             <Field label="Name"><input className={inputCls} style={{ minHeight: 48 }} value={form.name ?? ""} onChange={(e) => setField("name", e.target.value)} /></Field>
+            <Field label="Code">
+              <input
+                className={inputCls}
+                style={{ minHeight: 48, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", letterSpacing: "0.08em" }}
+                value={form.code ?? ""}
+                maxLength={3}
+                onChange={(e) => setField("code", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3))}
+                placeholder="SAD"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Three-character supplier code (e.g. SAD for Shanghai Admax). Optional.</p>
+            </Field>
             <Field label="Origin">
               <CodedSelect
                 kind="origin"
