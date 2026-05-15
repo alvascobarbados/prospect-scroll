@@ -338,3 +338,106 @@ const OriginSelect = ({
     </>
   );
 };
+
+// ─── Editable supplier-code cell ────────────────────────────────────
+// Restricts keystrokes to A-Z/0-9, auto-uppercases, caps at 3 chars.
+// Inline error UI (red border + message). Esc reverts. Blur/Enter saves
+// only when valid. Allows clearing back to NULL.
+const EditableCode = ({
+  supplierId, value, onSave,
+}: {
+  supplierId: string;
+  value: string;
+  onSave: (next: string | null) => Promise<void>;
+}) => {
+  const md = useMasterData();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [error, setError] = useState<string | null>(null);
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      setDraft(value);
+      setError(null);
+      setTimeout(() => ref.current?.select(), 0);
+    }
+  }, [editing, value]);
+
+  // Live-validate the draft so the error message updates as the user types.
+  useEffect(() => {
+    if (!editing) return;
+    const cleaned = sanitizeSupplierCodeInput(draft);
+    if (!cleaned) { setError(null); return; }
+    if (cleaned.length !== 3) { setError("Code must be exactly 3 characters"); return; }
+    const dup = md.suppliers.find(
+      (s) => s.id !== supplierId && (s.code ?? "").toUpperCase() === cleaned,
+    );
+    setError(dup ? `Code already in use by ${dup.name}` : null);
+  }, [draft, editing, md.suppliers, supplierId]);
+
+  const commit = async () => {
+    const result = validateSupplierCode(draft, md.suppliers, supplierId);
+    if (!result.ok) {
+      setError(result.error);
+      ref.current?.focus();
+      return;
+    }
+    setEditing(false);
+    setError(null);
+    if ((result.value ?? null) === (value || null)) return;
+    try { await onSave(result.value); }
+    catch { /* parent toasted */ }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <input
+          ref={ref}
+          value={draft}
+          onChange={(e) => setDraft(sanitizeSupplierCodeInput(e.target.value))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); commit(); return; }
+            if (e.key === "Escape") {
+              setDraft(value); setError(null); setEditing(false);
+              return;
+            }
+            if (e.key.length === 1 && !isSupplierCodeChar(e.key) && !e.metaKey && !e.ctrlKey) {
+              e.preventDefault();
+            }
+          }}
+          onBlur={commit}
+          maxLength={3}
+          inputMode="text"
+          autoCapitalize="characters"
+          spellCheck={false}
+          className={cn(
+            "w-[64px] px-1.5 py-0.5 rounded border bg-background text-[12px] font-mono tracking-wider uppercase focus:outline-none focus:ring-2",
+            error
+              ? "border-[hsl(var(--urgent))] focus:ring-[hsl(var(--urgent)/0.4)]"
+              : "border-[hsl(var(--brand-navy)/0.3)] focus:ring-[hsl(var(--brand-navy)/0.4)]",
+          )}
+        />
+        {error && (
+          <span className="text-[10px]" style={{ color: "hsl(var(--urgent))" }}>{error}</span>
+        )}
+      </div>
+    );
+  }
+
+  const isEmpty = !value;
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className={cn(
+        "w-full text-left px-1.5 py-0.5 rounded hover:bg-muted/40 truncate font-mono tracking-wider text-[12px]",
+        isEmpty && "italic text-muted-foreground",
+      )}
+      style={{ minHeight: 28 }}
+    >
+      {value || "—"}
+    </button>
+  );
+};
