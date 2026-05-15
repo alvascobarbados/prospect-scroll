@@ -20,6 +20,7 @@ import OriginsPage from "./pages/Origins.tsx";
 import DestinationsPage from "./pages/Destinations.tsx";
 import ShippingMethodsPage from "./pages/ShippingMethods.tsx";
 import ProductCategoriesPage from "./pages/ProductCategories.tsx";
+import ProductsPage from "./pages/Products.tsx";
 import DecorationMethodsPage from "./pages/DecorationMethods.tsx";
 import SettingsPage from "./pages/Settings.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -55,9 +56,9 @@ const App = () => (
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/archive" element={<ArchivePage />} />
                     <Route path="/trash" element={<TrashPage />} />
+                    <Route path="/products" element={<ProductsPage />} />
                     {/* v1.0: deferred routes redirect to Pipeline */}
                     <Route path="/spreadsheet" element={<Navigate to="/" replace />} />
-                    <Route path="/products" element={<Navigate to="/" replace />} />
                     <Route path="/shipments" element={<Navigate to="/" replace />} />
                     <Route path="/shipments/:mode" element={<Navigate to="/" replace />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
