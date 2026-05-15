@@ -136,7 +136,7 @@ export default function ProductCategoriesPage() {
       existing: codeRefs,
       excludeId: row.id,
     });
-    if (!v.ok) return v.error;
+    if (v.ok === false) return v.error;
     const prev = rows;
     setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, code: v.value } as Category : r)));
     const { error } = await supabase
