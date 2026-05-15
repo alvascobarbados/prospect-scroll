@@ -15,7 +15,7 @@ interface Props {
   onChange: (next: FilterState) => void;
   customers: string[];
   projectNames: string[];
-  suppliers: { id: string; name: string }[];
+  suppliers: { id: string; name: string; code?: string | null }[];
   salesReps: string[];
 }
 
@@ -399,7 +399,7 @@ export const FilterSheet = ({
         title="Filter by supplier" icon={<Factory className="h-4 w-4" />}
         options={[
           { id: "__unassigned", label: "Unassigned / TBD / Various" },
-          ...suppliers.map((s) => ({ id: s.id, label: s.name })),
+          ...suppliers.map((s) => ({ id: s.id, label: s.code ? `[${s.code}] ${s.name}` : s.name })),
         ]}
         selected={value.supplierIds}
         onApply={(next) => onChange({ ...value, supplierIds: next })} />

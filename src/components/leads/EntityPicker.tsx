@@ -97,8 +97,12 @@ const PickerBody = ({
     }
     if (kind === "supplier") {
       return md.suppliers
-        .filter((s) => !term || s.name.toLowerCase().includes(term))
-        .map((s) => ({ id: s.id, label: s.name, sub: [s.country, s.default_shipping_mode].filter(Boolean).join(" · ") || undefined }));
+        .filter((s) => !term || s.name.toLowerCase().includes(term) || (s.code ?? "").toLowerCase().includes(term))
+        .map((s) => ({
+          id: s.id,
+          label: s.code ? `[${s.code}] ${s.name}` : s.name,
+          sub: [s.country, s.default_shipping_mode].filter(Boolean).join(" · ") || undefined,
+        }));
     }
     if (kind === "team") {
       return md.teamMembers
@@ -497,13 +501,14 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
   const [fullName, setFullName] = useState("");
   const [teamEmail, setTeamEmail] = useState("");
   const [unit, setUnit] = useState("");
+  const [supCode, setSupCode] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setName(initialName);
     setCountry("Local"); setDestinationId(""); setIncoterms(""); setSupOriginId(""); setMode("Ocean");
     setWeightUnit("kg"); setVolumeUnit("cbm"); setUnitsTouched(false);
-    setInitials(""); setFullName(""); setTeamEmail(""); setUnit("");
+    setInitials(""); setFullName(""); setTeamEmail(""); setUnit(""); setSupCode("");
   }, [open, initialName]);
 
   // Auto-default units from origin (only until user touches a unit field).
@@ -542,8 +547,21 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         toast.success(`Customer "${c.name}" added`);
         onCreated(c.name);
       } else if (kind === "supplier") {
+        const codeRaw = supCode.trim().toUpperCase();
+        if (codeRaw) {
+          if (!/^[A-Z0-9]{3}$/.test(codeRaw)) {
+            toast.error("Code must be exactly 3 letters or digits");
+            return;
+          }
+          const dup = md.suppliers.find((s) => (s.code ?? "").toUpperCase() === codeRaw);
+          if (dup) {
+            toast.error(`Code already in use by ${dup.name}`);
+            return;
+          }
+        }
         const s = await md.addSupplier({
           name: name.trim(),
+          code: codeRaw || null,
           origin_id: supOriginId || null,
           weight_unit: weightUnit,
           volume_unit: volumeUnit,
@@ -631,6 +649,18 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
         )}
         {kind === "supplier" && (
           <>
+            <div>
+              <label className={labelCls}>Code (optional)</label>
+              <input
+                value={supCode}
+                onChange={(e) => setSupCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3))}
+                maxLength={3}
+                className={inputCls}
+                style={{ minHeight: 48, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", letterSpacing: "0.08em" }}
+                placeholder="SAD"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Three-character supplier code (e.g. SAD for Shanghai Admax).</p>
+            </div>
             <div>
               <label className={labelCls}>Origin</label>
               <CodedSelect

@@ -70,6 +70,7 @@ export const MasterListPage = ({ kind }: Props) => {
     if (kind === "supplier") {
       const cols: Column[] = [
         { key: "name", label: "Name" },
+        { key: "code", label: "Code" },
         { key: "origin", label: "Origin" },
         { key: "weight_unit", label: "Weight" },
         { key: "volume_unit", label: "Volume" },
@@ -82,6 +83,7 @@ export const MasterListPage = ({ kind }: Props) => {
           if (!term) return true;
           const oname = s.origin_id ? (originById.get(s.origin_id) ?? "") : "";
           return s.name.toLowerCase().includes(term)
+            || (s.code ?? "").toLowerCase().includes(term)
             || oname.toLowerCase().includes(term)
             || (s.country ?? "").toLowerCase().includes(term);
         })
@@ -90,10 +92,13 @@ export const MasterListPage = ({ kind }: Props) => {
           const originCell = oname
             ? <span>{oname}</span>
             : <span className="italic text-muted-foreground/70">{s.country ?? "—"}</span>;
+          const codeCell = s.code
+            ? <span className="font-mono text-[12px] tracking-wider" style={{ color: "hsl(var(--brand-navy))" }}>{s.code}</span>
+            : <span className="text-muted-foreground/60">—</span>;
           return {
             id: s.id, raw: s,
             usage: md.supplierUsage(s.id, s.legacy_id),
-            cells: [s.name, originCell, s.weight_unit ?? "kg", s.volume_unit ?? "cbm", s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
+            cells: [s.name, codeCell, originCell, s.weight_unit ?? "kg", s.volume_unit ?? "cbm", s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
           };
         });
       return { columns: cols, rows: r };
@@ -425,8 +430,25 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
           incoterms: (form.incoterms || null) as any,
         });
       } else if (kind === "supplier") {
+        const codeRaw = (form.code ?? "").trim().toUpperCase();
+        if (codeRaw) {
+          if (!/^[A-Z0-9]{3}$/.test(codeRaw)) {
+            toast.error("Code must be exactly 3 letters or digits");
+            setSaving(false);
+            return;
+          }
+          const dup = md.suppliers.find(
+            (s) => s.id !== ent.id && (s.code ?? "").toUpperCase() === codeRaw,
+          );
+          if (dup) {
+            toast.error(`Code already in use by ${dup.name}`);
+            setSaving(false);
+            return;
+          }
+        }
         await md.updateSupplier(ent.id, {
           name: form.name,
+          code: codeRaw || null,
           origin_id: form.origin_id || null,
           weight_unit: form.weight_unit || "kg",
           volume_unit: form.volume_unit || "cbm",
@@ -488,6 +510,17 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
         {kind === "supplier" && (
           <>
             <Field label="Name"><input className={inputCls} style={{ minHeight: 48 }} value={form.name ?? ""} onChange={(e) => setField("name", e.target.value)} /></Field>
+            <Field label="Code">
+              <input
+                className={inputCls}
+                style={{ minHeight: 48, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", letterSpacing: "0.08em" }}
+                value={form.code ?? ""}
+                maxLength={3}
+                onChange={(e) => setField("code", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3))}
+                placeholder="SAD"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Three-character supplier code (e.g. SAD for Shanghai Admax). Optional.</p>
+            </Field>
             <Field label="Origin">
               <CodedSelect
                 kind="origin"
