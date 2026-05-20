@@ -401,12 +401,26 @@ export default function ProductsPage() {
   };
 
   // Inline drafts: add / update / remove / persist
-  function addDraft() {
+  function addDraft(opts?: { parentProductId?: string | null; supplier_id?: string; subcategory_id?: string }) {
     setDrafts((arr) => [
-      { tempId: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: "", supplier_id: "", subcategory_id: "", supplier_item_number: "" },
+      {
+        tempId: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        parent_product_id: opts?.parentProductId ?? null,
+        name: "",
+        supplier_id: opts?.supplier_id ?? "",
+        subcategory_id: opts?.subcategory_id ?? "",
+        supplier_item_number: "",
+      },
       ...arr,
     ]);
   }
+  const addSubProductDraft = useCallback((parent: Product) => {
+    addDraft({
+      parentProductId: parent.id,
+      supplier_id: parent.supplier_id,
+      subcategory_id: parent.subcategory_id,
+    });
+  }, []);
   const removeDraft = useCallback((tempId: string) => {
     setDrafts((arr) => arr.filter((d) => d.tempId !== tempId));
   }, []);
@@ -435,6 +449,7 @@ export default function ProductsPage() {
       const itemNumber = composePrimaryItemNumber(subc.code, seq, letter);
       const { data, error } = await supabase.from("products").insert({
         primary_item_number: itemNumber,
+        parent_product_id: d.parent_product_id,
         name: d.name.trim(),
         subcategory_id: d.subcategory_id,
         origin_id: sup.origin_id,
