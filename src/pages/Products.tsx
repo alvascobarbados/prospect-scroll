@@ -247,6 +247,53 @@ export default function ProductsPage() {
     });
   }, [products, search, supplierFilter, categoryFilter, subcatFilter, details, decorations, catById, mdById, dmById]);
 
+  // Render items: interleave top-level products, their sub-products, and drafts
+  // (top-level drafts at top, sub-product drafts directly under their parent).
+  type RenderItem =
+    | { kind: "draft"; draft: DraftRow }
+    | { kind: "product"; product: Product; isSub: boolean };
+
+  const childrenByParent = useMemo(() => {
+    const m = new Map<string, Product[]>();
+    for (const p of products) {
+      if (!p.parent_product_id) continue;
+      const arr = m.get(p.parent_product_id) ?? [];
+      arr.push(p);
+      m.set(p.parent_product_id, arr);
+    }
+    for (const arr of m.values()) {
+      arr.sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
+    }
+    return m;
+  }, [products]);
+
+  const renderItems = useMemo<RenderItem[]>(() => {
+    const items: RenderItem[] = [];
+    const filteredIds = new Set(filteredProducts.map((p) => p.id));
+    // Top-level drafts
+    for (const d of drafts) {
+      if (!d.parent_product_id) items.push({ kind: "draft", draft: d });
+    }
+    // Top-level products in filter order, with sub-products + sub-drafts grouped
+    for (const p of filteredProducts) {
+      if (p.parent_product_id) continue; // handled below the parent
+      items.push({ kind: "product", product: p, isSub: false });
+      const subs = (childrenByParent.get(p.id) ?? []).filter((s) => filteredIds.has(s.id));
+      for (const s of subs) items.push({ kind: "product", product: s, isSub: true });
+      for (const d of drafts) {
+        if (d.parent_product_id === p.id) items.push({ kind: "draft", draft: d });
+      }
+    }
+    // Orphan sub-products whose parent isn't visible — render as if top-level
+    for (const p of filteredProducts) {
+      if (!p.parent_product_id) continue;
+      if (filteredIds.has(p.parent_product_id) && products.some((x) => x.id === p.parent_product_id)) continue;
+      items.push({ kind: "product", product: p, isSub: false });
+    }
+    return items;
+  }, [filteredProducts, drafts, childrenByParent, products]);
+
+
   // ── Mutations ──────────────────────────────────────────────────────────
   const patchProduct = useCallback(async (id: string, patch: Partial<Product>) => {
     const { error } = await supabase.from("products").update(patch as any).eq("id", id);
