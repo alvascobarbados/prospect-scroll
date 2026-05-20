@@ -10,7 +10,7 @@ import {
   Copy as CopyIcon, Pencil, X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNowStrict } from "date-fns";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
