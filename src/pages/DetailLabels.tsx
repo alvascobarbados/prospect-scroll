@@ -63,7 +63,7 @@ export default function DetailLabelsPage() {
     const prev = rows;
     setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, [key]: value } as Label : r)));
     const { error } = await supabase.from("detail_labels")
-      .update({ [key]: value }).eq("id", row.id);
+      .update({ [key]: value } as any).eq("id", row.id);
     if (error) { setRows(prev); toast.error(`Save failed: ${error.message}`); return false; }
     return true;
   };
