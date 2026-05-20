@@ -21,6 +21,7 @@ import DestinationsPage from "./pages/Destinations.tsx";
 import ShippingMethodsPage from "./pages/ShippingMethods.tsx";
 import ProductCategoriesPage from "./pages/ProductCategories.tsx";
 import ProductsPage from "./pages/Products.tsx";
+import ProductDetailPage from "./pages/ProductDetail.tsx";
 import DetailLabelsPage from "./pages/DetailLabels.tsx";
 import DecorationMethodsPage from "./pages/DecorationMethods.tsx";
 import SettingsPage from "./pages/Settings.tsx";
@@ -58,6 +59,7 @@ const App = () => (
                     <Route path="/archive" element={<ArchivePage />} />
                     <Route path="/trash" element={<TrashPage />} />
                     <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/products/:id" element={<ProductDetailPage />} />
                     <Route path="/detail-labels" element={<DetailLabelsPage />} />
                     {/* v1.0: deferred routes redirect to Pipeline */}
                     <Route path="/spreadsheet" element={<Navigate to="/" replace />} />
