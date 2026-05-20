@@ -10,7 +10,7 @@ import {
   Copy as CopyIcon, Pencil, X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNowStrict } from "date-fns";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -53,26 +53,42 @@ interface DMethod { id: string; name: string }
 interface DetailLabel { id: string; label: string; sort_order: number }
 interface ProductDetail { id: string; product_id: string; detail_label_id: string; value: string; sort_order: number }
 
-// ── Column widths (px). Total min ~1330. ─────────────────────────────────
+// ── Column widths (px). Total ~1764. ─────────────────────────────────────
 const COLS = [
-  { key: "image",    label: "",            w: 56,  align: "center" as const },
-  { key: "supplier", label: "Supplier",    w: 120 },
-  { key: "category", label: "Category",    w: 110 },
-  { key: "subcat",   label: "Subcategory", w: 130 },
+  { key: "image",    label: "",            w: 48,  align: "center" as const },
+  { key: "supplier", label: "Supplier",    w: 140 },
+  { key: "category", label: "Category",    w: 160 },
+  { key: "subcat",   label: "Subcategory", w: 140 },
   { key: "name",     label: "Name",        w: 200 },
-  { key: "supnum",   label: "Sup #",       w: 90 },
-  { key: "desc",     label: "Description", w: 240 },
+  { key: "supnum",   label: "Sup #",       w: 110 },
+  { key: "desc",     label: "Description", w: 260 },
   { key: "pack",     label: "Pack",        w: 60,  align: "right" as const },
   { key: "carton",   label: "Carton",      w: 120 },
   { key: "wt",       label: "Wt",          w: 70,  align: "right" as const },
   { key: "lead",     label: "Lead",        w: 90 },
-  { key: "deco",     label: "Decorations", w: 120 },
+  { key: "deco",     label: "Decorations", w: 140 },
   { key: "price",    label: "Price from",  w: 100, align: "right" as const },
   { key: "updated",  label: "Updated",     w: 90 },
-  { key: "kebab",    label: "",            w: 40,  align: "center" as const },
+  { key: "kebab",    label: "",            w: 36,  align: "center" as const },
 ];
 const TOTAL_WIDTH = COLS.reduce((s, c) => s + c.w, 0);
 const GRID_COLS = COLS.map((c) => `${c.w}px`).join(" ");
+
+/** Compact relative time: "5m ago", "17h ago", "2d ago", "3w ago", "2mo ago". */
+function compactAgo(iso: string): string {
+  const d = new Date(iso);
+  const diffSec = (Date.now() - d.getTime()) / 1000;
+  if (diffSec < 45) return "just now";
+  const full = formatDistanceToNowStrict(d, { addSuffix: true });
+  return full
+    .replace(/ seconds?/, "s")
+    .replace(/ minutes?/, "m")
+    .replace(/ hours?/, "h")
+    .replace(/ days?/, "d")
+    .replace(/ weeks?/, "w")
+    .replace(/ months?/, "mo")
+    .replace(/ years?/, "y");
+}
 
 const fmtMoney = (n: number | null | undefined) =>
   n == null ? "—" : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -271,8 +287,7 @@ export default function ProductsPage() {
               </h1>
             </div>
             <button
-              onClick={() => setDraft(EMPTY_DRAFT)}
-              disabled={!!draft}
+              onClick={() => navigate("/products/new")}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
               style={{ background: "hsl(var(--brand-orange))", color: "white", minHeight: 40 }}
             >
@@ -404,7 +419,7 @@ export default function ProductsPage() {
                       <Cell>
                         {sup ? (
                           <span
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[12px] font-medium truncate max-w-full"
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[12px] font-medium min-w-0 w-full"
                             style={{
                               backgroundColor: "hsl(var(--brand-navy) / 0.06)",
                               color: "hsl(var(--brand-navy))",
@@ -414,14 +429,14 @@ export default function ProductsPage() {
                               className="h-2 w-2 rounded-sm shrink-0"
                               style={{ backgroundColor: supplierColor(sup.id) }}
                             />
-                            <span className="truncate">{sup.name}</span>
+                            <span className="truncate min-w-0">{sup.name}</span>
                           </span>
                         ) : "—"}
                       </Cell>
                       <Cell>
                         {parent ? (
                           <span
-                            className="inline-block px-2 py-0.5 rounded text-[11px] font-medium truncate max-w-full"
+                            className="block px-2 py-1 rounded text-[11px] font-medium truncate w-full"
                             style={{ backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }}
                           >
                             {parent.name}
@@ -431,7 +446,7 @@ export default function ProductsPage() {
                       <Cell>
                         {sub ? (
                           <span
-                            className="inline-block px-2 py-0.5 rounded text-[11px] font-medium truncate max-w-full"
+                            className="block px-2 py-1 rounded text-[11px] font-medium truncate w-full"
                             style={{
                               backgroundColor: "hsl(var(--brand-orange) / 0.1)",
                               color: "hsl(var(--brand-navy))",
@@ -451,7 +466,7 @@ export default function ProductsPage() {
                           className="truncate text-[12px] tabular"
                           style={{ color: "#8B7B65", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
                         >
-                          {p.supplier_item_number || "—"}
+                          {p.supplier_item_number ?? "—"}
                         </span>
                       </Cell>
                       <Cell>
@@ -487,7 +502,7 @@ export default function ProductsPage() {
                       </Cell>
                       <Cell>
                         <span className="truncate text-[12px] text-muted-foreground">
-                          {p.updated_at ? formatDistanceToNow(new Date(p.updated_at), { addSuffix: true }) : "—"}
+                          {p.updated_at ? compactAgo(p.updated_at) : "—"}
                         </span>
                       </Cell>
                       <Cell align="center">
