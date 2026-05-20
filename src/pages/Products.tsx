@@ -662,50 +662,58 @@ export default function ProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                {drafts.map((d) => (
-                  <DraftTableRow
-
-                    key={d.tempId}
-                    draft={d}
-                    suppliers={md.suppliers}
-                    subcategoryGroups={subcategoryGroups}
-                    onUpdate={(patch) => updateDraft(d.tempId, patch)}
-                    onRemove={() => removeDraft(d.tempId)}
-                  />
-                ))}
-                {filteredProducts.map((p, idx) => (
-                  <ProductRows
-                    key={p.id}
-                    product={p}
-                    isLast={idx === filteredProducts.length - 1}
-                    catById={catById}
-                    labelById={labelById}
-                    mdById={mdById}
-                    dmById={dmById}
-                    suppliers={md.suppliers}
-                    subcategoryGroups={subcategoryGroups}
-                    methodGroups={methodGroups}
-                    allLabels={labels}
-                    details={detailsByProduct.get(p.id) ?? []}
-                    decorations={decosByProduct.get(p.id) ?? []}
-                    bandsByDeco={bandsByDeco}
-                    onPatchProduct={(patch) => patchProduct(p.id, patch)}
-                    onPatchDetail={patchDetail}
-                    onRemoveDetail={removeDetail}
-                    onAddDetail={(lid) => addDetail(p.id, lid)}
-                    onCreateLabel={(n) => createLabelAndAdd(p.id, n)}
-                    onAddDecoration={(mdId) => addDecoration(p.id, mdId)}
-                    onPatchDeco={patchDeco}
-                    onRemoveDeco={(d) => setConfirmDeleteDeco(d)}
-                    onUploadDecoRef={uploadDecoRef}
-                    onAddBand={addBand}
-                    onPatchBand={patchBand}
-                    onRemoveBand={removeBand}
-                    onUploadImage={(f) => uploadProductImage(p.id, f)}
-                    onDuplicate={() => duplicateProduct(p)}
-                    onDelete={() => setConfirmDeleteProduct(p)}
-                  />
-                ))}
+                {renderItems.map((item, idx) => {
+                  const isLast = idx === renderItems.length - 1;
+                  if (item.kind === "draft") {
+                    const d = item.draft;
+                    return (
+                      <DraftTableRow
+                        key={d.tempId}
+                        draft={d}
+                        suppliers={md.suppliers}
+                        subcategoryGroups={subcategoryGroups}
+                        onUpdate={(patch) => updateDraft(d.tempId, patch)}
+                        onRemove={() => removeDraft(d.tempId)}
+                      />
+                    );
+                  }
+                  const p = item.product;
+                  return (
+                    <ProductRows
+                      key={p.id}
+                      product={p}
+                      isSub={item.isSub}
+                      isLast={isLast}
+                      catById={catById}
+                      labelById={labelById}
+                      mdById={mdById}
+                      dmById={dmById}
+                      suppliers={md.suppliers}
+                      subcategoryGroups={subcategoryGroups}
+                      methodGroups={methodGroups}
+                      allLabels={labels}
+                      details={detailsByProduct.get(p.id) ?? []}
+                      decorations={decosByProduct.get(p.id) ?? []}
+                      bandsByDeco={bandsByDeco}
+                      onPatchProduct={(patch) => patchProduct(p.id, patch)}
+                      onPatchDetail={patchDetail}
+                      onRemoveDetail={removeDetail}
+                      onAddDetail={(lid) => addDetail(p.id, lid)}
+                      onCreateLabel={(n) => createLabelAndAdd(p.id, n)}
+                      onAddDecoration={(mdId) => addDecoration(p.id, mdId)}
+                      onPatchDeco={patchDeco}
+                      onRemoveDeco={(dec) => setConfirmDeleteDeco(dec)}
+                      onUploadDecoRef={uploadDecoRef}
+                      onAddBand={addBand}
+                      onPatchBand={patchBand}
+                      onRemoveBand={removeBand}
+                      onUploadImage={(f) => uploadProductImage(p.id, f)}
+                      onDuplicate={() => duplicateProduct(p)}
+                      onDelete={() => setConfirmDeleteProduct(p)}
+                      onAddSubProduct={() => addSubProductDraft(p)}
+                    />
+                  );
+                })}
               </tbody>
             </table>
           )}
