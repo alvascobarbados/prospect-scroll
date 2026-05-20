@@ -1059,7 +1059,7 @@ function DecoCell({
   dmById: Map<string, DMethod>;
   methodGroups: { method: DMethod | undefined; mds: MDetail[] }[];
   onPatch: (p: Partial<Deco>) => void;
-  onUploadRef: (f: File) => void;
+  onUploadRef?: (f: File) => void;
   onRemove: () => void;
 }) {
   return (
