@@ -207,6 +207,30 @@ export type Database = {
         }
         Relationships: []
       }
+      detail_labels: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       line_items: {
         Row: {
           created_at: string
@@ -414,6 +438,7 @@ export type Database = {
           method_detail_id: string
           notes: string | null
           product_id: string
+          ref_image_url: string | null
           sort_order: number
           updated_at: string
         }
@@ -423,6 +448,7 @@ export type Database = {
           method_detail_id: string
           notes?: string | null
           product_id: string
+          ref_image_url?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -432,6 +458,7 @@ export type Database = {
           method_detail_id?: string
           notes?: string | null
           product_id?: string
+          ref_image_url?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -452,6 +479,51 @@ export type Database = {
           },
         ]
       }
+      product_details: {
+        Row: {
+          created_at: string
+          detail_label_id: string
+          id: string
+          product_id: string
+          sort_order: number
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          detail_label_id: string
+          id?: string
+          product_id: string
+          sort_order?: number
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          detail_label_id?: string
+          id?: string
+          product_id?: string
+          sort_order?: number
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_details_detail_label_id_fkey"
+            columns: ["detail_label_id"]
+            isOneToOne: false
+            referencedRelation: "detail_labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_details_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           carton_height: number | null
@@ -461,12 +533,14 @@ export type Database = {
           carton_width: number | null
           created_at: string
           id: string
+          image_url: string | null
           moq: number | null
           name: string
           notes: string | null
           origin_id: string
           primary_item_number: string
-          production_days: number | null
+          production_days_max: number | null
+          production_days_min: number
           subcategory_id: string
           supplier_description: string | null
           supplier_id: string
@@ -482,12 +556,14 @@ export type Database = {
           carton_width?: number | null
           created_at?: string
           id?: string
+          image_url?: string | null
           moq?: number | null
           name: string
           notes?: string | null
           origin_id: string
           primary_item_number: string
-          production_days?: number | null
+          production_days_max?: number | null
+          production_days_min: number
           subcategory_id: string
           supplier_description?: string | null
           supplier_id: string
@@ -503,12 +579,14 @@ export type Database = {
           carton_width?: number | null
           created_at?: string
           id?: string
+          image_url?: string | null
           moq?: number | null
           name?: string
           notes?: string | null
           origin_id?: string
           primary_item_number?: string
-          production_days?: number | null
+          production_days_max?: number | null
+          production_days_min?: number
           subcategory_id?: string
           supplier_description?: string | null
           supplier_id?: string
