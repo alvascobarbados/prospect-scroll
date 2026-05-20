@@ -93,23 +93,29 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
   const [subcatFilter, setSubcatFilter] = useState<Set<string>>(new Set());
 
-  const [draftOpen, setDraftOpen] = useState(false);
-  const [draftName, setDraftName] = useState("");
-  const [draftSup, setDraftSup] = useState("");
-  const [draftSubcat, setDraftSubcat] = useState("");
-  const [draftSupNum, setDraftSupNum] = useState("");
-  const [creating, setCreating] = useState(false);
+  // Inline draft rows (each pre-empty product being typed at top of table)
+  interface DraftRow {
+    tempId: string;
+    name: string;
+    supplier_id: string;
+    subcategory_id: string;
+    supplier_item_number: string;
+  }
+  const [drafts, setDrafts] = useState<DraftRow[]>([]);
+  const persistingRef = useRef<Set<string>>(new Set());
 
   const [confirmDeleteProduct, setConfirmDeleteProduct] = useState<Product | null>(null);
   const [confirmDeleteDeco, setConfirmDeleteDeco] = useState<Deco | null>(null);
 
   useEffect(() => {
     if (searchParams.get("new") === "1") {
-      setDraftOpen(true);
+      addDraft();
       searchParams.delete("new");
       setSearchParams(searchParams, { replace: true });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, setSearchParams]);
+
 
   useEffect(() => {
     let alive = true;
@@ -383,37 +389,57 @@ export default function ProductsPage() {
     toast.success(`Duplicated as ${itemNumber}`);
   };
 
-  const handleCreate = async () => {
-    if (!draftName.trim() || !draftSup || !draftSubcat) {
-      toast.error("Name, Supplier and Subcategory are required."); return;
+  // Inline drafts: add / update / remove / persist
+  function addDraft() {
+    setDrafts((arr) => [
+      { tempId: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: "", supplier_id: "", subcategory_id: "", supplier_item_number: "" },
+      ...arr,
+    ]);
+  }
+  const removeDraft = useCallback((tempId: string) => {
+    setDrafts((arr) => arr.filter((d) => d.tempId !== tempId));
+  }, []);
+  const updateDraft = useCallback((tempId: string, patch: Partial<DraftRow>) => {
+    setDrafts((arr) => {
+      const next = arr.map((d) => (d.tempId === tempId ? { ...d, ...patch } : d));
+      const target = next.find((d) => d.tempId === tempId);
+      if (target && target.name.trim() && target.supplier_id && target.subcategory_id && !persistingRef.current.has(tempId)) {
+        persistingRef.current.add(tempId);
+        void persistDraft(target);
+      }
+      return next;
+    });
+  }, []);
+  async function persistDraft(d: DraftRow) {
+    try {
+      const sup = md.suppliers.find((s) => s.id === d.supplier_id);
+      if (!sup?.origin_id) { toast.error("Supplier has no origin."); return; }
+      const subc = cats.find((c) => c.id === d.subcategory_id);
+      if (!subc?.code) { toast.error("Subcategory has no code."); return; }
+      const origin = md.origins.find((o) => o.id === sup.origin_id);
+      const letter = originLetterFromCode(origin?.code);
+      if (!letter) { toast.error("Supplier origin has no letter mapping."); return; }
+      const { data: existing } = await supabase.from("products").select("primary_item_number");
+      const seq = nextSequenceFor(subc.code, (existing ?? []).map((x: any) => x.primary_item_number).filter(Boolean));
+      const itemNumber = composePrimaryItemNumber(subc.code, seq, letter);
+      const { data, error } = await supabase.from("products").insert({
+        primary_item_number: itemNumber,
+        name: d.name.trim(),
+        subcategory_id: d.subcategory_id,
+        origin_id: sup.origin_id,
+        supplier_id: sup.id,
+        supplier_item_number: d.supplier_item_number.trim() || null,
+        production_days_min: 1,
+      } as any).select().single();
+      if (error) { toast.error(`Create failed: ${error.message}`); return; }
+      setProducts((arr) => [data as any, ...arr]);
+      setDrafts((arr) => arr.filter((x) => x.tempId !== d.tempId));
+      toast.success(`Created ${itemNumber}`);
+    } finally {
+      persistingRef.current.delete(d.tempId);
     }
-    const sup = md.suppliers.find((s) => s.id === draftSup);
-    if (!sup?.origin_id) { toast.error("Supplier has no origin."); return; }
-    const subc = cats.find((c) => c.id === draftSubcat);
-    if (!subc?.code) { toast.error("Subcategory has no code."); return; }
-    const origin = md.origins.find((o) => o.id === sup.origin_id);
-    const letter = originLetterFromCode(origin?.code);
-    if (!letter) { toast.error("Supplier origin has no letter mapping."); return; }
-    setCreating(true);
-    const { data: existing } = await supabase.from("products").select("primary_item_number");
-    const seq = nextSequenceFor(subc.code, (existing ?? []).map((x: any) => x.primary_item_number).filter(Boolean));
-    const itemNumber = composePrimaryItemNumber(subc.code, seq, letter);
-    const { data, error } = await supabase.from("products").insert({
-      primary_item_number: itemNumber,
-      name: draftName.trim(),
-      subcategory_id: draftSubcat,
-      origin_id: sup.origin_id,
-      supplier_id: sup.id,
-      supplier_item_number: draftSupNum.trim() || null,
-      production_days_min: 1,
-    } as any).select().single();
-    setCreating(false);
-    if (error) { toast.error(`Create failed: ${error.message}`); return; }
-    setProducts((arr) => [data as any, ...arr]);
-    toast.success(`Created ${itemNumber}`);
-    setDraftOpen(false);
-    setDraftName(""); setDraftSup(""); setDraftSubcat(""); setDraftSupNum("");
-  };
+  }
+
 
   // Pre-group decos/bands for fast lookup
   const decosByProduct = useMemo(() => {
@@ -501,7 +527,7 @@ export default function ProductsPage() {
               <Printer className="h-4 w-4" /> Print PDF
             </button>
             <button
-              onClick={() => setDraftOpen(true)}
+              onClick={addDraft}
               className="h-9 px-3.5 rounded-md text-[13px] font-semibold inline-flex items-center gap-1.5 text-white"
               style={{ background: "hsl(var(--brand-orange))" }}
             >
@@ -510,115 +536,108 @@ export default function ProductsPage() {
           </div>
         </header>
 
-        {/* Draft create modal sheet */}
-        {draftOpen && (
-          <div className="px-4 sm:px-6 lg:px-8 pt-4 print-hide">
-            <DraftCard
-              draftName={draftName} setDraftName={setDraftName}
-              draftSup={draftSup} setDraftSup={setDraftSup}
-              draftSubcat={draftSubcat} setDraftSubcat={setDraftSubcat}
-              draftSupNum={draftSupNum} setDraftSupNum={setDraftSupNum}
-              suppliers={md.suppliers}
-              subcategoryGroups={subcategoryGroups}
-              onCancel={() => { setDraftOpen(false); setDraftName(""); setDraftSup(""); setDraftSubcat(""); setDraftSupNum(""); }}
-              onCreate={handleCreate}
-              creating={creating}
-            />
-          </div>
-        )}
-
         {/* Table */}
         <main className="print-area">
           {loading ? (
             <p className="text-sm text-muted-foreground p-6">Loading…</p>
-          ) : filteredProducts.length === 0 ? (
+          ) : filteredProducts.length === 0 && drafts.length === 0 ? (
             <div className="m-6 rounded-xl border p-10 text-center text-sm text-muted-foreground"
               style={{ borderColor: "hsl(var(--brand-navy) / 0.08)" }}>
               {products.length === 0 ? "No products yet — click + Add Product to start." : "No products match the filters."}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table
-                className="products-table"
-                style={{
-                  borderCollapse: "separate",
-                  borderSpacing: 0,
-                  width: "100%",
-                  minWidth: COLS.reduce((s, c) => s + c.w, 0),
-                  tableLayout: "fixed",
-                  fontSize: 13,
-                  color: "hsl(var(--brand-navy))",
-                }}
-              >
-                <colgroup>
-                  {COLS.map((c) => <col key={c.key} style={{ width: c.w }} />)}
-                </colgroup>
-                <thead>
-                  <tr>
-                    {COLS.map((c) => (
-                      <th
-                        key={c.key}
-                        className="th-sticky"
-                        style={{
-                          position: "sticky", top: 73, zIndex: 5,
-                          background: "hsl(var(--brand-navy) / 0.04)",
-                          borderBottom: "1px solid hsl(var(--brand-navy) / 0.15)",
-                          borderRight: "1px solid hsl(var(--brand-navy) / 0.06)",
-                          padding: "6px 8px",
-                          textAlign: c.key === "qty" || c.key === "unit" || c.key === "setup" || c.key === "pack" || c.key === "l" || c.key === "w" || c.key === "h" || c.key === "wt" ? "right" : "left",
-                          fontSize: 10,
-                          fontWeight: 600,
-                          letterSpacing: "0.12em",
-                          textTransform: "uppercase",
-                          color: "hsl(var(--brand-navy) / 0.6)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {c.label}
-                        {c.hint && <span style={{ marginLeft: 4, fontStyle: "italic", fontWeight: 400, color: "hsl(var(--muted-foreground))", textTransform: "none", letterSpacing: 0, fontSize: 9 }}>{c.hint}</span>}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map((p, idx) => (
-                    <ProductRows
-                      key={p.id}
-                      product={p}
-                      isLast={idx === filteredProducts.length - 1}
-                      catById={catById}
-                      labelById={labelById}
-                      mdById={mdById}
-                      dmById={dmById}
-                      suppliers={md.suppliers}
-                      subcategoryGroups={subcategoryGroups}
-                      methodGroups={methodGroups}
-                      allLabels={labels}
-                      details={detailsByProduct.get(p.id) ?? []}
-                      decorations={decosByProduct.get(p.id) ?? []}
-                      bandsByDeco={bandsByDeco}
-                      onPatchProduct={(patch) => patchProduct(p.id, patch)}
-                      onPatchDetail={patchDetail}
-                      onRemoveDetail={removeDetail}
-                      onAddDetail={(lid) => addDetail(p.id, lid)}
-                      onCreateLabel={(n) => createLabelAndAdd(p.id, n)}
-                      onAddDecoration={(mdId) => addDecoration(p.id, mdId)}
-                      onPatchDeco={patchDeco}
-                      onRemoveDeco={(d) => setConfirmDeleteDeco(d)}
-                      onUploadDecoRef={uploadDecoRef}
-                      onAddBand={addBand}
-                      onPatchBand={patchBand}
-                      onRemoveBand={removeBand}
-                      onUploadImage={(f) => uploadProductImage(p.id, f)}
-                      onDuplicate={() => duplicateProduct(p)}
-                      onDelete={() => setConfirmDeleteProduct(p)}
-                    />
+            <table
+              className="products-table"
+              style={{
+                borderCollapse: "separate",
+                borderSpacing: 0,
+                width: "100%",
+                minWidth: COLS.reduce((s, c) => s + c.w, 0),
+                tableLayout: "fixed",
+                fontSize: 13,
+                color: "hsl(var(--brand-navy))",
+              }}
+            >
+              <colgroup>
+                {COLS.map((c) => <col key={c.key} style={{ width: c.w }} />)}
+              </colgroup>
+              <thead>
+                <tr>
+                  {COLS.map((c) => (
+                    <th
+                      key={c.key}
+                      className="th-sticky"
+                      style={{
+                        position: "sticky", top: 73, zIndex: 5,
+                        background: "hsl(var(--brand-navy) / 0.04)",
+                        borderBottom: "1px solid hsl(var(--brand-navy) / 0.15)",
+                        borderRight: "1px solid hsl(var(--brand-navy) / 0.06)",
+                        padding: "6px 8px",
+                        textAlign: c.key === "qty" || c.key === "unit" || c.key === "setup" || c.key === "pack" || c.key === "l" || c.key === "w" || c.key === "h" || c.key === "wt" ? "right" : "left",
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: "hsl(var(--brand-navy) / 0.6)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {c.label}
+                      {c.hint && <span style={{ marginLeft: 4, fontStyle: "italic", fontWeight: 400, color: "hsl(var(--muted-foreground))", textTransform: "none", letterSpacing: 0, fontSize: 9 }}>{c.hint}</span>}
+                    </th>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {drafts.map((d) => (
+                  <DraftTableRow
+
+                    key={d.tempId}
+                    draft={d}
+                    suppliers={md.suppliers}
+                    subcategoryGroups={subcategoryGroups}
+                    onUpdate={(patch) => updateDraft(d.tempId, patch)}
+                    onRemove={() => removeDraft(d.tempId)}
+                  />
+                ))}
+                {filteredProducts.map((p, idx) => (
+                  <ProductRows
+                    key={p.id}
+                    product={p}
+                    isLast={idx === filteredProducts.length - 1}
+                    catById={catById}
+                    labelById={labelById}
+                    mdById={mdById}
+                    dmById={dmById}
+                    suppliers={md.suppliers}
+                    subcategoryGroups={subcategoryGroups}
+                    methodGroups={methodGroups}
+                    allLabels={labels}
+                    details={detailsByProduct.get(p.id) ?? []}
+                    decorations={decosByProduct.get(p.id) ?? []}
+                    bandsByDeco={bandsByDeco}
+                    onPatchProduct={(patch) => patchProduct(p.id, patch)}
+                    onPatchDetail={patchDetail}
+                    onRemoveDetail={removeDetail}
+                    onAddDetail={(lid) => addDetail(p.id, lid)}
+                    onCreateLabel={(n) => createLabelAndAdd(p.id, n)}
+                    onAddDecoration={(mdId) => addDecoration(p.id, mdId)}
+                    onPatchDeco={patchDeco}
+                    onRemoveDeco={(d) => setConfirmDeleteDeco(d)}
+                    onUploadDecoRef={uploadDecoRef}
+                    onAddBand={addBand}
+                    onPatchBand={patchBand}
+                    onRemoveBand={removeBand}
+                    onUploadImage={(f) => uploadProductImage(p.id, f)}
+                    onDuplicate={() => duplicateProduct(p)}
+                    onDelete={() => setConfirmDeleteProduct(p)}
+                  />
+                ))}
+              </tbody>
+            </table>
           )}
         </main>
+
 
         <ConfirmDialog
           open={!!confirmDeleteProduct}
@@ -729,7 +748,7 @@ function ProductRows(props: {
             {isFirstRow && (
               <>
                 {/* IMG */}
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "center", verticalAlign: "middle", padding: 4 }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "center", verticalAlign: "top", padding: 6 }}>
                   <ImageThumb url={p.image_url} size={64} onFile={props.onUploadImage} />
                 </td>
                 {/* NAME / # / DETAILS */}
@@ -752,22 +771,23 @@ function ProductRows(props: {
                   />
                 </td>
                 {/* PACK */}
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
                   <CellNum value={p.carton_pack} onCommit={(v) => props.onPatchProduct({ carton_pack: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
                   <CellNum value={p.carton_length} onCommit={(v) => props.onPatchProduct({ carton_length: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
                   <CellNum value={p.carton_width} onCommit={(v) => props.onPatchProduct({ carton_width: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }} title={dimsUnit}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }} title={dimsUnit}>
                   <CellNum value={p.carton_height} onCommit={(v) => props.onPatchProduct({ carton_height: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }} title={wtUnit}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }} title={wtUnit}>
                   <CellNum value={p.carton_weight} onCommit={(v) => props.onPatchProduct({ carton_weight: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
+
                   <LeadCell
                     min={p.production_days_min}
                     max={p.production_days_max}
@@ -898,7 +918,7 @@ function IdentityStack({
           value={p.supplier_item_number ?? ""}
           placeholder="Sup #"
           onCommit={(v) => onPatchProduct({ supplier_item_number: v || null })}
-          style={{ fontSize: 11, fontFamily: "ui-monospace, SFMono-Regular, monospace", color: "hsl(var(--brand-navy) / 0.7)", flex: 1 }}
+          style={{ fontSize: 11, fontFamily: "ui-monospace, SFMono-Regular, monospace", color: "hsl(var(--brand-navy) / 0.7)", flex: 1, minWidth: 70, border: "1px dashed hsl(var(--brand-navy) / 0.18)" }}
         />
       </div>
       <div className="flex items-center gap-1 mt-0.5 flex-wrap">
@@ -1395,7 +1415,115 @@ function MultiSelectFilter({
   );
 }
 
+// ────────────────────────────────────────────────────────────────────────
+// Inline draft row — pre-empty new product at top of table.
+// Persists silently once Name + Supplier + Subcategory are all populated.
+// ────────────────────────────────────────────────────────────────────────
+function DraftTableRow({
+  draft, suppliers, subcategoryGroups, onUpdate, onRemove,
+}: {
+  draft: { tempId: string; name: string; supplier_id: string; subcategory_id: string; supplier_item_number: string };
+  suppliers: ReturnType<typeof useMasterData>["suppliers"];
+  subcategoryGroups: { parent: Cat; subs: Cat[] }[];
+  onUpdate: (patch: Partial<{ name: string; supplier_id: string; subcategory_id: string; supplier_item_number: string }>) => void;
+  onRemove: () => void;
+}) {
+  const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { nameRef.current?.focus(); }, []);
+  const supplier = suppliers.find((s) => s.id === draft.supplier_id) ?? null;
+  const sub = subcategoryGroups.flatMap((g) => g.subs).find((s) => s.id === draft.subcategory_id);
+  const supplierColorStyle = supplier ? supplierColor(supplier.name) : "hsl(var(--muted))";
+  const tdBase: React.CSSProperties = {
+    borderRight: "1px solid hsl(var(--brand-navy) / 0.06)",
+    borderBottom: "2px solid hsl(var(--brand-orange) / 0.35)",
+    padding: "6px 8px",
+    verticalAlign: "top",
+    background: "hsl(var(--brand-orange) / 0.04)",
+  };
+  return (
+    <tr style={{ outline: "2px solid hsl(var(--brand-orange))", outlineOffset: -2 }}>
+      <td style={{ ...tdBase, padding: 6, textAlign: "center" }}>
+        <div className="w-16 h-16 rounded border flex items-center justify-center mx-auto" style={{ borderColor: "hsl(var(--brand-orange) / 0.4)" }}>
+          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </td>
+      <td style={tdBase}>
+        <div className="flex flex-col gap-1 min-w-0">
+          <input
+            ref={nameRef}
+            value={draft.name}
+            placeholder="Product name"
+            onChange={(e) => onUpdate({ name: e.target.value })}
+            className="w-full h-7 px-2 rounded border bg-white text-[14px] font-semibold focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-orange)/0.4)]"
+            style={{ color: "hsl(var(--brand-navy))", borderColor: "hsl(var(--brand-orange) / 0.45)" }}
+          />
+          <div className="flex items-center gap-1.5 text-[11px] font-mono leading-none">
+            <span style={{ color: "hsl(var(--brand-navy) / 0.35)" }} title="Item number — generated on save">—</span>
+            <span style={{ color: "hsl(var(--brand-navy) / 0.25)" }}>·</span>
+            <input
+              value={draft.supplier_item_number}
+              placeholder="Sup #"
+              onChange={(e) => onUpdate({ supplier_item_number: e.target.value })}
+              className="flex-1 h-6 px-1.5 rounded border bg-white text-[11px] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--brand-orange)/0.4)]"
+              style={{ borderColor: "hsl(var(--brand-orange) / 0.3)", minWidth: 60, fontFamily: "ui-monospace, SFMono-Regular, monospace" }}
+            />
+          </div>
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+            <Select value={draft.supplier_id} onValueChange={(v) => onUpdate({ supplier_id: v })}>
+              <SelectTrigger
+                className="h-6 w-auto min-w-0 px-2 rounded-full border-0 text-[10px] font-semibold gap-0.5 focus:ring-2 focus:ring-[hsl(var(--brand-orange)/0.45)]"
+                style={{ background: supplier ? supplierColorStyle : "hsl(var(--brand-navy) / 0.10)", color: supplier ? "white" : "hsl(var(--brand-navy) / 0.6)" }}
+              >
+                <SelectValue placeholder="Choose supplier" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {[...suppliers].sort((a, b) => a.name.localeCompare(b.name)).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={draft.subcategory_id} onValueChange={(v) => onUpdate({ subcategory_id: v })}>
+              <SelectTrigger
+                className="h-6 w-auto min-w-0 px-2 rounded-full border text-[10px] font-medium gap-0.5 bg-white focus:ring-2 focus:ring-[hsl(var(--brand-orange)/0.45)]"
+                style={{ borderColor: "hsl(var(--brand-orange) / 0.4)", color: sub ? "hsl(var(--brand-navy))" : "hsl(var(--brand-navy) / 0.5)" }}
+              >
+                <span className="truncate max-w-[120px]">{sub?.name ?? "Choose subcategory"}</span>
+              </SelectTrigger>
+              <SelectContent className="max-h-[320px]">
+                {subcategoryGroups.map((g) => (
+                  <SelectGroup key={g.parent.id}>
+                    <SelectLabel>{g.parent.name}</SelectLabel>
+                    {g.subs.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </td>
+      {/* Empty spec cells */}
+      <td style={tdBase}>&nbsp;</td>
+      <td style={tdBase}>&nbsp;</td>
+      <td style={tdBase}>&nbsp;</td>
+      <td style={tdBase}>&nbsp;</td>
+      <td style={tdBase}>&nbsp;</td>
+      <td style={tdBase}>&nbsp;</td>
+      <td colSpan={4} style={{ ...tdBase, color: "hsl(var(--muted-foreground))", fontStyle: "italic", fontSize: 11 }}>
+        Fill Name + Supplier + Subcategory to save · decorations and pricing can be added after.
+      </td>
+      <td style={{ ...tdBase, textAlign: "center", padding: 2 }} className="print-hide">
+        <button onClick={onRemove} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive" aria-label="Discard draft">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </td>
+    </tr>
+  );
+}
+
 function DraftCard({
+
   draftName, setDraftName, draftSup, setDraftSup, draftSubcat, setDraftSubcat,
   draftSupNum, setDraftSupNum, suppliers, subcategoryGroups, onCancel, onCreate, creating,
 }: any) {
