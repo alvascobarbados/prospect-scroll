@@ -1415,7 +1415,115 @@ function MultiSelectFilter({
   );
 }
 
+// ────────────────────────────────────────────────────────────────────────
+// Inline draft row — pre-empty new product at top of table.
+// Persists silently once Name + Supplier + Subcategory are all populated.
+// ────────────────────────────────────────────────────────────────────────
+function DraftTableRow({
+  draft, suppliers, subcategoryGroups, onUpdate, onRemove,
+}: {
+  draft: { tempId: string; name: string; supplier_id: string; subcategory_id: string; supplier_item_number: string };
+  suppliers: ReturnType<typeof useMasterData>["suppliers"];
+  subcategoryGroups: { parent: Cat; subs: Cat[] }[];
+  onUpdate: (patch: Partial<{ name: string; supplier_id: string; subcategory_id: string; supplier_item_number: string }>) => void;
+  onRemove: () => void;
+}) {
+  const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { nameRef.current?.focus(); }, []);
+  const supplier = suppliers.find((s) => s.id === draft.supplier_id) ?? null;
+  const sub = subcategoryGroups.flatMap((g) => g.subs).find((s) => s.id === draft.subcategory_id);
+  const supplierColorStyle = supplier ? supplierColor(supplier.name) : "hsl(var(--muted))";
+  const tdBase: React.CSSProperties = {
+    borderRight: "1px solid hsl(var(--brand-navy) / 0.06)",
+    borderBottom: "2px solid hsl(var(--brand-orange) / 0.35)",
+    padding: "6px 8px",
+    verticalAlign: "top",
+    background: "hsl(var(--brand-orange) / 0.04)",
+  };
+  return (
+    <tr style={{ outline: "2px solid hsl(var(--brand-orange))", outlineOffset: -2 }}>
+      <td style={{ ...tdBase, padding: 6, textAlign: "center" }}>
+        <div className="w-16 h-16 rounded border flex items-center justify-center mx-auto" style={{ borderColor: "hsl(var(--brand-orange) / 0.4)" }}>
+          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </td>
+      <td style={tdBase}>
+        <div className="flex flex-col gap-1 min-w-0">
+          <input
+            ref={nameRef}
+            value={draft.name}
+            placeholder="Product name"
+            onChange={(e) => onUpdate({ name: e.target.value })}
+            className="w-full h-7 px-2 rounded border bg-white text-[14px] font-semibold focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-orange)/0.4)]"
+            style={{ color: "hsl(var(--brand-navy))", borderColor: "hsl(var(--brand-orange) / 0.45)" }}
+          />
+          <div className="flex items-center gap-1.5 text-[11px] font-mono leading-none">
+            <span style={{ color: "hsl(var(--brand-navy) / 0.35)" }} title="Item number — generated on save">—</span>
+            <span style={{ color: "hsl(var(--brand-navy) / 0.25)" }}>·</span>
+            <input
+              value={draft.supplier_item_number}
+              placeholder="Sup #"
+              onChange={(e) => onUpdate({ supplier_item_number: e.target.value })}
+              className="flex-1 h-6 px-1.5 rounded border bg-white text-[11px] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--brand-orange)/0.4)]"
+              style={{ borderColor: "hsl(var(--brand-orange) / 0.3)", minWidth: 60, fontFamily: "ui-monospace, SFMono-Regular, monospace" }}
+            />
+          </div>
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+            <Select value={draft.supplier_id} onValueChange={(v) => onUpdate({ supplier_id: v })}>
+              <SelectTrigger
+                className="h-6 w-auto min-w-0 px-2 rounded-full border-0 text-[10px] font-semibold gap-0.5 focus:ring-2 focus:ring-[hsl(var(--brand-orange)/0.45)]"
+                style={{ background: supplier ? supplierColorStyle : "hsl(var(--brand-navy) / 0.10)", color: supplier ? "white" : "hsl(var(--brand-navy) / 0.6)" }}
+              >
+                <SelectValue placeholder="Choose supplier" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {[...suppliers].sort((a, b) => a.name.localeCompare(b.name)).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={draft.subcategory_id} onValueChange={(v) => onUpdate({ subcategory_id: v })}>
+              <SelectTrigger
+                className="h-6 w-auto min-w-0 px-2 rounded-full border text-[10px] font-medium gap-0.5 bg-white focus:ring-2 focus:ring-[hsl(var(--brand-orange)/0.45)]"
+                style={{ borderColor: "hsl(var(--brand-orange) / 0.4)", color: sub ? "hsl(var(--brand-navy))" : "hsl(var(--brand-navy) / 0.5)" }}
+              >
+                <span className="truncate max-w-[120px]">{sub?.name ?? "Choose subcategory"}</span>
+              </SelectTrigger>
+              <SelectContent className="max-h-[320px]">
+                {subcategoryGroups.map((g) => (
+                  <SelectGroup key={g.parent.id}>
+                    <SelectLabel>{g.parent.name}</SelectLabel>
+                    {g.subs.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </td>
+      {/* Empty spec cells */}
+      <td style={tdBase}>&nbsp;</td>
+      <td style={tdBase}>&nbsp;</td>
+      <td style={tdBase}>&nbsp;</td>
+      <td style={tdBase}>&nbsp;</td>
+      <td style={tdBase}>&nbsp;</td>
+      <td style={tdBase}>&nbsp;</td>
+      <td colSpan={4} style={{ ...tdBase, color: "hsl(var(--muted-foreground))", fontStyle: "italic", fontSize: 11 }}>
+        Fill Name + Supplier + Subcategory to save · decorations and pricing can be added after.
+      </td>
+      <td style={{ ...tdBase, textAlign: "center", padding: 2 }} className="print-hide">
+        <button onClick={onRemove} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive" aria-label="Discard draft">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </td>
+    </tr>
+  );
+}
+
 function DraftCard({
+
   draftName, setDraftName, draftSup, setDraftSup, draftSubcat, setDraftSubcat,
   draftSupNum, setDraftSupNum, suppliers, subcategoryGroups, onCancel, onCreate, creating,
 }: any) {
