@@ -287,8 +287,7 @@ export default function ProductsPage() {
               </h1>
             </div>
             <button
-              onClick={() => setDraft(EMPTY_DRAFT)}
-              disabled={!!draft}
+              onClick={() => navigate("/products/new")}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
               style={{ background: "hsl(var(--brand-orange))", color: "white", minHeight: 40 }}
             >
