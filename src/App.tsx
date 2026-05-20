@@ -58,6 +58,7 @@ const App = () => (
                     <Route path="/archive" element={<ArchivePage />} />
                     <Route path="/trash" element={<TrashPage />} />
                     <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/detail-labels" element={<DetailLabelsPage />} />
                     {/* v1.0: deferred routes redirect to Pipeline */}
                     <Route path="/spreadsheet" element={<Navigate to="/" replace />} />
                     <Route path="/shipments" element={<Navigate to="/" replace />} />
