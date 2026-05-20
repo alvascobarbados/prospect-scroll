@@ -1059,7 +1059,7 @@ function DecoCell({
   dmById: Map<string, DMethod>;
   methodGroups: { method: DMethod | undefined; mds: MDetail[] }[];
   onPatch: (p: Partial<Deco>) => void;
-  onUploadRef: (f: File) => void;
+  onUploadRef?: (f: File) => void;
   onRemove: () => void;
 }) {
   return (
@@ -1271,7 +1271,7 @@ function SubcatPill({ name, subcategoryGroups, onPick }: {
   );
 }
 
-function KebabMenu({ onDuplicate, onDelete }: { onDuplicate: () => void; onDelete: () => void }) {
+function KebabMenu({ onDuplicate, onDelete, onAddSubProduct }: { onDuplicate: () => void; onDelete: () => void; onAddSubProduct?: () => void }) {
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -1281,6 +1281,12 @@ function KebabMenu({ onDuplicate, onDelete }: { onDuplicate: () => void; onDelet
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-44 p-1">
+        {onAddSubProduct && (
+          <button onClick={() => { onAddSubProduct(); setOpen(false); }}
+            className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted/60 flex items-center gap-2">
+            <Plus className="h-3.5 w-3.5" /> Add sub-product
+          </button>
+        )}
         <button onClick={() => { onDuplicate(); setOpen(false); }}
           className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted/60 flex items-center gap-2">
           <CopyIcon className="h-3.5 w-3.5" /> Duplicate
@@ -1293,6 +1299,7 @@ function KebabMenu({ onDuplicate, onDelete }: { onDuplicate: () => void; onDelet
     </Popover>
   );
 }
+
 
 function DetailChipInline({
   label, value, onCommit, onRemove,
