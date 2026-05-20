@@ -553,7 +553,7 @@ export default function ProductsPage() {
               <Printer className="h-4 w-4" /> Print PDF
             </button>
             <button
-              onClick={addDraft}
+              onClick={() => addDraft()}
               className="h-9 px-3.5 rounded-md text-[13px] font-semibold inline-flex items-center gap-1.5 text-white"
               style={{ background: "hsl(var(--brand-orange))" }}
             >
