@@ -527,7 +527,7 @@ export default function ProductsPage() {
               <Printer className="h-4 w-4" /> Print PDF
             </button>
             <button
-              onClick={() => setDraftOpen(true)}
+              onClick={addDraft}
               className="h-9 px-3.5 rounded-md text-[13px] font-semibold inline-flex items-center gap-1.5 text-white"
               style={{ background: "hsl(var(--brand-orange))" }}
             >
@@ -536,103 +536,96 @@ export default function ProductsPage() {
           </div>
         </header>
 
-        {/* Draft create modal sheet */}
-        {draftOpen && (
-          <div className="px-4 sm:px-6 lg:px-8 pt-4 print-hide">
-            <DraftCard
-              draftName={draftName} setDraftName={setDraftName}
-              draftSup={draftSup} setDraftSup={setDraftSup}
-              draftSubcat={draftSubcat} setDraftSubcat={setDraftSubcat}
-              draftSupNum={draftSupNum} setDraftSupNum={setDraftSupNum}
-              suppliers={md.suppliers}
-              subcategoryGroups={subcategoryGroups}
-              onCancel={() => { setDraftOpen(false); setDraftName(""); setDraftSup(""); setDraftSubcat(""); setDraftSupNum(""); }}
-              onCreate={handleCreate}
-              creating={creating}
-            />
-          </div>
-        )}
-
         {/* Table */}
         <main className="print-area">
           {loading ? (
             <p className="text-sm text-muted-foreground p-6">Loading…</p>
-          ) : filteredProducts.length === 0 ? (
+          ) : filteredProducts.length === 0 && drafts.length === 0 ? (
             <div className="m-6 rounded-xl border p-10 text-center text-sm text-muted-foreground"
               style={{ borderColor: "hsl(var(--brand-navy) / 0.08)" }}>
               {products.length === 0 ? "No products yet — click + Add Product to start." : "No products match the filters."}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table
-                className="products-table"
-                style={{
-                  borderCollapse: "separate",
-                  borderSpacing: 0,
-                  width: "100%",
-                  minWidth: COLS.reduce((s, c) => s + c.w, 0),
-                  tableLayout: "fixed",
-                  fontSize: 13,
-                  color: "hsl(var(--brand-navy))",
-                }}
-              >
-                <colgroup>
-                  {COLS.map((c) => <col key={c.key} style={{ width: c.w }} />)}
-                </colgroup>
-                <thead>
-                  <tr>
-                    {COLS.map((c) => (
-                      <th
-                        key={c.key}
-                        className="th-sticky"
-                        style={{
-                          position: "sticky", top: 73, zIndex: 5,
-                          background: "hsl(var(--brand-navy) / 0.04)",
-                          borderBottom: "1px solid hsl(var(--brand-navy) / 0.15)",
-                          borderRight: "1px solid hsl(var(--brand-navy) / 0.06)",
-                          padding: "6px 8px",
-                          textAlign: c.key === "qty" || c.key === "unit" || c.key === "setup" || c.key === "pack" || c.key === "l" || c.key === "w" || c.key === "h" || c.key === "wt" ? "right" : "left",
-                          fontSize: 10,
-                          fontWeight: 600,
-                          letterSpacing: "0.12em",
-                          textTransform: "uppercase",
-                          color: "hsl(var(--brand-navy) / 0.6)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {c.label}
-                        {c.hint && <span style={{ marginLeft: 4, fontStyle: "italic", fontWeight: 400, color: "hsl(var(--muted-foreground))", textTransform: "none", letterSpacing: 0, fontSize: 9 }}>{c.hint}</span>}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map((p, idx) => (
-                    <ProductRows
-                      key={p.id}
-                      product={p}
-                      isLast={idx === filteredProducts.length - 1}
-                      catById={catById}
-                      labelById={labelById}
-                      mdById={mdById}
-                      dmById={dmById}
-                      suppliers={md.suppliers}
-                      subcategoryGroups={subcategoryGroups}
-                      methodGroups={methodGroups}
-                      allLabels={labels}
-                      details={detailsByProduct.get(p.id) ?? []}
-                      decorations={decosByProduct.get(p.id) ?? []}
-                      bandsByDeco={bandsByDeco}
-                      onPatchProduct={(patch) => patchProduct(p.id, patch)}
-                      onPatchDetail={patchDetail}
-                      onRemoveDetail={removeDetail}
-                      onAddDetail={(lid) => addDetail(p.id, lid)}
-                      onCreateLabel={(n) => createLabelAndAdd(p.id, n)}
-                      onAddDecoration={(mdId) => addDecoration(p.id, mdId)}
-                      onPatchDeco={patchDeco}
-                      onRemoveDeco={(d) => setConfirmDeleteDeco(d)}
-                      onUploadDecoRef={uploadDecoRef}
-                      onAddBand={addBand}
+            <table
+              className="products-table"
+              style={{
+                borderCollapse: "separate",
+                borderSpacing: 0,
+                width: "100%",
+                minWidth: COLS.reduce((s, c) => s + c.w, 0),
+                tableLayout: "fixed",
+                fontSize: 13,
+                color: "hsl(var(--brand-navy))",
+              }}
+            >
+              <colgroup>
+                {COLS.map((c) => <col key={c.key} style={{ width: c.w }} />)}
+              </colgroup>
+              <thead>
+                <tr>
+                  {COLS.map((c) => (
+                    <th
+                      key={c.key}
+                      className="th-sticky"
+                      style={{
+                        position: "sticky", top: 73, zIndex: 5,
+                        background: "hsl(var(--brand-navy) / 0.04)",
+                        borderBottom: "1px solid hsl(var(--brand-navy) / 0.15)",
+                        borderRight: "1px solid hsl(var(--brand-navy) / 0.06)",
+                        padding: "6px 8px",
+                        textAlign: c.key === "qty" || c.key === "unit" || c.key === "setup" || c.key === "pack" || c.key === "l" || c.key === "w" || c.key === "h" || c.key === "wt" ? "right" : "left",
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: "hsl(var(--brand-navy) / 0.6)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {c.label}
+                      {c.hint && <span style={{ marginLeft: 4, fontStyle: "italic", fontWeight: 400, color: "hsl(var(--muted-foreground))", textTransform: "none", letterSpacing: 0, fontSize: 9 }}>{c.hint}</span>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {drafts.map((d) => (
+                  <DraftRow
+                    key={d.tempId}
+                    draft={d}
+                    suppliers={md.suppliers}
+                    subcategoryGroups={subcategoryGroups}
+                    onUpdate={(patch) => updateDraft(d.tempId, patch)}
+                    onRemove={() => removeDraft(d.tempId)}
+                  />
+                ))}
+                {filteredProducts.map((p, idx) => (
+                  <ProductRows
+                    key={p.id}
+                    product={p}
+                    isLast={idx === filteredProducts.length - 1}
+                    catById={catById}
+                    labelById={labelById}
+                    mdById={mdById}
+                    dmById={dmById}
+                    suppliers={md.suppliers}
+                    subcategoryGroups={subcategoryGroups}
+                    methodGroups={methodGroups}
+                    allLabels={labels}
+                    details={detailsByProduct.get(p.id) ?? []}
+                    decorations={decosByProduct.get(p.id) ?? []}
+                    bandsByDeco={bandsByDeco}
+                    onPatchProduct={(patch) => patchProduct(p.id, patch)}
+                    onPatchDetail={patchDetail}
+                    onRemoveDetail={removeDetail}
+                    onAddDetail={(lid) => addDetail(p.id, lid)}
+                    onCreateLabel={(n) => createLabelAndAdd(p.id, n)}
+                    onAddDecoration={(mdId) => addDecoration(p.id, mdId)}
+                    onPatchDeco={patchDeco}
+                    onRemoveDeco={(d) => setConfirmDeleteDeco(d)}
+                    onUploadDecoRef={uploadDecoRef}
+                    onAddBand={addBand}
+
                       onPatchBand={patchBand}
                       onRemoveBand={removeBand}
                       onUploadImage={(f) => uploadProductImage(p.id, f)}
