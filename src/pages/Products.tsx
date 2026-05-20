@@ -53,26 +53,42 @@ interface DMethod { id: string; name: string }
 interface DetailLabel { id: string; label: string; sort_order: number }
 interface ProductDetail { id: string; product_id: string; detail_label_id: string; value: string; sort_order: number }
 
-// ── Column widths (px). Total min ~1330. ─────────────────────────────────
+// ── Column widths (px). Total ~1764. ─────────────────────────────────────
 const COLS = [
-  { key: "image",    label: "",            w: 56,  align: "center" as const },
-  { key: "supplier", label: "Supplier",    w: 120 },
-  { key: "category", label: "Category",    w: 110 },
-  { key: "subcat",   label: "Subcategory", w: 130 },
+  { key: "image",    label: "",            w: 48,  align: "center" as const },
+  { key: "supplier", label: "Supplier",    w: 140 },
+  { key: "category", label: "Category",    w: 160 },
+  { key: "subcat",   label: "Subcategory", w: 140 },
   { key: "name",     label: "Name",        w: 200 },
-  { key: "supnum",   label: "Sup #",       w: 90 },
-  { key: "desc",     label: "Description", w: 240 },
+  { key: "supnum",   label: "Sup #",       w: 110 },
+  { key: "desc",     label: "Description", w: 260 },
   { key: "pack",     label: "Pack",        w: 60,  align: "right" as const },
   { key: "carton",   label: "Carton",      w: 120 },
   { key: "wt",       label: "Wt",          w: 70,  align: "right" as const },
   { key: "lead",     label: "Lead",        w: 90 },
-  { key: "deco",     label: "Decorations", w: 120 },
+  { key: "deco",     label: "Decorations", w: 140 },
   { key: "price",    label: "Price from",  w: 100, align: "right" as const },
   { key: "updated",  label: "Updated",     w: 90 },
-  { key: "kebab",    label: "",            w: 40,  align: "center" as const },
+  { key: "kebab",    label: "",            w: 36,  align: "center" as const },
 ];
 const TOTAL_WIDTH = COLS.reduce((s, c) => s + c.w, 0);
 const GRID_COLS = COLS.map((c) => `${c.w}px`).join(" ");
+
+/** Compact relative time: "5m ago", "17h ago", "2d ago", "3w ago", "2mo ago". */
+function compactAgo(iso: string): string {
+  const d = new Date(iso);
+  const diffSec = (Date.now() - d.getTime()) / 1000;
+  if (diffSec < 45) return "just now";
+  const full = formatDistanceToNowStrict(d, { addSuffix: true });
+  return full
+    .replace(/ seconds?/, "s")
+    .replace(/ minutes?/, "m")
+    .replace(/ hours?/, "h")
+    .replace(/ days?/, "d")
+    .replace(/ weeks?/, "w")
+    .replace(/ months?/, "mo")
+    .replace(/ years?/, "y");
+}
 
 const fmtMoney = (n: number | null | undefined) =>
   n == null ? "—" : `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
