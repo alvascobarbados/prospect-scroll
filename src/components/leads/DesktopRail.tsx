@@ -55,6 +55,7 @@ export const DesktopRail = ({ trashCount, archiveCount }: Props) => {
     { icon: Package, label: "Products", to: "/products" },
     { icon: Tags, label: "Product Categories", to: "/product-categories" },
     { icon: Palette, label: "Decoration Methods", to: "/decoration-methods" },
+    { icon: Tags, label: "Detail Labels", to: "/detail-labels" },
     { icon: Truck, label: "Shipping Methods", to: "/shipping-methods" },
     { icon: MapPin, label: "Origins", to: "/origins" },
     { icon: Globe2, label: "Destinations", to: "/destinations" },
