@@ -52,7 +52,7 @@ interface Deco { id: string; product_id: string; method_detail_id: string; notes
 interface Band { id: string; product_decoration_id: string; qty: number; unit_cost: number; setup_cost: number }
 
 // Column widths — total ~1090px, table grows to fill viewport.
-const COLS = [
+const COLS: { key: string; w: number; label: string; hint?: string }[] = [
   { key: "img",   w: 80,  label: "IMG" },
   { key: "id",    w: 240, label: "NAME / # / DETAILS" },
   { key: "pack",  w: 60,  label: "PACK",   hint: "/ ctn" },
@@ -66,7 +66,8 @@ const COLS = [
   { key: "unit",  w: 80,  label: "UNIT",   hint: "USD$" },
   { key: "setup", w: 80,  label: "SETUP",  hint: "USD$" },
   { key: "menu",  w: 32,  label: "" },
-] as const;
+];
+
 
 // ────────────────────────────────────────────────────────────────────────
 // PAGE
