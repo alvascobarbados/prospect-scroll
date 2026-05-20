@@ -538,6 +538,7 @@ export type Database = {
           name: string
           notes: string | null
           origin_id: string
+          parent_product_id: string | null
           primary_item_number: string
           production_days_max: number | null
           production_days_min: number
@@ -561,6 +562,7 @@ export type Database = {
           name: string
           notes?: string | null
           origin_id: string
+          parent_product_id?: string | null
           primary_item_number: string
           production_days_max?: number | null
           production_days_min: number
@@ -584,6 +586,7 @@ export type Database = {
           name?: string
           notes?: string | null
           origin_id?: string
+          parent_product_id?: string | null
           primary_item_number?: string
           production_days_max?: number | null
           production_days_min?: number
@@ -600,6 +603,13 @@ export type Database = {
             columns: ["origin_id"]
             isOneToOne: false
             referencedRelation: "origins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {

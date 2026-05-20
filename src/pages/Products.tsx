@@ -27,6 +27,7 @@ import { composePrimaryItemNumber, nextSequenceFor } from "@/lib/productItemNumb
 interface Product {
   id: string;
   primary_item_number: string;
+  parent_product_id: string | null;
   name: string;
   subcategory_id: string;
   origin_id: string;
@@ -41,6 +42,7 @@ interface Product {
   production_days_min: number;
   production_days_max: number | null;
   moq: number | null;
+  created_at: string;
   updated_at: string;
 }
 interface Cat { id: string; parent_id: string | null; code: string | null; name: string }
@@ -51,21 +53,27 @@ interface DMethod { id: string; name: string }
 interface Deco { id: string; product_id: string; method_detail_id: string; notes: string | null; ref_image_url: string | null; sort_order: number }
 interface Band { id: string; product_decoration_id: string; qty: number; unit_cost: number; setup_cost: number }
 
-// Column widths — total ~1090px, table grows to fill viewport.
+// Sub-product visual accent (brand cream/tan)
+const SUB_ACCENT = "#E6DDC9";
+
+// Column widths. The wide DECORATION column is gone — replaced by a slim DECO
+// image column on the left of each decoration block. Method + Notes now live in
+// a header row inside the decoration block that spans qty/unit/setup, with tier
+// rows below.
 const COLS: { key: string; w: number; label: string; hint?: string }[] = [
-  { key: "img",   w: 80,  label: "IMG" },
-  { key: "id",    w: 240, label: "NAME / # / DETAILS" },
-  { key: "pack",  w: 60,  label: "PACK",   hint: "/ ctn" },
-  { key: "l",     w: 50,  label: "L" },
-  { key: "w",     w: 50,  label: "W" },
-  { key: "h",     w: 50,  label: "H" },
-  { key: "wt",    w: 60,  label: "WT" },
-  { key: "lead",  w: 90,  label: "LEAD",   hint: "days" },
-  { key: "deco",  w: 180, label: "DECORATION" },
-  { key: "qty",   w: 70,  label: "QTY" },
-  { key: "unit",  w: 80,  label: "UNIT",   hint: "USD$" },
-  { key: "setup", w: 80,  label: "SETUP",  hint: "USD$" },
-  { key: "menu",  w: 32,  label: "" },
+  { key: "img",     w: 80,  label: "IMG" },
+  { key: "id",      w: 260, label: "NAME / # / DETAILS" },
+  { key: "pack",    w: 60,  label: "PACK",   hint: "/ ctn" },
+  { key: "l",       w: 50,  label: "L" },
+  { key: "w",       w: 50,  label: "W" },
+  { key: "h",       w: 50,  label: "H" },
+  { key: "wt",      w: 60,  label: "WT" },
+  { key: "lead",    w: 90,  label: "LEAD",   hint: "days" },
+  { key: "decoImg", w: 96,  label: "DECO" },
+  { key: "qty",     w: 70,  label: "QTY" },
+  { key: "unit",    w: 80,  label: "UNIT",   hint: "USD$" },
+  { key: "setup",   w: 80,  label: "SETUP",  hint: "USD$" },
+  { key: "menu",    w: 32,  label: "" },
 ];
 
 
@@ -93,9 +101,12 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
   const [subcatFilter, setSubcatFilter] = useState<Set<string>>(new Set());
 
-  // Inline draft rows (each pre-empty product being typed at top of table)
+  // Inline draft rows (each pre-empty product being typed in the table). When
+  // `parent_product_id` is set, the draft is rendered directly below that parent
+  // product and persisted as a sub-product.
   interface DraftRow {
     tempId: string;
+    parent_product_id: string | null;
     name: string;
     supplier_id: string;
     subcategory_id: string;
@@ -235,6 +246,53 @@ export default function ProductsPage() {
       return true;
     });
   }, [products, search, supplierFilter, categoryFilter, subcatFilter, details, decorations, catById, mdById, dmById]);
+
+  // Render items: interleave top-level products, their sub-products, and drafts
+  // (top-level drafts at top, sub-product drafts directly under their parent).
+  type RenderItem =
+    | { kind: "draft"; draft: DraftRow }
+    | { kind: "product"; product: Product; isSub: boolean };
+
+  const childrenByParent = useMemo(() => {
+    const m = new Map<string, Product[]>();
+    for (const p of products) {
+      if (!p.parent_product_id) continue;
+      const arr = m.get(p.parent_product_id) ?? [];
+      arr.push(p);
+      m.set(p.parent_product_id, arr);
+    }
+    for (const arr of m.values()) {
+      arr.sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
+    }
+    return m;
+  }, [products]);
+
+  const renderItems = useMemo<RenderItem[]>(() => {
+    const items: RenderItem[] = [];
+    const filteredIds = new Set(filteredProducts.map((p) => p.id));
+    // Top-level drafts
+    for (const d of drafts) {
+      if (!d.parent_product_id) items.push({ kind: "draft", draft: d });
+    }
+    // Top-level products in filter order, with sub-products + sub-drafts grouped
+    for (const p of filteredProducts) {
+      if (p.parent_product_id) continue; // handled below the parent
+      items.push({ kind: "product", product: p, isSub: false });
+      const subs = (childrenByParent.get(p.id) ?? []).filter((s) => filteredIds.has(s.id));
+      for (const s of subs) items.push({ kind: "product", product: s, isSub: true });
+      for (const d of drafts) {
+        if (d.parent_product_id === p.id) items.push({ kind: "draft", draft: d });
+      }
+    }
+    // Orphan sub-products whose parent isn't visible — render as if top-level
+    for (const p of filteredProducts) {
+      if (!p.parent_product_id) continue;
+      if (filteredIds.has(p.parent_product_id) && products.some((x) => x.id === p.parent_product_id)) continue;
+      items.push({ kind: "product", product: p, isSub: false });
+    }
+    return items;
+  }, [filteredProducts, drafts, childrenByParent, products]);
+
 
   // ── Mutations ──────────────────────────────────────────────────────────
   const patchProduct = useCallback(async (id: string, patch: Partial<Product>) => {
@@ -390,12 +448,26 @@ export default function ProductsPage() {
   };
 
   // Inline drafts: add / update / remove / persist
-  function addDraft() {
+  function addDraft(opts?: { parentProductId?: string | null; supplier_id?: string; subcategory_id?: string }) {
     setDrafts((arr) => [
-      { tempId: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: "", supplier_id: "", subcategory_id: "", supplier_item_number: "" },
+      {
+        tempId: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        parent_product_id: opts?.parentProductId ?? null,
+        name: "",
+        supplier_id: opts?.supplier_id ?? "",
+        subcategory_id: opts?.subcategory_id ?? "",
+        supplier_item_number: "",
+      },
       ...arr,
     ]);
   }
+  const addSubProductDraft = useCallback((parent: Product) => {
+    addDraft({
+      parentProductId: parent.id,
+      supplier_id: parent.supplier_id,
+      subcategory_id: parent.subcategory_id,
+    });
+  }, []);
   const removeDraft = useCallback((tempId: string) => {
     setDrafts((arr) => arr.filter((d) => d.tempId !== tempId));
   }, []);
@@ -424,6 +496,7 @@ export default function ProductsPage() {
       const itemNumber = composePrimaryItemNumber(subc.code, seq, letter);
       const { data, error } = await supabase.from("products").insert({
         primary_item_number: itemNumber,
+        parent_product_id: d.parent_product_id,
         name: d.name.trim(),
         subcategory_id: d.subcategory_id,
         origin_id: sup.origin_id,
@@ -527,7 +600,7 @@ export default function ProductsPage() {
               <Printer className="h-4 w-4" /> Print PDF
             </button>
             <button
-              onClick={addDraft}
+              onClick={() => addDraft()}
               className="h-9 px-3.5 rounded-md text-[13px] font-semibold inline-flex items-center gap-1.5 text-white"
               style={{ background: "hsl(var(--brand-orange))" }}
             >
@@ -589,50 +662,58 @@ export default function ProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                {drafts.map((d) => (
-                  <DraftTableRow
-
-                    key={d.tempId}
-                    draft={d}
-                    suppliers={md.suppliers}
-                    subcategoryGroups={subcategoryGroups}
-                    onUpdate={(patch) => updateDraft(d.tempId, patch)}
-                    onRemove={() => removeDraft(d.tempId)}
-                  />
-                ))}
-                {filteredProducts.map((p, idx) => (
-                  <ProductRows
-                    key={p.id}
-                    product={p}
-                    isLast={idx === filteredProducts.length - 1}
-                    catById={catById}
-                    labelById={labelById}
-                    mdById={mdById}
-                    dmById={dmById}
-                    suppliers={md.suppliers}
-                    subcategoryGroups={subcategoryGroups}
-                    methodGroups={methodGroups}
-                    allLabels={labels}
-                    details={detailsByProduct.get(p.id) ?? []}
-                    decorations={decosByProduct.get(p.id) ?? []}
-                    bandsByDeco={bandsByDeco}
-                    onPatchProduct={(patch) => patchProduct(p.id, patch)}
-                    onPatchDetail={patchDetail}
-                    onRemoveDetail={removeDetail}
-                    onAddDetail={(lid) => addDetail(p.id, lid)}
-                    onCreateLabel={(n) => createLabelAndAdd(p.id, n)}
-                    onAddDecoration={(mdId) => addDecoration(p.id, mdId)}
-                    onPatchDeco={patchDeco}
-                    onRemoveDeco={(d) => setConfirmDeleteDeco(d)}
-                    onUploadDecoRef={uploadDecoRef}
-                    onAddBand={addBand}
-                    onPatchBand={patchBand}
-                    onRemoveBand={removeBand}
-                    onUploadImage={(f) => uploadProductImage(p.id, f)}
-                    onDuplicate={() => duplicateProduct(p)}
-                    onDelete={() => setConfirmDeleteProduct(p)}
-                  />
-                ))}
+                {renderItems.map((item, idx) => {
+                  const isLast = idx === renderItems.length - 1;
+                  if (item.kind === "draft") {
+                    const d = item.draft;
+                    return (
+                      <DraftTableRow
+                        key={d.tempId}
+                        draft={d}
+                        suppliers={md.suppliers}
+                        subcategoryGroups={subcategoryGroups}
+                        onUpdate={(patch) => updateDraft(d.tempId, patch)}
+                        onRemove={() => removeDraft(d.tempId)}
+                      />
+                    );
+                  }
+                  const p = item.product;
+                  return (
+                    <ProductRows
+                      key={p.id}
+                      product={p}
+                      isSub={item.isSub}
+                      isLast={isLast}
+                      catById={catById}
+                      labelById={labelById}
+                      mdById={mdById}
+                      dmById={dmById}
+                      suppliers={md.suppliers}
+                      subcategoryGroups={subcategoryGroups}
+                      methodGroups={methodGroups}
+                      allLabels={labels}
+                      details={detailsByProduct.get(p.id) ?? []}
+                      decorations={decosByProduct.get(p.id) ?? []}
+                      bandsByDeco={bandsByDeco}
+                      onPatchProduct={(patch) => patchProduct(p.id, patch)}
+                      onPatchDetail={patchDetail}
+                      onRemoveDetail={removeDetail}
+                      onAddDetail={(lid) => addDetail(p.id, lid)}
+                      onCreateLabel={(n) => createLabelAndAdd(p.id, n)}
+                      onAddDecoration={(mdId) => addDecoration(p.id, mdId)}
+                      onPatchDeco={patchDeco}
+                      onRemoveDeco={(dec) => setConfirmDeleteDeco(dec)}
+                      onUploadDecoRef={uploadDecoRef}
+                      onAddBand={addBand}
+                      onPatchBand={patchBand}
+                      onRemoveBand={removeBand}
+                      onUploadImage={(f) => uploadProductImage(p.id, f)}
+                      onDuplicate={() => duplicateProduct(p)}
+                      onDelete={() => setConfirmDeleteProduct(p)}
+                      onAddSubProduct={() => addSubProductDraft(p)}
+                    />
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -643,7 +724,11 @@ export default function ProductsPage() {
           open={!!confirmDeleteProduct}
           onCancel={() => setConfirmDeleteProduct(null)}
           title={`Delete ${confirmDeleteProduct?.name ?? "product"}?`}
-          description="The product, all its details, decorations and pricing tiers will be removed."
+          description={
+            confirmDeleteProduct && (childrenByParent.get(confirmDeleteProduct.id)?.length ?? 0) > 0
+              ? `This product has ${childrenByParent.get(confirmDeleteProduct.id)!.length} sub-product(s). Deleting will unlink them and they'll become top-level products. Continue?`
+              : "The product, all its details, decorations and pricing tiers will be removed."
+          }
           confirmLabel="Delete"
           destructive
           onConfirm={deleteProductConfirmed}
@@ -667,6 +752,7 @@ export default function ProductsPage() {
 // ────────────────────────────────────────────────────────────────────────
 function ProductRows(props: {
   product: Product;
+  isSub: boolean;
   isLast: boolean;
   catById: Map<string, Cat>;
   labelById: Map<string, DetailLabel>;
@@ -694,9 +780,10 @@ function ProductRows(props: {
   onUploadImage: (f: File) => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onAddSubProduct: () => void;
 }) {
   const {
-    product: p, isLast, catById, labelById, mdById, dmById, suppliers,
+    product: p, isSub, isLast, catById, labelById, mdById, dmById, suppliers,
     subcategoryGroups, methodGroups, allLabels, details, decorations, bandsByDeco,
   } = props;
 
@@ -704,31 +791,41 @@ function ProductRows(props: {
   const sub = catById.get(p.subcategory_id);
   const parent = sub?.parent_id ? catById.get(sub.parent_id) : null;
 
-  // Build a flat row-spec list. Always at least one row (an "add decoration" row when no decos).
+  // Each decoration: 1 header row (image + method/notes) + N band rows (or 1 placeholder).
   type RowSpec =
-    | { kind: "band"; deco: Deco; band: Band; firstOfDeco: boolean; lastOfDeco: boolean; decoSpan: number }
+    | { kind: "decoHeader"; deco: Deco; imgSpan: number }
+    | { kind: "band"; deco: Deco; band: Band; lastOfDeco: boolean; isPlaceholder: boolean }
     | { kind: "addDeco" };
 
   const rowSpecs: RowSpec[] = [];
   for (const d of decorations) {
     const bs = bandsByDeco.get(d.id) ?? [];
+    const bandCount = bs.length === 0 ? 1 : bs.length;
+    rowSpecs.push({ kind: "decoHeader", deco: d, imgSpan: 1 + bandCount });
     if (bs.length === 0) {
-      rowSpecs.push({ kind: "band", deco: d, band: { id: `placeholder-${d.id}`, product_decoration_id: d.id, qty: 0, unit_cost: 0, setup_cost: 0 } as Band, firstOfDeco: true, lastOfDeco: true, decoSpan: 1 });
-    } else {
-      bs.forEach((b, i) => {
-        rowSpecs.push({ kind: "band", deco: d, band: b, firstOfDeco: i === 0, lastOfDeco: i === bs.length - 1, decoSpan: bs.length });
+      rowSpecs.push({
+        kind: "band", deco: d,
+        band: { id: `placeholder-${d.id}`, product_decoration_id: d.id, qty: 0, unit_cost: 0, setup_cost: 0 } as Band,
+        lastOfDeco: true, isPlaceholder: true,
       });
+    } else {
+      bs.forEach((b, i) => rowSpecs.push({
+        kind: "band", deco: d, band: b, lastOfDeco: i === bs.length - 1, isPlaceholder: false,
+      }));
     }
   }
   rowSpecs.push({ kind: "addDeco" });
 
   const totalRows = rowSpecs.length;
   const productBorderBottom = isLast ? "none" : "2px solid hsl(var(--brand-navy) / 0.28)";
-  const decoBorderBottom = "1px solid hsl(var(--brand-navy) / 0.12)";
+  const decoBorderBottom = "1px solid hsl(var(--brand-navy) / 0.18)";
   const cellBorder = "1px solid hsl(var(--brand-navy) / 0.06)";
 
   const dimsUnit = supplier?.weight_unit === "lbs" ? "in" : "cm";
   const wtUnit = supplier?.weight_unit ?? "kg";
+
+  // Sub-product left-edge accent applied to leftmost (img) cell.
+  const leftAccent = isSub ? { borderLeft: `3px solid ${SUB_ACCENT}` } : {};
 
   return (
     <>
@@ -747,14 +844,13 @@ function ProductRows(props: {
           <tr key={`${p.id}-r${rIdx}`} id={isFirstRow ? `p-${p.id}` : undefined}>
             {isFirstRow && (
               <>
-                {/* IMG */}
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "center", verticalAlign: "top", padding: 6 }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, ...leftAccent, borderBottom: productBorderBottom, textAlign: "center", padding: 6 }}>
                   <ImageThumb url={p.image_url} size={64} onFile={props.onUploadImage} />
                 </td>
-                {/* NAME / # / DETAILS */}
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, verticalAlign: "top", padding: "6px 8px" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, padding: "6px 8px" }}>
                   <IdentityStack
                     product={p}
+                    isSub={isSub}
                     parentName={parent?.name ?? "—"}
                     subName={sub?.name ?? "—"}
                     supplier={supplier ?? null}
@@ -770,24 +866,22 @@ function ProductRows(props: {
                     onCreateLabel={props.onCreateLabel}
                   />
                 </td>
-                {/* PACK */}
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }}>
                   <CellNum value={p.carton_pack} onCommit={(v) => props.onPatchProduct({ carton_pack: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }}>
                   <CellNum value={p.carton_length} onCommit={(v) => props.onPatchProduct({ carton_length: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }}>
                   <CellNum value={p.carton_width} onCommit={(v) => props.onPatchProduct({ carton_width: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }} title={dimsUnit}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }} title={dimsUnit}>
                   <CellNum value={p.carton_height} onCommit={(v) => props.onPatchProduct({ carton_height: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }} title={wtUnit}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }} title={wtUnit}>
                   <CellNum value={p.carton_weight} onCommit={(v) => props.onPatchProduct({ carton_weight: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
-
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }}>
                   <LeadCell
                     min={p.production_days_min}
                     max={p.production_days_max}
@@ -798,43 +892,59 @@ function ProductRows(props: {
               </>
             )}
 
-            {row.kind === "addDeco" ? (
+            {row.kind === "addDeco" && (
+              <td colSpan={4} style={{ ...tdBase, padding: "4px 8px", background: "hsl(var(--brand-navy) / 0.015)" }}>
+                <AddDecorationPopover methodGroups={methodGroups} onPick={props.onAddDecoration} />
+              </td>
+            )}
+
+            {row.kind === "decoHeader" && (
               <>
-                <td colSpan={4} style={{ ...tdBase, padding: "4px 8px", background: "hsl(var(--brand-navy) / 0.015)" }}>
-                  <AddDecorationPopover methodGroups={methodGroups} onPick={props.onAddDecoration} />
+                {/* DECO image — spans header + all band rows */}
+                <td
+                  rowSpan={row.imgSpan}
+                  style={{
+                    ...tdBase,
+                    borderBottom: decoBorderBottom,
+                    padding: 6,
+                    textAlign: "center",
+                    verticalAlign: "middle",
+                    background: "hsl(var(--brand-navy) / 0.015)",
+                  }}
+                >
+                  <ImageThumb url={row.deco.ref_image_url} size={80} onFile={(f) => props.onUploadDecoRef(row.deco, f)} />
+                </td>
+                {/* Method + Notes header — spans qty/unit/setup */}
+                <td
+                  colSpan={3}
+                  style={{
+                    ...tdBase,
+                    borderBottom: cellBorder,
+                    padding: "4px 8px",
+                    background: "hsl(var(--brand-navy) / 0.015)",
+                  }}
+                >
+                  <DecoCell
+                    deco={row.deco}
+                    mdById={mdById}
+                    dmById={dmById}
+                    methodGroups={methodGroups}
+                    onPatch={(patch) => props.onPatchDeco(row.deco, patch)}
+                    onRemove={() => props.onRemoveDeco(row.deco)}
+                  />
                 </td>
               </>
-            ) : (
+            )}
+
+            {row.kind === "band" && (
               <>
-                {row.firstOfDeco && (
-                  <td
-                    rowSpan={row.decoSpan}
-                    style={{
-                      ...tdBase,
-                      borderBottom: row.lastOfDeco ? (isLastRow ? productBorderBottom : decoBorderBottom) : cellBorder,
-                      padding: 6,
-                      background: "hsl(var(--brand-navy) / 0.015)",
-                    }}
-                  >
-                    <DecoCell
-                      deco={row.deco}
-                      mdById={mdById}
-                      dmById={dmById}
-                      methodGroups={methodGroups}
-                      onPatch={(patch) => props.onPatchDeco(row.deco, patch)}
-                      onUploadRef={(f) => props.onUploadDecoRef(row.deco, f)}
-                      onRemove={() => props.onRemoveDeco(row.deco)}
-                    />
-                  </td>
-                )}
-                {/* QTY */}
                 <td style={{ ...tdBase, borderBottom: row.lastOfDeco ? (isLastRow ? productBorderBottom : decoBorderBottom) : cellBorder, textAlign: "right" }}>
-                  {row.band.id.startsWith("placeholder-") ? (
+                  {row.isPlaceholder ? (
                     <span className="text-[11px] italic text-muted-foreground">—</span>
                   ) : (
                     <BandRowCell band={row.band} field="qty" onPatch={props.onPatchBand} onRemove={() => props.onRemoveBand(row.band)} />
                   )}
-                  {row.lastOfDeco && !row.band.id.startsWith("placeholder-") && (
+                  {row.lastOfDeco && (
                     <button
                       onClick={() => props.onAddBand(row.deco.id)}
                       className="block w-full text-[10px] text-left mt-0.5 print-hide hover:underline"
@@ -843,25 +953,14 @@ function ProductRows(props: {
                       + tier
                     </button>
                   )}
-                  {row.lastOfDeco && row.band.id.startsWith("placeholder-") && (
-                    <button
-                      onClick={() => props.onAddBand(row.deco.id)}
-                      className="block w-full text-[10px] text-left print-hide hover:underline"
-                      style={{ color: "hsl(var(--brand-orange))" }}
-                    >
-                      + tier
-                    </button>
-                  )}
                 </td>
-                {/* UNIT */}
                 <td style={{ ...tdBase, borderBottom: row.lastOfDeco ? (isLastRow ? productBorderBottom : decoBorderBottom) : cellBorder, textAlign: "right" }}>
-                  {!row.band.id.startsWith("placeholder-") && (
+                  {!row.isPlaceholder && (
                     <BandRowCell band={row.band} field="unit_cost" onPatch={props.onPatchBand} />
                   )}
                 </td>
-                {/* SETUP */}
                 <td style={{ ...tdBase, borderBottom: row.lastOfDeco ? (isLastRow ? productBorderBottom : decoBorderBottom) : cellBorder, textAlign: "right" }}>
-                  {!row.band.id.startsWith("placeholder-") && (
+                  {!row.isPlaceholder && (
                     <BandRowCell band={row.band} field="setup_cost" onPatch={props.onPatchBand} />
                   )}
                 </td>
@@ -869,8 +968,8 @@ function ProductRows(props: {
             )}
 
             {isFirstRow && (
-              <td rowSpan={totalRows} className="print-hide" style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "center", verticalAlign: "top", padding: 2 }}>
-                <KebabMenu onDuplicate={props.onDuplicate} onDelete={props.onDelete} />
+              <td rowSpan={totalRows} className="print-hide" style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "center", padding: 2 }}>
+                <KebabMenu onDuplicate={props.onDuplicate} onDelete={props.onDelete} onAddSubProduct={isSub ? undefined : props.onAddSubProduct} />
               </td>
             )}
           </tr>
@@ -884,11 +983,12 @@ function ProductRows(props: {
 // Identity stack (col 2)
 // ────────────────────────────────────────────────────────────────────────
 function IdentityStack({
-  product: p, parentName, subName, supplier, suppliers, subcategoryGroups,
+  product: p, isSub, parentName, subName, supplier, suppliers, subcategoryGroups,
   details, labelById, allLabels,
   onPatchProduct, onPatchDetail, onRemoveDetail, onAddDetail, onCreateLabel,
 }: {
   product: Product;
+  isSub?: boolean;
   parentName: string;
   subName: string;
   supplier: { id: string; name: string; origin_id?: string | null } | null;
@@ -904,23 +1004,24 @@ function IdentityStack({
   onCreateLabel: (name: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1 min-w-0">
-      <FlatInput
-        value={p.name}
-        placeholder="Product name"
-        onCommit={(v) => onPatchProduct({ name: v })}
-        style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--brand-navy))" }}
-      />
-      <div className="flex items-center gap-1.5 text-[11px] font-mono leading-none">
-        <span style={{ color: "hsl(var(--brand-navy) / 0.45)" }} title="System item number">{p.primary_item_number}</span>
-        <span style={{ color: "hsl(var(--brand-navy) / 0.25)" }}>·</span>
+    <div className="flex flex-col gap-1 min-w-0" style={isSub ? { paddingLeft: 24 } : undefined}>
+      <div className="flex items-center gap-1 min-w-0">
+        {isSub && (
+          <span className="text-[14px] leading-none shrink-0" style={{ color: "hsl(var(--brand-navy) / 0.4)" }} aria-hidden>↳</span>
+        )}
         <FlatInput
-          value={p.supplier_item_number ?? ""}
-          placeholder="Sup #"
-          onCommit={(v) => onPatchProduct({ supplier_item_number: v || null })}
-          style={{ fontSize: 11, fontFamily: "ui-monospace, SFMono-Regular, monospace", color: "hsl(var(--brand-navy) / 0.7)", flex: 1, minWidth: 70, border: "1px dashed hsl(var(--brand-navy) / 0.18)" }}
+          value={p.name}
+          placeholder="Product name"
+          onCommit={(v) => onPatchProduct({ name: v })}
+          style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--brand-navy))" }}
         />
       </div>
+      <FlatInput
+        value={p.supplier_item_number ?? ""}
+        placeholder="Sup #"
+        onCommit={(v) => onPatchProduct({ supplier_item_number: v || null })}
+        style={{ fontSize: 11, fontFamily: "ui-monospace, SFMono-Regular, monospace", color: "hsl(var(--brand-navy) / 0.7)", minWidth: 70, border: "1px dashed hsl(var(--brand-navy) / 0.18)" }}
+      />
       <div className="flex items-center gap-1 mt-0.5 flex-wrap">
         <SupplierPill supplier={supplier} suppliers={suppliers}
           onPick={(id) => onPatchProduct({ supplier_id: id, origin_id: suppliers.find((s) => s.id === id)?.origin_id ?? p.origin_id } as any)} />
