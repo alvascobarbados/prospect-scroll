@@ -983,11 +983,12 @@ function ProductRows(props: {
 // Identity stack (col 2)
 // ────────────────────────────────────────────────────────────────────────
 function IdentityStack({
-  product: p, parentName, subName, supplier, suppliers, subcategoryGroups,
+  product: p, isSub, parentName, subName, supplier, suppliers, subcategoryGroups,
   details, labelById, allLabels,
   onPatchProduct, onPatchDetail, onRemoveDetail, onAddDetail, onCreateLabel,
 }: {
   product: Product;
+  isSub?: boolean;
   parentName: string;
   subName: string;
   supplier: { id: string; name: string; origin_id?: string | null } | null;
@@ -1003,23 +1004,24 @@ function IdentityStack({
   onCreateLabel: (name: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1 min-w-0">
-      <FlatInput
-        value={p.name}
-        placeholder="Product name"
-        onCommit={(v) => onPatchProduct({ name: v })}
-        style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--brand-navy))" }}
-      />
-      <div className="flex items-center gap-1.5 text-[11px] font-mono leading-none">
-        <span style={{ color: "hsl(var(--brand-navy) / 0.45)" }} title="System item number">{p.primary_item_number}</span>
-        <span style={{ color: "hsl(var(--brand-navy) / 0.25)" }}>·</span>
+    <div className="flex flex-col gap-1 min-w-0" style={isSub ? { paddingLeft: 24 } : undefined}>
+      <div className="flex items-center gap-1 min-w-0">
+        {isSub && (
+          <span className="text-[14px] leading-none shrink-0" style={{ color: "hsl(var(--brand-navy) / 0.4)" }} aria-hidden>↳</span>
+        )}
         <FlatInput
-          value={p.supplier_item_number ?? ""}
-          placeholder="Sup #"
-          onCommit={(v) => onPatchProduct({ supplier_item_number: v || null })}
-          style={{ fontSize: 11, fontFamily: "ui-monospace, SFMono-Regular, monospace", color: "hsl(var(--brand-navy) / 0.7)", flex: 1, minWidth: 70, border: "1px dashed hsl(var(--brand-navy) / 0.18)" }}
+          value={p.name}
+          placeholder="Product name"
+          onCommit={(v) => onPatchProduct({ name: v })}
+          style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--brand-navy))" }}
         />
       </div>
+      <FlatInput
+        value={p.supplier_item_number ?? ""}
+        placeholder="Sup #"
+        onCommit={(v) => onPatchProduct({ supplier_item_number: v || null })}
+        style={{ fontSize: 11, fontFamily: "ui-monospace, SFMono-Regular, monospace", color: "hsl(var(--brand-navy) / 0.7)", minWidth: 70, border: "1px dashed hsl(var(--brand-navy) / 0.18)" }}
+      />
       <div className="flex items-center gap-1 mt-0.5 flex-wrap">
         <SupplierPill supplier={supplier} suppliers={suppliers}
           onPick={(id) => onPatchProduct({ supplier_id: id, origin_id: suppliers.find((s) => s.id === id)?.origin_id ?? p.origin_id } as any)} />
