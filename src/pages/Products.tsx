@@ -389,37 +389,57 @@ export default function ProductsPage() {
     toast.success(`Duplicated as ${itemNumber}`);
   };
 
-  const handleCreate = async () => {
-    if (!draftName.trim() || !draftSup || !draftSubcat) {
-      toast.error("Name, Supplier and Subcategory are required."); return;
+  // Inline drafts: add / update / remove / persist
+  function addDraft() {
+    setDrafts((arr) => [
+      { tempId: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: "", supplier_id: "", subcategory_id: "", supplier_item_number: "" },
+      ...arr,
+    ]);
+  }
+  const removeDraft = useCallback((tempId: string) => {
+    setDrafts((arr) => arr.filter((d) => d.tempId !== tempId));
+  }, []);
+  const updateDraft = useCallback((tempId: string, patch: Partial<DraftRow>) => {
+    setDrafts((arr) => {
+      const next = arr.map((d) => (d.tempId === tempId ? { ...d, ...patch } : d));
+      const target = next.find((d) => d.tempId === tempId);
+      if (target && target.name.trim() && target.supplier_id && target.subcategory_id && !persistingRef.current.has(tempId)) {
+        persistingRef.current.add(tempId);
+        void persistDraft(target);
+      }
+      return next;
+    });
+  }, []);
+  async function persistDraft(d: DraftRow) {
+    try {
+      const sup = md.suppliers.find((s) => s.id === d.supplier_id);
+      if (!sup?.origin_id) { toast.error("Supplier has no origin."); return; }
+      const subc = cats.find((c) => c.id === d.subcategory_id);
+      if (!subc?.code) { toast.error("Subcategory has no code."); return; }
+      const origin = md.origins.find((o) => o.id === sup.origin_id);
+      const letter = originLetterFromCode(origin?.code);
+      if (!letter) { toast.error("Supplier origin has no letter mapping."); return; }
+      const { data: existing } = await supabase.from("products").select("primary_item_number");
+      const seq = nextSequenceFor(subc.code, (existing ?? []).map((x: any) => x.primary_item_number).filter(Boolean));
+      const itemNumber = composePrimaryItemNumber(subc.code, seq, letter);
+      const { data, error } = await supabase.from("products").insert({
+        primary_item_number: itemNumber,
+        name: d.name.trim(),
+        subcategory_id: d.subcategory_id,
+        origin_id: sup.origin_id,
+        supplier_id: sup.id,
+        supplier_item_number: d.supplier_item_number.trim() || null,
+        production_days_min: 1,
+      } as any).select().single();
+      if (error) { toast.error(`Create failed: ${error.message}`); return; }
+      setProducts((arr) => [data as any, ...arr]);
+      setDrafts((arr) => arr.filter((x) => x.tempId !== d.tempId));
+      toast.success(`Created ${itemNumber}`);
+    } finally {
+      persistingRef.current.delete(d.tempId);
     }
-    const sup = md.suppliers.find((s) => s.id === draftSup);
-    if (!sup?.origin_id) { toast.error("Supplier has no origin."); return; }
-    const subc = cats.find((c) => c.id === draftSubcat);
-    if (!subc?.code) { toast.error("Subcategory has no code."); return; }
-    const origin = md.origins.find((o) => o.id === sup.origin_id);
-    const letter = originLetterFromCode(origin?.code);
-    if (!letter) { toast.error("Supplier origin has no letter mapping."); return; }
-    setCreating(true);
-    const { data: existing } = await supabase.from("products").select("primary_item_number");
-    const seq = nextSequenceFor(subc.code, (existing ?? []).map((x: any) => x.primary_item_number).filter(Boolean));
-    const itemNumber = composePrimaryItemNumber(subc.code, seq, letter);
-    const { data, error } = await supabase.from("products").insert({
-      primary_item_number: itemNumber,
-      name: draftName.trim(),
-      subcategory_id: draftSubcat,
-      origin_id: sup.origin_id,
-      supplier_id: sup.id,
-      supplier_item_number: draftSupNum.trim() || null,
-      production_days_min: 1,
-    } as any).select().single();
-    setCreating(false);
-    if (error) { toast.error(`Create failed: ${error.message}`); return; }
-    setProducts((arr) => [data as any, ...arr]);
-    toast.success(`Created ${itemNumber}`);
-    setDraftOpen(false);
-    setDraftName(""); setDraftSup(""); setDraftSubcat(""); setDraftSupNum("");
-  };
+  }
+
 
   // Pre-group decos/bands for fast lookup
   const decosByProduct = useMemo(() => {
