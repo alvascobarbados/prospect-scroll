@@ -918,7 +918,7 @@ function IdentityStack({
           value={p.supplier_item_number ?? ""}
           placeholder="Sup #"
           onCommit={(v) => onPatchProduct({ supplier_item_number: v || null })}
-          style={{ fontSize: 11, fontFamily: "ui-monospace, SFMono-Regular, monospace", color: "hsl(var(--brand-navy) / 0.7)", flex: 1 }}
+          style={{ fontSize: 11, fontFamily: "ui-monospace, SFMono-Regular, monospace", color: "hsl(var(--brand-navy) / 0.7)", flex: 1, minWidth: 70, border: "1px dashed hsl(var(--brand-navy) / 0.18)" }}
         />
       </div>
       <div className="flex items-center gap-1 mt-0.5 flex-wrap">
