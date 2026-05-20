@@ -748,7 +748,7 @@ function ProductRows(props: {
             {isFirstRow && (
               <>
                 {/* IMG */}
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "center", verticalAlign: "middle", padding: 4 }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "center", verticalAlign: "top", padding: 6 }}>
                   <ImageThumb url={p.image_url} size={64} onFile={props.onUploadImage} />
                 </td>
                 {/* NAME / # / DETAILS */}
@@ -771,22 +771,23 @@ function ProductRows(props: {
                   />
                 </td>
                 {/* PACK */}
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
                   <CellNum value={p.carton_pack} onCommit={(v) => props.onPatchProduct({ carton_pack: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
                   <CellNum value={p.carton_length} onCommit={(v) => props.onPatchProduct({ carton_length: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
                   <CellNum value={p.carton_width} onCommit={(v) => props.onPatchProduct({ carton_width: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }} title={dimsUnit}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }} title={dimsUnit}>
                   <CellNum value={p.carton_height} onCommit={(v) => props.onPatchProduct({ carton_height: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }} title={wtUnit}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }} title={wtUnit}>
                   <CellNum value={p.carton_weight} onCommit={(v) => props.onPatchProduct({ carton_weight: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "middle" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
+
                   <LeadCell
                     min={p.production_days_min}
                     max={p.production_days_max}
