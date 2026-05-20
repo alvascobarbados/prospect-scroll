@@ -101,9 +101,12 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
   const [subcatFilter, setSubcatFilter] = useState<Set<string>>(new Set());
 
-  // Inline draft rows (each pre-empty product being typed at top of table)
+  // Inline draft rows (each pre-empty product being typed in the table). When
+  // `parent_product_id` is set, the draft is rendered directly below that parent
+  // product and persisted as a sub-product.
   interface DraftRow {
     tempId: string;
+    parent_product_id: string | null;
     name: string;
     supplier_id: string;
     subcategory_id: string;
