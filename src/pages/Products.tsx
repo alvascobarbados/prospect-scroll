@@ -724,7 +724,11 @@ export default function ProductsPage() {
           open={!!confirmDeleteProduct}
           onCancel={() => setConfirmDeleteProduct(null)}
           title={`Delete ${confirmDeleteProduct?.name ?? "product"}?`}
-          description="The product, all its details, decorations and pricing tiers will be removed."
+          description={
+            confirmDeleteProduct && (childrenByParent.get(confirmDeleteProduct.id)?.length ?? 0) > 0
+              ? `This product has ${childrenByParent.get(confirmDeleteProduct.id)!.length} sub-product(s). Deleting will unlink them and they'll become top-level products. Continue?`
+              : "The product, all its details, decorations and pricing tiers will be removed."
+          }
           confirmLabel="Delete"
           destructive
           onConfirm={deleteProductConfirmed}
