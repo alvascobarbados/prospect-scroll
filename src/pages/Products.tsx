@@ -93,23 +93,29 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
   const [subcatFilter, setSubcatFilter] = useState<Set<string>>(new Set());
 
-  const [draftOpen, setDraftOpen] = useState(false);
-  const [draftName, setDraftName] = useState("");
-  const [draftSup, setDraftSup] = useState("");
-  const [draftSubcat, setDraftSubcat] = useState("");
-  const [draftSupNum, setDraftSupNum] = useState("");
-  const [creating, setCreating] = useState(false);
+  // Inline draft rows (each pre-empty product being typed at top of table)
+  interface DraftRow {
+    tempId: string;
+    name: string;
+    supplier_id: string;
+    subcategory_id: string;
+    supplier_item_number: string;
+  }
+  const [drafts, setDrafts] = useState<DraftRow[]>([]);
+  const persistingRef = useRef<Set<string>>(new Set());
 
   const [confirmDeleteProduct, setConfirmDeleteProduct] = useState<Product | null>(null);
   const [confirmDeleteDeco, setConfirmDeleteDeco] = useState<Deco | null>(null);
 
   useEffect(() => {
     if (searchParams.get("new") === "1") {
-      setDraftOpen(true);
+      addDraft();
       searchParams.delete("new");
       setSearchParams(searchParams, { replace: true });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, setSearchParams]);
+
 
   useEffect(() => {
     let alive = true;
