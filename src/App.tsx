@@ -21,6 +21,7 @@ import DestinationsPage from "./pages/Destinations.tsx";
 import ShippingMethodsPage from "./pages/ShippingMethods.tsx";
 import ProductCategoriesPage from "./pages/ProductCategories.tsx";
 import ProductsPage from "./pages/Products.tsx";
+import DetailLabelsPage from "./pages/DetailLabels.tsx";
 import DecorationMethodsPage from "./pages/DecorationMethods.tsx";
 import SettingsPage from "./pages/Settings.tsx";
 import NotFound from "./pages/NotFound.tsx";
