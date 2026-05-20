@@ -590,7 +590,8 @@ export default function ProductsPage() {
               </thead>
               <tbody>
                 {drafts.map((d) => (
-                  <DraftRow
+                  <DraftTableRow
+
                     key={d.tempId}
                     draft={d}
                     suppliers={md.suppliers}
