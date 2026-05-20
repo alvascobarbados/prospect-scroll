@@ -502,7 +502,7 @@ export default function ProductsPage() {
                       </Cell>
                       <Cell>
                         <span className="truncate text-[12px] text-muted-foreground">
-                          {p.updated_at ? formatDistanceToNow(new Date(p.updated_at), { addSuffix: true }) : "—"}
+                          {p.updated_at ? compactAgo(p.updated_at) : "—"}
                         </span>
                       </Cell>
                       <Cell align="center">
