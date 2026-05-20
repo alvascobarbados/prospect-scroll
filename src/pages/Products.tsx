@@ -625,19 +625,18 @@ export default function ProductsPage() {
                     onRemoveDeco={(d) => setConfirmDeleteDeco(d)}
                     onUploadDecoRef={uploadDecoRef}
                     onAddBand={addBand}
-
-                      onPatchBand={patchBand}
-                      onRemoveBand={removeBand}
-                      onUploadImage={(f) => uploadProductImage(p.id, f)}
-                      onDuplicate={() => duplicateProduct(p)}
-                      onDelete={() => setConfirmDeleteProduct(p)}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    onPatchBand={patchBand}
+                    onRemoveBand={removeBand}
+                    onUploadImage={(f) => uploadProductImage(p.id, f)}
+                    onDuplicate={() => duplicateProduct(p)}
+                    onDelete={() => setConfirmDeleteProduct(p)}
+                  />
+                ))}
+              </tbody>
+            </table>
           )}
         </main>
+
 
         <ConfirmDialog
           open={!!confirmDeleteProduct}
