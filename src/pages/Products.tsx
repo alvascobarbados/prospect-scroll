@@ -752,6 +752,7 @@ export default function ProductsPage() {
 // ────────────────────────────────────────────────────────────────────────
 function ProductRows(props: {
   product: Product;
+  isSub: boolean;
   isLast: boolean;
   catById: Map<string, Cat>;
   labelById: Map<string, DetailLabel>;
@@ -779,9 +780,10 @@ function ProductRows(props: {
   onUploadImage: (f: File) => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onAddSubProduct: () => void;
 }) {
   const {
-    product: p, isLast, catById, labelById, mdById, dmById, suppliers,
+    product: p, isSub, isLast, catById, labelById, mdById, dmById, suppliers,
     subcategoryGroups, methodGroups, allLabels, details, decorations, bandsByDeco,
   } = props;
 
@@ -789,31 +791,41 @@ function ProductRows(props: {
   const sub = catById.get(p.subcategory_id);
   const parent = sub?.parent_id ? catById.get(sub.parent_id) : null;
 
-  // Build a flat row-spec list. Always at least one row (an "add decoration" row when no decos).
+  // Each decoration: 1 header row (image + method/notes) + N band rows (or 1 placeholder).
   type RowSpec =
-    | { kind: "band"; deco: Deco; band: Band; firstOfDeco: boolean; lastOfDeco: boolean; decoSpan: number }
+    | { kind: "decoHeader"; deco: Deco; imgSpan: number }
+    | { kind: "band"; deco: Deco; band: Band; lastOfDeco: boolean; isPlaceholder: boolean }
     | { kind: "addDeco" };
 
   const rowSpecs: RowSpec[] = [];
   for (const d of decorations) {
     const bs = bandsByDeco.get(d.id) ?? [];
+    const bandCount = bs.length === 0 ? 1 : bs.length;
+    rowSpecs.push({ kind: "decoHeader", deco: d, imgSpan: 1 + bandCount });
     if (bs.length === 0) {
-      rowSpecs.push({ kind: "band", deco: d, band: { id: `placeholder-${d.id}`, product_decoration_id: d.id, qty: 0, unit_cost: 0, setup_cost: 0 } as Band, firstOfDeco: true, lastOfDeco: true, decoSpan: 1 });
-    } else {
-      bs.forEach((b, i) => {
-        rowSpecs.push({ kind: "band", deco: d, band: b, firstOfDeco: i === 0, lastOfDeco: i === bs.length - 1, decoSpan: bs.length });
+      rowSpecs.push({
+        kind: "band", deco: d,
+        band: { id: `placeholder-${d.id}`, product_decoration_id: d.id, qty: 0, unit_cost: 0, setup_cost: 0 } as Band,
+        lastOfDeco: true, isPlaceholder: true,
       });
+    } else {
+      bs.forEach((b, i) => rowSpecs.push({
+        kind: "band", deco: d, band: b, lastOfDeco: i === bs.length - 1, isPlaceholder: false,
+      }));
     }
   }
   rowSpecs.push({ kind: "addDeco" });
 
   const totalRows = rowSpecs.length;
   const productBorderBottom = isLast ? "none" : "2px solid hsl(var(--brand-navy) / 0.28)";
-  const decoBorderBottom = "1px solid hsl(var(--brand-navy) / 0.12)";
+  const decoBorderBottom = "1px solid hsl(var(--brand-navy) / 0.18)";
   const cellBorder = "1px solid hsl(var(--brand-navy) / 0.06)";
 
   const dimsUnit = supplier?.weight_unit === "lbs" ? "in" : "cm";
   const wtUnit = supplier?.weight_unit ?? "kg";
+
+  // Sub-product left-edge accent applied to leftmost (img) cell.
+  const leftAccent = isSub ? { borderLeft: `3px solid ${SUB_ACCENT}` } : {};
 
   return (
     <>
@@ -832,14 +844,13 @@ function ProductRows(props: {
           <tr key={`${p.id}-r${rIdx}`} id={isFirstRow ? `p-${p.id}` : undefined}>
             {isFirstRow && (
               <>
-                {/* IMG */}
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "center", verticalAlign: "top", padding: 6 }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, ...leftAccent, borderBottom: productBorderBottom, textAlign: "center", padding: 6 }}>
                   <ImageThumb url={p.image_url} size={64} onFile={props.onUploadImage} />
                 </td>
-                {/* NAME / # / DETAILS */}
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, verticalAlign: "top", padding: "6px 8px" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, padding: "6px 8px" }}>
                   <IdentityStack
                     product={p}
+                    isSub={isSub}
                     parentName={parent?.name ?? "—"}
                     subName={sub?.name ?? "—"}
                     supplier={supplier ?? null}
@@ -855,24 +866,22 @@ function ProductRows(props: {
                     onCreateLabel={props.onCreateLabel}
                   />
                 </td>
-                {/* PACK */}
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }}>
                   <CellNum value={p.carton_pack} onCommit={(v) => props.onPatchProduct({ carton_pack: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }}>
                   <CellNum value={p.carton_length} onCommit={(v) => props.onPatchProduct({ carton_length: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }}>
                   <CellNum value={p.carton_width} onCommit={(v) => props.onPatchProduct({ carton_width: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }} title={dimsUnit}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }} title={dimsUnit}>
                   <CellNum value={p.carton_height} onCommit={(v) => props.onPatchProduct({ carton_height: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }} title={wtUnit}>
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }} title={wtUnit}>
                   <CellNum value={p.carton_weight} onCommit={(v) => props.onPatchProduct({ carton_weight: v as any })} />
                 </td>
-                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right", verticalAlign: "top" }}>
-
+                <td rowSpan={totalRows} style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "right" }}>
                   <LeadCell
                     min={p.production_days_min}
                     max={p.production_days_max}
@@ -883,43 +892,59 @@ function ProductRows(props: {
               </>
             )}
 
-            {row.kind === "addDeco" ? (
+            {row.kind === "addDeco" && (
+              <td colSpan={4} style={{ ...tdBase, padding: "4px 8px", background: "hsl(var(--brand-navy) / 0.015)" }}>
+                <AddDecorationPopover methodGroups={methodGroups} onPick={props.onAddDecoration} />
+              </td>
+            )}
+
+            {row.kind === "decoHeader" && (
               <>
-                <td colSpan={4} style={{ ...tdBase, padding: "4px 8px", background: "hsl(var(--brand-navy) / 0.015)" }}>
-                  <AddDecorationPopover methodGroups={methodGroups} onPick={props.onAddDecoration} />
+                {/* DECO image — spans header + all band rows */}
+                <td
+                  rowSpan={row.imgSpan}
+                  style={{
+                    ...tdBase,
+                    borderBottom: decoBorderBottom,
+                    padding: 6,
+                    textAlign: "center",
+                    verticalAlign: "middle",
+                    background: "hsl(var(--brand-navy) / 0.015)",
+                  }}
+                >
+                  <ImageThumb url={row.deco.ref_image_url} size={80} onFile={(f) => props.onUploadDecoRef(row.deco, f)} />
+                </td>
+                {/* Method + Notes header — spans qty/unit/setup */}
+                <td
+                  colSpan={3}
+                  style={{
+                    ...tdBase,
+                    borderBottom: cellBorder,
+                    padding: "4px 8px",
+                    background: "hsl(var(--brand-navy) / 0.015)",
+                  }}
+                >
+                  <DecoCell
+                    deco={row.deco}
+                    mdById={mdById}
+                    dmById={dmById}
+                    methodGroups={methodGroups}
+                    onPatch={(patch) => props.onPatchDeco(row.deco, patch)}
+                    onRemove={() => props.onRemoveDeco(row.deco)}
+                  />
                 </td>
               </>
-            ) : (
+            )}
+
+            {row.kind === "band" && (
               <>
-                {row.firstOfDeco && (
-                  <td
-                    rowSpan={row.decoSpan}
-                    style={{
-                      ...tdBase,
-                      borderBottom: row.lastOfDeco ? (isLastRow ? productBorderBottom : decoBorderBottom) : cellBorder,
-                      padding: 6,
-                      background: "hsl(var(--brand-navy) / 0.015)",
-                    }}
-                  >
-                    <DecoCell
-                      deco={row.deco}
-                      mdById={mdById}
-                      dmById={dmById}
-                      methodGroups={methodGroups}
-                      onPatch={(patch) => props.onPatchDeco(row.deco, patch)}
-                      onUploadRef={(f) => props.onUploadDecoRef(row.deco, f)}
-                      onRemove={() => props.onRemoveDeco(row.deco)}
-                    />
-                  </td>
-                )}
-                {/* QTY */}
                 <td style={{ ...tdBase, borderBottom: row.lastOfDeco ? (isLastRow ? productBorderBottom : decoBorderBottom) : cellBorder, textAlign: "right" }}>
-                  {row.band.id.startsWith("placeholder-") ? (
+                  {row.isPlaceholder ? (
                     <span className="text-[11px] italic text-muted-foreground">—</span>
                   ) : (
                     <BandRowCell band={row.band} field="qty" onPatch={props.onPatchBand} onRemove={() => props.onRemoveBand(row.band)} />
                   )}
-                  {row.lastOfDeco && !row.band.id.startsWith("placeholder-") && (
+                  {row.lastOfDeco && (
                     <button
                       onClick={() => props.onAddBand(row.deco.id)}
                       className="block w-full text-[10px] text-left mt-0.5 print-hide hover:underline"
@@ -928,25 +953,14 @@ function ProductRows(props: {
                       + tier
                     </button>
                   )}
-                  {row.lastOfDeco && row.band.id.startsWith("placeholder-") && (
-                    <button
-                      onClick={() => props.onAddBand(row.deco.id)}
-                      className="block w-full text-[10px] text-left print-hide hover:underline"
-                      style={{ color: "hsl(var(--brand-orange))" }}
-                    >
-                      + tier
-                    </button>
-                  )}
                 </td>
-                {/* UNIT */}
                 <td style={{ ...tdBase, borderBottom: row.lastOfDeco ? (isLastRow ? productBorderBottom : decoBorderBottom) : cellBorder, textAlign: "right" }}>
-                  {!row.band.id.startsWith("placeholder-") && (
+                  {!row.isPlaceholder && (
                     <BandRowCell band={row.band} field="unit_cost" onPatch={props.onPatchBand} />
                   )}
                 </td>
-                {/* SETUP */}
                 <td style={{ ...tdBase, borderBottom: row.lastOfDeco ? (isLastRow ? productBorderBottom : decoBorderBottom) : cellBorder, textAlign: "right" }}>
-                  {!row.band.id.startsWith("placeholder-") && (
+                  {!row.isPlaceholder && (
                     <BandRowCell band={row.band} field="setup_cost" onPatch={props.onPatchBand} />
                   )}
                 </td>
@@ -954,8 +968,8 @@ function ProductRows(props: {
             )}
 
             {isFirstRow && (
-              <td rowSpan={totalRows} className="print-hide" style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "center", verticalAlign: "top", padding: 2 }}>
-                <KebabMenu onDuplicate={props.onDuplicate} onDelete={props.onDelete} />
+              <td rowSpan={totalRows} className="print-hide" style={{ ...tdBase, borderBottom: productBorderBottom, textAlign: "center", padding: 2 }}>
+                <KebabMenu onDuplicate={props.onDuplicate} onDelete={props.onDelete} onAddSubProduct={isSub ? undefined : props.onAddSubProduct} />
               </td>
             )}
           </tr>
