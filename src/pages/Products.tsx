@@ -419,7 +419,7 @@ export default function ProductsPage() {
                       <Cell>
                         {sup ? (
                           <span
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[12px] font-medium truncate max-w-full"
+                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[12px] font-medium min-w-0 w-full"
                             style={{
                               backgroundColor: "hsl(var(--brand-navy) / 0.06)",
                               color: "hsl(var(--brand-navy))",
@@ -429,14 +429,14 @@ export default function ProductsPage() {
                               className="h-2 w-2 rounded-sm shrink-0"
                               style={{ backgroundColor: supplierColor(sup.id) }}
                             />
-                            <span className="truncate">{sup.name}</span>
+                            <span className="truncate min-w-0">{sup.name}</span>
                           </span>
                         ) : "—"}
                       </Cell>
                       <Cell>
                         {parent ? (
                           <span
-                            className="inline-block px-2 py-0.5 rounded text-[11px] font-medium truncate max-w-full"
+                            className="block px-2 py-1 rounded text-[11px] font-medium truncate w-full"
                             style={{ backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }}
                           >
                             {parent.name}
@@ -446,7 +446,7 @@ export default function ProductsPage() {
                       <Cell>
                         {sub ? (
                           <span
-                            className="inline-block px-2 py-0.5 rounded text-[11px] font-medium truncate max-w-full"
+                            className="block px-2 py-1 rounded text-[11px] font-medium truncate w-full"
                             style={{
                               backgroundColor: "hsl(var(--brand-orange) / 0.1)",
                               color: "hsl(var(--brand-navy))",
@@ -466,7 +466,7 @@ export default function ProductsPage() {
                           className="truncate text-[12px] tabular"
                           style={{ color: "#8B7B65", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
                         >
-                          {p.supplier_item_number || "—"}
+                          {p.supplier_item_number ?? "—"}
                         </span>
                       </Cell>
                       <Cell>
