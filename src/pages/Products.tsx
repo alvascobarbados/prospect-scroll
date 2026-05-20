@@ -27,6 +27,7 @@ import { composePrimaryItemNumber, nextSequenceFor } from "@/lib/productItemNumb
 interface Product {
   id: string;
   primary_item_number: string;
+  parent_product_id: string | null;
   name: string;
   subcategory_id: string;
   origin_id: string;
@@ -41,6 +42,7 @@ interface Product {
   production_days_min: number;
   production_days_max: number | null;
   moq: number | null;
+  created_at: string;
   updated_at: string;
 }
 interface Cat { id: string; parent_id: string | null; code: string | null; name: string }
@@ -51,21 +53,27 @@ interface DMethod { id: string; name: string }
 interface Deco { id: string; product_id: string; method_detail_id: string; notes: string | null; ref_image_url: string | null; sort_order: number }
 interface Band { id: string; product_decoration_id: string; qty: number; unit_cost: number; setup_cost: number }
 
-// Column widths — total ~1090px, table grows to fill viewport.
+// Sub-product visual accent (brand cream/tan)
+const SUB_ACCENT = "#E6DDC9";
+
+// Column widths. The wide DECORATION column is gone — replaced by a slim DECO
+// image column on the left of each decoration block. Method + Notes now live in
+// a header row inside the decoration block that spans qty/unit/setup, with tier
+// rows below.
 const COLS: { key: string; w: number; label: string; hint?: string }[] = [
-  { key: "img",   w: 80,  label: "IMG" },
-  { key: "id",    w: 240, label: "NAME / # / DETAILS" },
-  { key: "pack",  w: 60,  label: "PACK",   hint: "/ ctn" },
-  { key: "l",     w: 50,  label: "L" },
-  { key: "w",     w: 50,  label: "W" },
-  { key: "h",     w: 50,  label: "H" },
-  { key: "wt",    w: 60,  label: "WT" },
-  { key: "lead",  w: 90,  label: "LEAD",   hint: "days" },
-  { key: "deco",  w: 180, label: "DECORATION" },
-  { key: "qty",   w: 70,  label: "QTY" },
-  { key: "unit",  w: 80,  label: "UNIT",   hint: "USD$" },
-  { key: "setup", w: 80,  label: "SETUP",  hint: "USD$" },
-  { key: "menu",  w: 32,  label: "" },
+  { key: "img",     w: 80,  label: "IMG" },
+  { key: "id",      w: 260, label: "NAME / # / DETAILS" },
+  { key: "pack",    w: 60,  label: "PACK",   hint: "/ ctn" },
+  { key: "l",       w: 50,  label: "L" },
+  { key: "w",       w: 50,  label: "W" },
+  { key: "h",       w: 50,  label: "H" },
+  { key: "wt",      w: 60,  label: "WT" },
+  { key: "lead",    w: 90,  label: "LEAD",   hint: "days" },
+  { key: "decoImg", w: 96,  label: "DECO" },
+  { key: "qty",     w: 70,  label: "QTY" },
+  { key: "unit",    w: 80,  label: "UNIT",   hint: "USD$" },
+  { key: "setup",   w: 80,  label: "SETUP",  hint: "USD$" },
+  { key: "menu",    w: 32,  label: "" },
 ];
 
 
