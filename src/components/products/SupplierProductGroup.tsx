@@ -1,6 +1,6 @@
 import { Link2 } from "lucide-react";
 import type { Product } from "./helpers/buildProductsList";
-import { SupplierSpine } from "./SupplierSpine";
+import { TaxonomySpines } from "./TaxonomySpines";
 import { SupplierProductRow } from "./SupplierProductRow";
 
 interface SupplierProductGroupProps {
@@ -10,7 +10,7 @@ interface SupplierProductGroupProps {
 }
 
 export function SupplierProductGroup({ parentName, members, onChanged }: SupplierProductGroupProps) {
-  const supplierName = members[0]?.supplier?.name ?? "Unknown Supplier";
+  const first = members[0];
   const count = members.length;
 
   return (
@@ -20,7 +20,7 @@ export function SupplierProductGroup({ parentName, members, onChanged }: Supplie
         borderRadius: 12,
         background: "#FFFFFF",
         overflow: "hidden",
-        minWidth: 1085,
+        minWidth: 1137,
       }}
     >
       {/* Header strip */}
@@ -60,9 +60,15 @@ export function SupplierProductGroup({ parentName, members, onChanged }: Supplie
         </span>
       </div>
 
-      {/* Body — single shared spine */}
+      {/* Body — single shared 3-spine block */}
       <div style={{ position: "relative" }}>
-        <SupplierSpine supplierName={supplierName} />
+        <TaxonomySpines
+          productId={first.id}
+          supplierName={first.supplier?.name ?? null}
+          categoryName={first.subcategory?.category?.name ?? null}
+          subcategoryName={first.subcategory?.name ?? null}
+          clickable={false}
+        />
         {members.map((m, i) => (
           <div key={m.id}>
             {i > 0 && (
@@ -70,7 +76,7 @@ export function SupplierProductGroup({ parentName, members, onChanged }: Supplie
                 style={{
                   height: "0.5px",
                   background: "#F1F2F4",
-                  marginLeft: 26,
+                  marginLeft: 78,
                 }}
               />
             )}
