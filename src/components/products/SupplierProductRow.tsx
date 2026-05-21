@@ -8,6 +8,7 @@ import { formatUpdated } from "./helpers/formatUpdated";
 import { weightUnit as weightUnitFor, linearUnit as linearUnitFor } from "@/lib/units";
 import { DecorationBlock } from "./DecorationBlock";
 import { AddAttributePopover } from "./AddAttributePopover";
+import { InlineText } from "@/components/inline/InlineText";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SupplierProductRowProps {
