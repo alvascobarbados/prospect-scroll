@@ -52,7 +52,7 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
     >
       <div
         style={{
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: 500,
           color: "#0E2849",
           lineHeight: 1.3,
@@ -68,7 +68,7 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
         style={{
           width: "100%",
           borderCollapse: "collapse",
-          fontSize: 12,
+          fontSize: 13,
           fontVariantNumeric: "tabular-nums",
         }}
       >
