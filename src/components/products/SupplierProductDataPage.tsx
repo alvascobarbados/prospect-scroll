@@ -95,7 +95,7 @@ export function SupplierProductDataPage() {
           {products === null ? (
             <div style={{ color: "#9CA3AF", fontSize: 13 }}>Loading…</div>
           ) : (
-            <ProductsList items={items} onChanged={reload} />
+            <SupplierProductDataList items={items} onChanged={reload} />
           )}
         </div>
       </div>
