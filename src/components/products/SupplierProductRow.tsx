@@ -1,20 +1,25 @@
-import { Package } from "lucide-react";
+import { Package, X } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { Product } from "./helpers/buildProductsList";
+import type { Product, ProductDetailRow } from "./helpers/buildProductsList";
 import { formatLeadTime } from "./helpers/formatLeadTime";
 import { formatUpdated } from "./helpers/formatUpdated";
 import { weightUnit as weightUnitFor, linearUnit as linearUnitFor } from "@/lib/units";
 import { DecorationBlock } from "./DecorationBlock";
+import { AddAttributePopover } from "./AddAttributePopover";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SupplierProductRowProps {
   product: Product;
   /** Show the variant chip beside the name (used inside Card 102). */
   showVariantChip?: boolean;
+  onChanged?: () => void;
 }
 
 const GRID_COLS = "110px 200px 90px 195px 195px 195px";
 
-export function SupplierProductRow({ product, showVariantChip = false }: SupplierProductRowProps) {
+export function SupplierProductRow({ product, showVariantChip = false, onChanged }: SupplierProductRowProps) {
   const decos = [...product.product_decorations]
     .sort((a, b) => a.sort_order - b.sort_order)
     .slice(0, 3);
@@ -65,7 +70,7 @@ export function SupplierProductRow({ product, showVariantChip = false }: Supplie
       </div>
 
       {/* Identity */}
-      <IdentityCell product={product} showVariantChip={showVariantChip} />
+      <IdentityCell product={product} showVariantChip={showVariantChip} onChanged={onChanged} />
 
       {/* Specs */}
       <SpecsCell
@@ -87,12 +92,15 @@ export function SupplierProductRow({ product, showVariantChip = false }: Supplie
 function IdentityCell({
   product,
   showVariantChip,
+  onChanged,
 }: {
   product: Product;
   showVariantChip: boolean;
+  onChanged?: () => void;
 }) {
   const code = product.supplier?.code ?? null;
   const itemSuffix = stripCodePrefix(product.supplier_item_number, code);
+  const variantChip = product.variant_name ?? product.variant_label;
 
   return (
     <div style={{ minWidth: 0 }}>
@@ -117,7 +125,7 @@ function IdentityCell({
           >
             {product.name}
           </span>
-          {showVariantChip && product.variant_label && (
+          {showVariantChip && variantChip && (
             <span
               style={{
                 display: "inline-block",
@@ -133,7 +141,7 @@ function IdentityCell({
                 textTransform: "uppercase",
               }}
             >
-              {product.variant_label}
+              {variantChip}
             </span>
           )}
         </div>
@@ -182,29 +190,92 @@ function IdentityCell({
       </div>
 
       {/* Details grid */}
-      {product.product_details.length > 0 && (
+      <DetailsGrid product={product} onChanged={onChanged} />
+    </div>
+  );
+}
+
+function DetailsGrid({ product, onChanged }: { product: Product; onChanged?: () => void }) {
+  const rows = [...product.product_details].sort((a, b) => a.sort_order - b.sort_order);
+  const existingLabelIds = new Set(
+    rows.map((r) => r.detail_label?.id).filter((x): x is string => !!x),
+  );
+
+  return (
+    <div style={{ marginTop: 7 }}>
+      {rows.length > 0 && (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "auto 1fr",
+            gridTemplateColumns: "auto 1fr auto",
             gap: "2px 10px",
-            marginTop: 7,
             fontSize: 11,
             lineHeight: 1.4,
           }}
         >
-          {[...product.product_details]
-            .sort((a, b) => a.sort_order - b.sort_order)
-            .map((d) => (
-              <span key={d.id} style={{ display: "contents" }}>
-                <span style={{ color: "#6B7280" }}>
-                  {d.detail_label?.label ?? "—"}
-                </span>
-                <span style={{ color: "#0E2849" }}>{d.value}</span>
-              </span>
-            ))}
+          {rows.map((d) => (
+            <DetailRowItem key={d.id} row={d} onChanged={onChanged} />
+          ))}
         </div>
       )}
+      <div style={{ marginTop: rows.length > 0 ? 4 : 0 }}>
+        <AddAttributePopover
+          productId={product.id}
+          existingLabelIds={existingLabelIds}
+          nextSortOrder={(rows.at(-1)?.sort_order ?? 0) + 1}
+          onAdded={onChanged}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DetailRowItem({ row, onChanged }: { row: ProductDetailRow; onChanged?: () => void }) {
+  const [hover, setHover] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const remove = async () => {
+    if (busy) return;
+    if (!window.confirm(`Remove "${row.detail_label?.label ?? "attribute"}" from this product?`)) return;
+    setBusy(true);
+    const { error } = await supabase.from("product_details").delete().eq("id", row.id);
+    setBusy(false);
+    if (error) {
+      toast.error(`Failed to remove: ${error.message}`);
+      return;
+    }
+    onChanged?.();
+  };
+
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ display: "contents" }}
+    >
+      <span style={{ color: "#6B7280" }}>{row.detail_label?.label ?? "—"}</span>
+      <span style={{ color: "#0E2849" }}>{row.value}</span>
+      <button
+        type="button"
+        onClick={remove}
+        aria-label="Remove attribute"
+        style={{
+          opacity: hover ? 1 : 0,
+          transition: "opacity 120ms",
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          color: "#9CA3AF",
+          cursor: "pointer",
+          width: 14,
+          height: 14,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <X size={11} />
+      </button>
     </div>
   );
 }
