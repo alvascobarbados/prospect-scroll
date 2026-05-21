@@ -202,20 +202,6 @@ function IdentityCell({
             />
           </span>
         )}
-        <span style={{ fontSize: 11, color: "#9CA3AF", display: "inline-flex", alignItems: "center", gap: 4 }}>
-          parent:
-          <InlineText
-            value={product.parent_name ?? ""}
-            placeholder="+ link"
-            onSave={async (next) => {
-              const v = next.trim();
-              await updateProduct(product.id, { parent_name: v.length ? v : null });
-              onChanged?.();
-            }}
-            style={{ color: "#6B7280", fontSize: 11 }}
-            inputStyle={{ fontSize: 11, minWidth: 100 }}
-          />
-        </span>
       </div>
 
       {/* Code pill + item suffix */}
