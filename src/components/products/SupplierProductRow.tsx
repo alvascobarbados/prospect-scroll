@@ -337,7 +337,7 @@ function codePillStyle(variant: "default" | "warn" = "default"): React.CSSProper
       fontWeight: 500,
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
       letterSpacing: "0.04em",
-      fontSize: 11,
+      fontSize: 12,
       cursor: "help",
     };
   }
