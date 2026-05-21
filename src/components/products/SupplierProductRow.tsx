@@ -3,6 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { Product } from "./helpers/buildProductsList";
 import { formatLeadTime } from "./helpers/formatLeadTime";
 import { formatUpdated } from "./helpers/formatUpdated";
+import { weightUnit as weightUnitFor, linearUnit as linearUnitFor } from "@/lib/units";
 import { DecorationBlock } from "./DecorationBlock";
 
 interface SupplierProductRowProps {
