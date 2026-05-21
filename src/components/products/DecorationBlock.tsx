@@ -32,7 +32,7 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
           minWidth: 0,
         }}
       >
-        <span style={{ fontSize: 11, color: "#9CA3AF", fontStyle: "italic" }}>
+        <span style={{ fontSize: 12, color: "#9CA3AF", fontStyle: "italic" }}>
           + Add decoration
         </span>
       </div>
