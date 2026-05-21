@@ -61,6 +61,7 @@ export interface SupplierRecord {
   code?: string | null;
   country?: string | null;
   origin_id?: string | null;
+  unit_system: "metric" | "imperial";
   weight_unit: WeightUnit;
   volume_unit: VolumeUnit;
   default_shipping_mode?: ShippingMode | null;
