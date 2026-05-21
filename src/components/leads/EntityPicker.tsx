@@ -495,8 +495,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
   const [incoterms, setIncoterms] = useState<"" | "FOB" | "CIF" | "LDP" | "LDF">("");
   const [supOriginId, setSupOriginId] = useState<string>("");
   const [mode, setMode] = useState<ShippingMode>("Ocean");
-  const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
-  const [volumeUnit, setVolumeUnit] = useState<"cbm" | "cuft">("cbm");
+  const [unitSystem, setUnitSystem] = useState<"metric" | "imperial">("metric");
   const [unitsTouched, setUnitsTouched] = useState(false);
   const [initials, setInitials] = useState("");
   const [fullName, setFullName] = useState("");
