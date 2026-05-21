@@ -18,7 +18,7 @@ interface SupplierProductRowProps {
   onChanged?: () => void;
 }
 
-const GRID_COLS = "140px 260px 100px 240px 240px";
+const GRID_COLS = "160px 320px 120px 280px 280px";
 const VISIBLE_DECO_SLOTS = 2;
 
 export function SupplierProductRow({ product, showVariantChip = false, onChanged }: SupplierProductRowProps) {
