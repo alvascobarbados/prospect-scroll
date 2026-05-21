@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { buildSupplierProductDataList, type Product } from "./helpers/buildSupplierProductDataList";
-import { ProductsList } from "./ProductsList";
+import { SupplierProductDataList } from "./SupplierProductDataList";
 
-export function ProductsPage() {
+export function SupplierProductDataPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [error, setError] = useState<string | null>(null);
