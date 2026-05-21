@@ -229,7 +229,7 @@ function IdentityCell({
           style={{
             fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
             color: "#0E2849",
-            fontSize: 11,
+            fontSize: 12,
           }}
         >
           {itemSuffix ? `-${itemSuffix}` : code ? "" : " unset"}
