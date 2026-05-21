@@ -8,9 +8,14 @@ interface DecorationBlockProps {
 function methodLabel(deco: ProductDecoration): string {
   const md = deco.method_detail;
   if (!md) return "Decoration";
-  const methodName = md.method?.name ?? "";
-  const detail = md.detail ?? "";
-  return [methodName, detail].filter(Boolean).join(" — ") || "Decoration";
+  const methodName = (md.method?.name ?? "").trim();
+  const detail = (md.detail ?? "").trim();
+  if (!methodName && !detail) return "Decoration";
+  if (!methodName) return detail;
+  if (!detail) return methodName;
+  return methodName.toLowerCase() === detail.toLowerCase()
+    ? detail
+    : `${methodName} — ${detail}`;
 }
 
 export function DecorationBlock({ decoration }: DecorationBlockProps) {
