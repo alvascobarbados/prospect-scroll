@@ -109,8 +109,7 @@ export const SupplierListPage = () => {
                   <Th>Name</Th>
                   <Th>Code</Th>
                   <Th>Origin</Th>
-                  <Th>Weight</Th>
-                  <Th>Volume</Th>
+                  <Th>Units</Th>
                   <Th>Default mode</Th>
                   <Th>Notes</Th>
                   <Th align="right">Used in</Th>
