@@ -72,8 +72,7 @@ export const MasterListPage = ({ kind }: Props) => {
         { key: "name", label: "Name" },
         { key: "code", label: "Code" },
         { key: "origin", label: "Origin" },
-        { key: "weight_unit", label: "Weight" },
-        { key: "volume_unit", label: "Volume" },
+        { key: "unit_system", label: "Units" },
         { key: "default_shipping_mode", label: "Default mode" },
         { key: "usage", label: "Used in", align: "right" },
       ];
@@ -98,7 +97,7 @@ export const MasterListPage = ({ kind }: Props) => {
           return {
             id: s.id, raw: s,
             usage: md.supplierUsage(s.id, s.legacy_id),
-            cells: [s.name, codeCell, originCell, s.weight_unit ?? "kg", s.volume_unit ?? "cbm", s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
+            cells: [s.name, codeCell, originCell, (s.unit_system ?? "metric").toUpperCase(), s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
           };
         });
       return { columns: cols, rows: r };
@@ -450,8 +449,7 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
           name: form.name,
           code: codeRaw || null,
           origin_id: form.origin_id || null,
-          weight_unit: form.weight_unit || "kg",
-          volume_unit: form.volume_unit || "cbm",
+          unit_system: (form.unit_system === "imperial" ? "imperial" : "metric"),
           default_shipping_mode: form.default_shipping_mode || null, notes: form.notes || null,
         });
       } else if (kind === "team") {
@@ -531,17 +529,34 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
                 fallbackHint={!form.origin_id && form.country ? `Legacy country: ${form.country}` : null}
               />
             </Field>
-            <Field label="Weight unit">
-              <select className={inputCls} style={{ minHeight: 48 }} value={form.weight_unit ?? "kg"} onChange={(e) => setField("weight_unit", e.target.value)}>
-                <option value="kg">kg</option>
-                <option value="lbs">lbs</option>
-              </select>
-            </Field>
-            <Field label="Volume unit">
-              <select className={inputCls} style={{ minHeight: 48 }} value={form.volume_unit ?? "cbm"} onChange={(e) => setField("volume_unit", e.target.value)}>
-                <option value="cbm">cbm</option>
-                <option value="cuft">cuft</option>
-              </select>
+            <Field label="Unit system">
+              <div className="flex gap-2">
+                {(["metric", "imperial"] as const).map((opt) => {
+                  const active = (form.unit_system ?? "metric") === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setField("unit_system", opt)}
+                      className={inputCls}
+                      style={{
+                        flex: 1,
+                        minHeight: 48,
+                        textAlign: "center",
+                        textTransform: "uppercase",
+                        fontSize: 12,
+                        letterSpacing: "0.06em",
+                        fontWeight: active ? 600 : 400,
+                        background: active ? "#E5EAF1" : undefined,
+                        color: active ? "#0E2849" : undefined,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {opt === "metric" ? "Metric (kg, cm)" : "Imperial (lbs, in)"}
+                    </button>
+                  );
+                })}
+              </div>
             </Field>
             <Field label="Default shipping">
               <select className={inputCls} style={{ minHeight: 48 }} value={form.default_shipping_mode ?? ""} onChange={(e) => setField("default_shipping_mode", e.target.value as ShippingMode || null)}>

@@ -19,8 +19,7 @@ import { EditableText, EditableSelect } from "@/components/leads/CustomerListPag
 import { sanitizeSupplierCodeInput, isSupplierCodeChar, validateSupplierCode } from "@/lib/supplierCode";
 import type { ShippingMode } from "@/data/pipelines";
 
-const WEIGHT_OPTIONS = ["kg", "lbs"] as const;
-const VOLUME_OPTIONS = ["cbm", "cuft"] as const;
+const UNIT_SYSTEM_OPTIONS = ["metric", "imperial"] as const;
 const SHIPPING_OPTIONS = ["", "Air", "Ocean", "Local"] as const;
 
 export const SupplierListPage = () => {
@@ -110,8 +109,7 @@ export const SupplierListPage = () => {
                   <Th>Name</Th>
                   <Th>Code</Th>
                   <Th>Origin</Th>
-                  <Th>Weight</Th>
-                  <Th>Volume</Th>
+                  <Th>Units</Th>
                   <Th>Default mode</Th>
                   <Th>Notes</Th>
                   <Th align="right">Used in</Th>
@@ -128,7 +126,7 @@ export const SupplierListPage = () => {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
+                    <td colSpan={8} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
                       {q ? "No matches." : "No suppliers yet."}
                     </td>
                   </tr>
@@ -209,12 +207,10 @@ const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelet
     try { await md.updateSupplier(supplier.id, { origin_id: id || null }); }
     catch (err: any) { toast.error(err?.message ?? "Save failed"); }
   };
-  const updateWeight = async (v: string) => {
-    try { await md.updateSupplier(supplier.id, { weight_unit: (v || "kg") as any }); }
-    catch (err: any) { toast.error(err?.message ?? "Save failed"); }
-  };
-  const updateVolume = async (v: string) => {
-    try { await md.updateSupplier(supplier.id, { volume_unit: (v || "cbm") as any }); }
+  const updateUnitSystem = async (v: string) => {
+    const next = (v === "imperial" ? "imperial" : "metric") as "metric" | "imperial";
+    if (next === (supplier.unit_system ?? "metric")) return;
+    try { await md.updateSupplier(supplier.id, { unit_system: next }); }
     catch (err: any) { toast.error(err?.message ?? "Save failed"); }
   };
   const updateMode = async (v: string) => {
@@ -246,17 +242,9 @@ const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelet
         />
       </Td>
       <Td>
-        <EditableSelect
-          value={supplier.weight_unit ?? "kg"}
-          options={WEIGHT_OPTIONS}
-          onSave={updateWeight}
-        />
-      </Td>
-      <Td>
-        <EditableSelect
-          value={supplier.volume_unit ?? "cbm"}
-          options={VOLUME_OPTIONS}
-          onSave={updateVolume}
+        <UnitSystemCell
+          value={(supplier.unit_system ?? "metric") as "metric" | "imperial"}
+          onSave={updateUnitSystem}
         />
       </Td>
       <Td>
@@ -294,6 +282,48 @@ const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelet
         </Popover>
       </Td>
     </tr>
+  );
+};
+
+// ─── Unit system chip + inline editor ─────────────────────────────────
+const UnitSystemCell = ({
+  value,
+  onSave,
+}: { value: "metric" | "imperial"; onSave: (v: string) => void }) => {
+  const [editing, setEditing] = useState(false);
+  if (editing) {
+    return (
+      <select
+        autoFocus
+        value={value}
+        onChange={(e) => { onSave(e.target.value); setEditing(false); }}
+        onBlur={() => setEditing(false)}
+        className="rounded-md border border-border bg-card px-2 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--brand-navy)/0.4)]"
+      >
+        <option value="metric">metric (kg, cm)</option>
+        <option value="imperial">imperial (lbs, in)</option>
+      </select>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      style={{
+        background: "#E5EAF1",
+        color: "#0E2849",
+        padding: "1px 7px",
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 500,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        cursor: "pointer",
+      }}
+    >
+      {value}
+    </button>
   );
 };
 

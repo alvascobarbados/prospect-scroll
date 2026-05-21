@@ -61,6 +61,7 @@ export interface SupplierRecord {
   code?: string | null;
   country?: string | null;
   origin_id?: string | null;
+  unit_system: "metric" | "imperial";
   weight_unit: WeightUnit;
   volume_unit: VolumeUnit;
   default_shipping_mode?: ShippingMode | null;
@@ -315,26 +316,34 @@ export const MasterDataProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const addSupplier = useCallback(async (input: Partial<SupplierRecord> & { name: string }) => {
-    // Auto-default units from origin code (USA/Miami → imperial; rest → metric).
-    let weight_unit: WeightUnit = input.weight_unit ?? "kg";
-    let volume_unit: VolumeUnit = input.volume_unit ?? "cbm";
-    if (input.weight_unit === undefined && input.origin_id) {
+    // Derive unit_system from origin when not explicitly provided.
+    let unit_system: "metric" | "imperial" = input.unit_system ?? "metric";
+    if (input.unit_system === undefined && input.origin_id) {
       const o = origins.find((x) => x.id === input.origin_id);
       if (o && (o.code.toUpperCase() === "USA_NON_MIAMI" || o.code.toUpperCase() === "MIAMI")) {
-        weight_unit = "lbs"; volume_unit = "cuft";
+        unit_system = "imperial";
       }
     }
+    const weight_unit: WeightUnit = unit_system === "imperial" ? "lbs" : "kg";
+    const volume_unit: VolumeUnit = unit_system === "imperial" ? ("cuft" as VolumeUnit) : "cbm";
     const { data, error } = await supabase.from("suppliers")
-      .insert({ ...input, weight_unit, volume_unit })
+      .insert({ ...input, unit_system, weight_unit, volume_unit })
       .select().single();
     if (error) throw error;
     setSuppliers((prev) => [...prev.filter((s) => s.id !== data.id), data as SupplierRecord].sort((a, b) => a.name.localeCompare(b.name)));
     return data as SupplierRecord;
   }, [origins]);
   const updateSupplier = useCallback(async (id: string, patch: Partial<SupplierRecord>) => {
-    setSuppliers((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s))
+    // Mirror unit_system → legacy weight/volume units so any consumer still
+    // reading the old columns gets the correct paired value.
+    const mirrored: Partial<SupplierRecord> = { ...patch };
+    if (patch.unit_system) {
+      mirrored.weight_unit = patch.unit_system === "imperial" ? "lbs" : "kg";
+      mirrored.volume_unit = patch.unit_system === "imperial" ? ("cuft" as VolumeUnit) : "cbm";
+    }
+    setSuppliers((prev) => prev.map((s) => (s.id === id ? { ...s, ...mirrored } : s))
       .sort((a, b) => a.name.localeCompare(b.name)));
-    const { error } = await supabase.from("suppliers").update(patch).eq("id", id);
+    const { error } = await supabase.from("suppliers").update(mirrored).eq("id", id);
     if (error) throw error;
   }, []);
   const deleteSupplier = useCallback(async (id: string) => {
