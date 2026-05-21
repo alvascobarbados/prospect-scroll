@@ -22,7 +22,7 @@ export function ProductsPage() {
           carton_pack, carton_length, carton_width, carton_height, carton_weight,
           production_days_min, production_days_max,
           subcategory:product_categories!products_subcategory_id_fkey(id, name, code),
-          supplier:suppliers(id, name, code, weight_unit, volume_unit),
+          supplier:suppliers(id, name, code, unit_system, weight_unit, volume_unit),
           origin:origins(id, name),
           product_details(
             id, value, sort_order,
