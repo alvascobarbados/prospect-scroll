@@ -85,7 +85,28 @@ export function SupplierProductDataPage() {
           <h1 className="font-display" style={{ fontSize: 32, color: "hsl(var(--brand-navy))", margin: 0 }}>
             Supplier Product Data
           </h1>
+          <button
+            onClick={() => setAddOpen(true)}
+            style={{
+              marginLeft: "auto",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: "hsl(var(--brand-orange))",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <Plus size={15} /> Add product
+          </button>
         </div>
+
+        <AddProductDialog open={addOpen} onClose={() => setAddOpen(false)} onCreated={reload} />
 
         {error && (
           <div style={{ color: "hsl(var(--destructive))", marginBottom: 16, fontSize: 13 }}>
