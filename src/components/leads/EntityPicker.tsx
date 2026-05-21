@@ -507,7 +507,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
     if (!open) return;
     setName(initialName);
     setCountry("Local"); setDestinationId(""); setIncoterms(""); setSupOriginId(""); setMode("Ocean");
-    setWeightUnit("kg"); setVolumeUnit("cbm"); setUnitsTouched(false);
+    setUnitSystem("metric"); setUnitsTouched(false);
     setInitials(""); setFullName(""); setTeamEmail(""); setUnit(""); setSupCode("");
   }, [open, initialName]);
 
