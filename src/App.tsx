@@ -20,7 +20,7 @@ import OriginsPage from "./pages/Origins.tsx";
 import DestinationsPage from "./pages/Destinations.tsx";
 import ShippingMethodsPage from "./pages/ShippingMethods.tsx";
 import ProductCategoriesPage from "./pages/ProductCategories.tsx";
-import ProductsPage from "./pages/Products.tsx";
+import SupplierProductDataPage from "./pages/SupplierProductData.tsx";
 import ProductDetailPage from "./pages/ProductDetail.tsx";
 import DetailLabelsPage from "./pages/DetailLabels.tsx";
 import DecorationMethodsPage from "./pages/DecorationMethods.tsx";
