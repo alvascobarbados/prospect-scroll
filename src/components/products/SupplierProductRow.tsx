@@ -158,13 +158,13 @@ function IdentityCell({
             }}
             validate={(v) => (v.trim().length === 0 ? "Name required" : null)}
             style={{
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 500,
               color: "#0E2849",
               lineHeight: 1.2,
             }}
             inputStyle={{
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 500,
               color: "#0E2849",
               lineHeight: 1.2,
