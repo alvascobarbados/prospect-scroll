@@ -518,9 +518,9 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
     if (!o) return;
     const code = o.code.toUpperCase();
     if (code === "USA_NON_MIAMI" || code === "MIAMI") {
-      setWeightUnit("lbs"); setVolumeUnit("cuft");
+      setUnitSystem("imperial");
     } else {
-      setWeightUnit("kg"); setVolumeUnit("cbm");
+      setUnitSystem("metric");
     }
   }, [supOriginId, unitsTouched, kind, md.origins]);
 
