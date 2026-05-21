@@ -1,13 +1,13 @@
-import type { ListItem } from "./helpers/buildProductsList";
+import type { ListItem } from "./helpers/buildSupplierProductDataList";
 import { SupplierProductCard } from "./SupplierProductCard";
 import { SupplierProductGroup } from "./SupplierProductGroup";
 
-interface ProductsListProps {
+interface SupplierProductDataListProps {
   items: ListItem[];
   onChanged?: () => void;
 }
 
-export function ProductsList({ items, onChanged }: ProductsListProps) {
+export function SupplierProductDataList({ items, onChanged }: SupplierProductDataListProps) {
   if (items.length === 0) {
     return (
       <div style={{ padding: "48px 0", color: "#9CA3AF", fontSize: 13 }}>

@@ -3,10 +3,10 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { buildProductsList, type Product } from "./helpers/buildProductsList";
-import { ProductsList } from "./ProductsList";
+import { buildSupplierProductDataList, type Product } from "./helpers/buildSupplierProductDataList";
+import { SupplierProductDataList } from "./SupplierProductDataList";
 
-export function ProductsPage() {
+export function SupplierProductDataPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export function ProductsPage() {
     };
   }, [reloadKey]);
 
-  const items = products ? buildProductsList(products) : [];
+  const items = products ? buildSupplierProductDataList(products) : [];
 
   return (
     <DesktopAppShell>
@@ -81,13 +81,13 @@ export function ProductsPage() {
             <ArrowLeft size={16} />
           </button>
           <h1 className="font-display" style={{ fontSize: 32, color: "hsl(var(--brand-navy))", margin: 0 }}>
-            Products
+            Supplier Product Data
           </h1>
         </div>
 
         {error && (
           <div style={{ color: "hsl(var(--destructive))", marginBottom: 16, fontSize: 13 }}>
-            Failed to load products: {error}
+            Failed to load supplier product data: {error}
           </div>
         )}
 
@@ -95,7 +95,7 @@ export function ProductsPage() {
           {products === null ? (
             <div style={{ color: "#9CA3AF", fontSize: 13 }}>Loading…</div>
           ) : (
-            <ProductsList items={items} onChanged={reload} />
+            <SupplierProductDataList items={items} onChanged={reload} />
           )}
         </div>
       </div>

@@ -52,7 +52,7 @@ export const DesktopRail = ({ trashCount, archiveCount }: Props) => {
     { icon: UserCircle2, label: "Users", to: "/users" },
     { icon: Users, label: "Customers", to: "/customers" },
     { icon: Factory, label: "Suppliers", to: "/suppliers" },
-    { icon: Package, label: "Products", to: "/products" },
+    { icon: Package, label: "Supplier Product Data", to: "/supplier-product-data" },
     { icon: Tags, label: "Product Categories", to: "/product-categories" },
     { icon: Palette, label: "Decoration Methods", to: "/decoration-methods" },
     { icon: Tags, label: "Detail Labels", to: "/detail-labels" },

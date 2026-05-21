@@ -1,5 +1,5 @@
 import { Link2 } from "lucide-react";
-import type { Product } from "./helpers/buildProductsList";
+import type { Product } from "./helpers/buildSupplierProductDataList";
 import { SupplierSpine } from "./SupplierSpine";
 import { SupplierProductRow } from "./SupplierProductRow";
 
