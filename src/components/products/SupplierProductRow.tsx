@@ -209,7 +209,7 @@ function IdentityCell({
         style={{
           display: "inline-flex",
           alignItems: "center",
-          fontSize: 11,
+          fontSize: 12,
           lineHeight: 1.5,
         }}
       >
