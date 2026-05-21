@@ -26,7 +26,7 @@ export function ProductsPage() {
           production_days_min, production_days_max,
           subcategory:product_categories!products_subcategory_id_fkey(
             id, name, code,
-            category:product_categories!product_categories_parent_id_fkey(id, name, code)
+            category:parent_id(id, name, code)
           ),
           supplier:suppliers(id, name, code, unit_system, weight_unit, volume_unit),
           origin:origins(id, name),
