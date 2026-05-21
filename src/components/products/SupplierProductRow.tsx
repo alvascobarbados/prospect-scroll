@@ -1,0 +1,298 @@
+import { Package } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { Product } from "./helpers/buildProductsList";
+import { formatLeadTime } from "./helpers/formatLeadTime";
+import { formatUpdated } from "./helpers/formatUpdated";
+import { DecorationBlock } from "./DecorationBlock";
+
+interface SupplierProductRowProps {
+  product: Product;
+  /** Show the variant chip beside the name (used inside Card 102). */
+  showVariantChip?: boolean;
+}
+
+const GRID_COLS = "110px 200px 90px 195px 195px 195px";
+
+export function SupplierProductRow({ product, showVariantChip = false }: SupplierProductRowProps) {
+  const decos = [...product.product_decorations]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .slice(0, 3);
+  const slots: (Product["product_decorations"][number] | null)[] = [
+    decos[0] ?? null,
+    decos[1] ?? null,
+    decos[2] ?? null,
+  ];
+
+  const weightUnit = product.supplier?.weight_unit ?? "kg";
+  const volumeUnit = product.supplier?.volume_unit ?? "cm";
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: GRID_COLS,
+        gap: 10,
+        padding: "10px 12px 10px 38px",
+        position: "relative",
+        minWidth: 1085,
+      }}
+    >
+      {/* Image */}
+      <div
+        style={{
+          background: "#F3F4F6",
+          borderRadius: 6,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 110,
+          minHeight: 110,
+          alignSelf: "stretch",
+          overflow: "hidden",
+        }}
+      >
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6 }}
+          />
+        ) : (
+          <Package size={36} color="#9CA3AF" strokeWidth={1.5} />
+        )}
+      </div>
+
+      {/* Identity */}
+      <IdentityCell product={product} showVariantChip={showVariantChip} />
+
+      {/* Specs */}
+      <SpecsCell
+        product={product}
+        weightUnit={weightUnit}
+        volumeUnit={volumeUnit}
+      />
+
+      {/* Decoration slots */}
+      {slots.map((slot, i) => (
+        <DecorationBlock key={slot?.id ?? `empty-${i}`} decoration={slot} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Identity ─────────────────────────────────────────────────────────────
+
+function IdentityCell({
+  product,
+  showVariantChip,
+}: {
+  product: Product;
+  showVariantChip: boolean;
+}) {
+  const code = product.supplier?.code ?? null;
+  const itemSuffix = stripCodePrefix(product.supplier_item_number, code);
+
+  return (
+    <div style={{ minWidth: 0 }}>
+      {/* Header row: name + updated */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: 8,
+          marginBottom: 5,
+        }}
+      >
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: "#0E2849",
+              lineHeight: 1.2,
+            }}
+          >
+            {product.name}
+          </span>
+          {showVariantChip && product.variant_label && (
+            <span
+              style={{
+                display: "inline-block",
+                background: "#F3F4F6",
+                color: "#4B5563",
+                fontSize: 10,
+                fontWeight: 500,
+                padding: "1px 7px",
+                borderRadius: 4,
+                marginLeft: 6,
+                verticalAlign: 1,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+              }}
+            >
+              {product.variant_label}
+            </span>
+          )}
+        </div>
+        <span
+          style={{
+            fontSize: 11,
+            fontStyle: "italic",
+            color: "#9CA3AF",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {formatUpdated(product.updated_at)}
+        </span>
+      </div>
+
+      {/* Code pill + item suffix */}
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          fontSize: 11,
+          lineHeight: 1.5,
+        }}
+      >
+        {code ? (
+          <span style={codePillStyle()}>{code}</span>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span style={codePillStyle("warn")}>?</span>
+            </TooltipTrigger>
+            <TooltipContent>
+              Supplier code not set — edit supplier to fix
+            </TooltipContent>
+          </Tooltip>
+        )}
+        <span
+          style={{
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            color: "#0E2849",
+            fontSize: 11,
+          }}
+        >
+          {itemSuffix ? `-${itemSuffix}` : code ? "" : " unset"}
+        </span>
+      </div>
+
+      {/* Details grid */}
+      {product.product_details.length > 0 && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "auto 1fr",
+            gap: "2px 10px",
+            marginTop: 7,
+            fontSize: 11,
+            lineHeight: 1.4,
+          }}
+        >
+          {[...product.product_details]
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((d) => (
+              <span key={d.id} style={{ display: "contents" }}>
+                <span style={{ color: "#6B7280" }}>
+                  {d.detail_label?.label ?? "—"}
+                </span>
+                <span style={{ color: "#0E2849" }}>{d.value}</span>
+              </span>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function codePillStyle(variant: "default" | "warn" = "default"): React.CSSProperties {
+  if (variant === "warn") {
+    return {
+      background: "#FEF3E2",
+      color: "#C2410C",
+      padding: "2px 7px",
+      borderRadius: 4,
+      fontWeight: 500,
+      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+      letterSpacing: "0.04em",
+      fontSize: 11,
+      cursor: "help",
+    };
+  }
+  return {
+    background: "#E5EAF1",
+    color: "#0E2849",
+    padding: "2px 7px",
+    borderRadius: 4,
+    fontWeight: 500,
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    letterSpacing: "0.04em",
+    fontSize: 11,
+  };
+}
+
+/** If the stored item number begins with "{code}-", return the rest. */
+function stripCodePrefix(item: string | null, code: string | null): string {
+  if (!item) return "";
+  if (!code) return item;
+  const prefix = `${code}-`;
+  return item.startsWith(prefix) ? item.slice(prefix.length) : item;
+}
+
+// ─── Specs ────────────────────────────────────────────────────────────────
+
+function SpecsCell({
+  product,
+  weightUnit,
+  volumeUnit,
+}: {
+  product: Product;
+  weightUnit: string;
+  volumeUnit: string;
+}) {
+  const dims =
+    product.carton_length != null &&
+    product.carton_width != null &&
+    product.carton_height != null
+      ? `${trimNum(product.carton_length)}\u00d7${trimNum(product.carton_width)}\u00d7${trimNum(
+          product.carton_height,
+        )}`
+      : null;
+
+  return (
+    <div
+      style={{
+        borderLeft: "0.5px solid #F1F2F4",
+        paddingLeft: 10,
+        paddingTop: 2,
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        fontSize: 12,
+        color: "#0E2849",
+        lineHeight: 1.2,
+      }}
+    >
+      <SpecLine value={product.carton_pack} unit="unit / ctn" />
+      <SpecLine value={dims} unit={volumeUnit} />
+      <SpecLine value={product.carton_weight} unit={weightUnit} />
+      <span>{formatLeadTime(product.production_days_min, product.production_days_max)}</span>
+    </div>
+  );
+}
+
+function SpecLine({ value, unit }: { value: number | string | null; unit: string }) {
+  if (value == null || value === "") return <span style={{ color: "#9CA3AF" }}>—</span>;
+  return (
+    <span>
+      {typeof value === "number" ? trimNum(value) : value}
+      <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 11 }}>{unit}</span>
+    </span>
+  );
+}
+
+function trimNum(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
+}
