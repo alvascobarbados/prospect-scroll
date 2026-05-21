@@ -9,7 +9,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Users, Factory, UserCircle2, Trash2, HelpCircle, Settings,
   Archive, KanbanSquare, ChevronLeft, Activity, LogOut,
-  Tags, Palette, Truck, MapPin, Globe2, Package, DollarSign,
+  Tags, Palette, Truck, MapPin, Globe2, Package, DollarSign, Calculator,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,7 @@ export const DesktopRail = ({ trashCount, archiveCount }: Props) => {
   const mainItems: Item[] = [
     { icon: KanbanSquare, label: "Pipeline", to: "/" },
     { icon: DollarSign, label: "Pricelist", to: "/pricelist" },
+    { icon: Calculator, label: "Calculations", to: "/calculations" },
     { icon: Activity, label: "Activity Log", to: "/activity" },
   ];
   const dataItems: Item[] = [
