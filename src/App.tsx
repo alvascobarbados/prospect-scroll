@@ -22,6 +22,7 @@ import ShippingMethodsPage from "./pages/ShippingMethods.tsx";
 import ProductCategoriesPage from "./pages/ProductCategories.tsx";
 import SupplierProductDataPage from "./pages/SupplierProductData.tsx";
 import PricelistPage from "./pages/Pricelist.tsx";
+import CalculationsPage from "./pages/Calculations.tsx";
 import ProductDetailPage from "./pages/ProductDetail.tsx";
 import DetailLabelsPage from "./pages/DetailLabels.tsx";
 import DecorationMethodsPage from "./pages/DecorationMethods.tsx";
@@ -47,6 +48,7 @@ const App = () => (
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/pricelist" element={<PricelistPage />} />
+                    <Route path="/calculations" element={<CalculationsPage />} />
                     <Route path="/activity" element={<ActivityPage />} />
                     <Route path="/customers" element={<MasterList kind="customer" />} />
                     <Route path="/suppliers" element={<MasterList kind="supplier" />} />
