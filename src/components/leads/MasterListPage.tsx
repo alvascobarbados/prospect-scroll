@@ -450,8 +450,7 @@ const EditEntitySheet = ({ kind, row, onClose, onDelete }: EditProps) => {
           name: form.name,
           code: codeRaw || null,
           origin_id: form.origin_id || null,
-          weight_unit: form.weight_unit || "kg",
-          volume_unit: form.volume_unit || "cbm",
+          unit_system: (form.unit_system === "imperial" ? "imperial" : "metric"),
           default_shipping_mode: form.default_shipping_mode || null, notes: form.notes || null,
         });
       } else if (kind === "team") {
