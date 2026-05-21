@@ -23,7 +23,8 @@ const GRID_COLS = "160px 320px 120px 280px 280px";
 const VISIBLE_DECO_SLOTS = 2;
 
 async function updateProduct(id: string, patch: Record<string, unknown>) {
-  const { error } = await supabase.from("products").update(patch).eq("id", id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("products").update(patch as any).eq("id", id));
   if (error) throw new Error(error.message);
 }
 
