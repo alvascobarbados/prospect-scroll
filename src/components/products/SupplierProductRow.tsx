@@ -18,17 +18,18 @@ interface SupplierProductRowProps {
   onChanged?: () => void;
 }
 
-const GRID_COLS = "110px 200px 90px 195px 195px 195px";
+const GRID_COLS = "140px 260px 100px 240px 240px";
+const VISIBLE_DECO_SLOTS = 2;
 
 export function SupplierProductRow({ product, showVariantChip = false, onChanged }: SupplierProductRowProps) {
-  const decos = [...product.product_decorations]
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .slice(0, 3);
-  const slots: (Product["product_decorations"][number] | null)[] = [
-    decos[0] ?? null,
-    decos[1] ?? null,
-    decos[2] ?? null,
+  const [expanded, setExpanded] = useState(false);
+  const allDecos = [...product.product_decorations].sort((a, b) => a.sort_order - b.sort_order);
+  const primary: (Product["product_decorations"][number] | null)[] = [
+    allDecos[0] ?? null,
+    allDecos[1] ?? null,
   ];
+  const overflow = allDecos.slice(VISIBLE_DECO_SLOTS);
+  const hasOverflow = overflow.length > 0;
 
   const system = product.supplier?.unit_system ?? "metric";
   const wUnit = weightUnitFor(system);
@@ -42,7 +43,7 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
         gap: 10,
         padding: "10px 12px 10px 38px",
         position: "relative",
-        minWidth: 1085,
+        minWidth: 1080,
       }}
     >
       {/* Image */}
@@ -53,9 +54,10 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 110,
-          minHeight: 110,
-          alignSelf: "stretch",
+          width: 140,
+          minHeight: 140,
+          aspectRatio: "1 / 1",
+          alignSelf: "start",
           overflow: "hidden",
         }}
       >
@@ -80,9 +82,37 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
         volumeUnit={lUnit}
       />
 
-      {/* Decoration slots */}
-      {slots.map((slot, i) => (
-        <DecorationBlock key={slot?.id ?? `empty-${i}`} decoration={slot} />
+      {/* Decoration slots — primary 2 */}
+      {primary.map((slot, i) => (
+        <div key={slot?.id ?? `empty-${i}`}>
+          <DecorationBlock decoration={slot} />
+          {i === 1 && hasOverflow && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              style={{
+                marginTop: 6,
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                color: "#E97817",
+                fontSize: 11,
+                cursor: "pointer",
+              }}
+            >
+              {expanded
+                ? "− hide extra decorations"
+                : `+ ${overflow.length} more decoration${overflow.length === 1 ? "" : "s"}`}
+            </button>
+          )}
+          {i === 1 && expanded && hasOverflow && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+              {overflow.map((d) => (
+                <DecorationBlock key={d.id} decoration={d} />
+              ))}
+            </div>
+          )}
+        </div>
       ))}
     </div>
   );
