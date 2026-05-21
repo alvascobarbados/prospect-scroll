@@ -135,14 +135,13 @@ function IdentityCell({
 
   return (
     <div style={{ minWidth: 0 }}>
-      {/* Header row: name + updated */}
+      {/* Row 1: name + updated */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "baseline",
           gap: 8,
-          marginBottom: 5,
         }}
       >
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -171,26 +170,6 @@ function IdentityCell({
               minWidth: 120,
             }}
           />
-
-          {showVariantChip && variantChip && (
-            <span
-              style={{
-                display: "inline-block",
-                background: "#F3F4F6",
-                color: "#4B5563",
-                fontSize: 10,
-                fontWeight: 500,
-                padding: "1px 7px",
-                borderRadius: 4,
-                marginLeft: 6,
-                verticalAlign: 1,
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-              }}
-            >
-              {variantChip}
-            </span>
-          )}
         </div>
         <span
           style={{
@@ -203,6 +182,29 @@ function IdentityCell({
           {formatUpdated(product.updated_at)}
         </span>
       </div>
+
+      {/* Row 2: variant chip (omitted if no variant) */}
+      {showVariantChip && variantChip && (
+        <div style={{ marginTop: 4, marginBottom: 5 }}>
+          <span
+            style={{
+              display: "inline-block",
+              background: "#F3F4F6",
+              color: "#4B5563",
+              fontSize: 11,
+              fontWeight: 500,
+              padding: "2px 8px",
+              borderRadius: 4,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+            }}
+          >
+            {variantChip}
+          </span>
+        </div>
+      )}
+      {!(showVariantChip && variantChip) && <div style={{ height: 5 }} />}
+
 
       {/* Code pill + item suffix */}
       <div
