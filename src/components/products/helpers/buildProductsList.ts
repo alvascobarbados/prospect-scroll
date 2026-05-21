@@ -35,6 +35,7 @@ export interface ProductSupplier {
   id: string;
   name: string;
   code: string | null;
+  unit_system: "metric" | "imperial" | null;
   weight_unit: string | null;
   volume_unit: string | null;
 }
