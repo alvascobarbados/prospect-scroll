@@ -556,8 +556,7 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
           name: name.trim(),
           code: codeCheck.value,
           origin_id: supOriginId || null,
-          weight_unit: weightUnit,
-          volume_unit: volumeUnit,
+          unit_system: unitSystem,
           default_shipping_mode: mode,
         });
         toast.success(`Supplier "${s.name}" added`);
