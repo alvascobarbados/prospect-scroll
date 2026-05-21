@@ -20,7 +20,7 @@ export function SupplierProductGroup({ parentName, members, onChanged }: Supplie
         borderRadius: 12,
         background: "#FFFFFF",
         overflow: "hidden",
-        minWidth: 1085,
+        minWidth: 1080,
       }}
     >
       {/* Header strip */}
