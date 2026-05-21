@@ -207,12 +207,10 @@ const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelet
     try { await md.updateSupplier(supplier.id, { origin_id: id || null }); }
     catch (err: any) { toast.error(err?.message ?? "Save failed"); }
   };
-  const updateWeight = async (v: string) => {
-    try { await md.updateSupplier(supplier.id, { weight_unit: (v || "kg") as any }); }
-    catch (err: any) { toast.error(err?.message ?? "Save failed"); }
-  };
-  const updateVolume = async (v: string) => {
-    try { await md.updateSupplier(supplier.id, { volume_unit: (v || "cbm") as any }); }
+  const updateUnitSystem = async (v: string) => {
+    const next = (v === "imperial" ? "imperial" : "metric") as "metric" | "imperial";
+    if (next === (supplier.unit_system ?? "metric")) return;
+    try { await md.updateSupplier(supplier.id, { unit_system: next }); }
     catch (err: any) { toast.error(err?.message ?? "Save failed"); }
   };
   const updateMode = async (v: string) => {
