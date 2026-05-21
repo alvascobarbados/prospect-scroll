@@ -285,6 +285,48 @@ const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelet
   );
 };
 
+// ─── Unit system chip + inline editor ─────────────────────────────────
+const UnitSystemCell = ({
+  value,
+  onSave,
+}: { value: "metric" | "imperial"; onSave: (v: string) => void }) => {
+  const [editing, setEditing] = useState(false);
+  if (editing) {
+    return (
+      <select
+        autoFocus
+        value={value}
+        onChange={(e) => { onSave(e.target.value); setEditing(false); }}
+        onBlur={() => setEditing(false)}
+        className="rounded-md border border-border bg-card px-2 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--brand-navy)/0.4)]"
+      >
+        <option value="metric">metric (kg, cm)</option>
+        <option value="imperial">imperial (lbs, in)</option>
+      </select>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      style={{
+        background: "#E5EAF1",
+        color: "#0E2849",
+        padding: "1px 7px",
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 500,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        cursor: "pointer",
+      }}
+    >
+      {value}
+    </button>
+  );
+};
+
 // ─── Origin select with "+ Add new origin" affordance ─────────────────
 const ADD_NEW_ORIGIN = "__add_new_origin__";
 
