@@ -17,7 +17,7 @@ export function SupplierProductCard({ product, onChanged }: SupplierProductCardP
         borderRadius: 12,
         position: "relative",
         overflow: "hidden",
-        minWidth: 1085,
+        minWidth: 1080,
       }}
     >
       <SupplierSpine supplierName={supplierName} />
