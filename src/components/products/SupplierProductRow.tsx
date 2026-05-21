@@ -39,9 +39,9 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
         display: "grid",
         gridTemplateColumns: GRID_COLS,
         gap: 10,
-        padding: "10px 12px 10px 90px",
+        padding: "10px 12px 10px 38px",
         position: "relative",
-        minWidth: 1137,
+        minWidth: 1085,
       }}
     >
       {/* Image */}
