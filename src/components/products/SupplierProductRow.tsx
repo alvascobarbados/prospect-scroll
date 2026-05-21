@@ -9,8 +9,10 @@ import { DecorationBlock } from "./DecorationBlock";
 import { AddAttributePopover } from "./AddAttributePopover";
 import { InlineText } from "@/components/inline/InlineText";
 import { InlineNumber } from "@/components/inline/InlineNumber";
+import { InlineNumberGroup } from "@/components/inline/InlineNumberGroup";
 import { ImageUploadCell } from "./ImageUploadCell";
 import { supabase } from "@/integrations/supabase/client";
+import { formatLeadTime } from "./helpers/formatLeadTime";
 
 interface SupplierProductRowProps {
   product: Product;
@@ -200,20 +202,6 @@ function IdentityCell({
             />
           </span>
         )}
-        <span style={{ fontSize: 11, color: "#9CA3AF", display: "inline-flex", alignItems: "center", gap: 4 }}>
-          parent:
-          <InlineText
-            value={product.parent_name ?? ""}
-            placeholder="+ link"
-            onSave={async (next) => {
-              const v = next.trim();
-              await updateProduct(product.id, { parent_name: v.length ? v : null });
-              onChanged?.();
-            }}
-            style={{ color: "#6B7280", fontSize: 11 }}
-            inputStyle={{ fontSize: 11, minWidth: 100 }}
-          />
-        </span>
       </div>
 
       {/* Code pill + item suffix */}
@@ -441,36 +429,25 @@ function SpecsCell({
         <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>unit / ctn</span>
       </span>
 
-      {/* L × W × H */}
-      <span style={{ display: "inline-flex", alignItems: "baseline", gap: 2 }}>
-        <InlineNumber
-          value={product.carton_length}
-          integer
-          min={1}
-          nullable
-          width={40}
-          onSave={(v) => save({ carton_length: v })}
-        />
-        <span>×</span>
-        <InlineNumber
-          value={product.carton_width}
-          integer
-          min={1}
-          nullable
-          width={40}
-          onSave={(v) => save({ carton_width: v })}
-        />
-        <span>×</span>
-        <InlineNumber
-          value={product.carton_height}
-          integer
-          min={1}
-          nullable
-          width={40}
-          onSave={(v) => save({ carton_height: v })}
-        />
-        <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>{volumeUnit}</span>
-      </span>
+      {/* L × W × H — one-click unlocks all three */}
+      <InlineNumberGroup
+        style={{ fontSize: 13, color: "#0E2849" }}
+        fields={[
+          { value: product.carton_length, integer: true, min: 1, nullable: true, width: 40, label: "Length" },
+          { value: product.carton_width, integer: true, min: 1, nullable: true, width: 40, label: "Width" },
+          { value: product.carton_height, integer: true, min: 1, nullable: true, width: 40, label: "Height" },
+        ]}
+        separators={["×", "×"]}
+        suffix={<span style={{ color: "#6B7280", fontSize: 12 }}>{volumeUnit}</span>}
+        display={
+          <span>
+            {product.carton_length ?? "—"} × {product.carton_width ?? "—"} × {product.carton_height ?? "—"}{" "}
+          </span>
+        }
+        onSave={async ([l, w, h]) => {
+          await save({ carton_length: l, carton_width: w, carton_height: h });
+        }}
+      />
 
       {/* Weight */}
       <span>
@@ -484,29 +461,31 @@ function SpecsCell({
         <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>{weightUnit}</span>
       </span>
 
-      {/* Lead time min – max */}
-      <span style={{ display: "inline-flex", alignItems: "baseline", gap: 2 }}>
-        <InlineNumber
-          value={product.production_days_min}
-          integer
-          min={1}
-          width={40}
-          onSave={(v) => {
-            if (v == null) return Promise.resolve();
-            return save({ production_days_min: v });
-          }}
-        />
-        <span>–</span>
-        <InlineNumber
-          value={product.production_days_max}
-          integer
-          min={product.production_days_min ?? 1}
-          nullable
-          width={40}
-          onSave={(v) => save({ production_days_max: v })}
-        />
-        <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>days</span>
-      </span>
+      {/* Lead time min – max — one-click unlocks both, auto-collapses display */}
+      <InlineNumberGroup
+        style={{ fontSize: 13, color: "#0E2849" }}
+        fields={[
+          { value: product.production_days_min, integer: true, min: 1, nullable: false, width: 40, label: "Min days" },
+          { value: product.production_days_max, integer: true, min: 1, nullable: true, width: 40, label: "Max days" },
+        ]}
+        separators={["–"]}
+        suffix={<span style={{ color: "#6B7280", fontSize: 12 }}>days</span>}
+        display={
+          <span>
+            {formatLeadTime(product.production_days_min, product.production_days_max).replace(/\s*days$/, "")}{" "}
+          </span>
+        }
+        validateGroup={([min, max]) => {
+          if (min == null) return { fieldIndex: 0, message: "Required" };
+          if (max != null && max < min) return { fieldIndex: 1, message: `≥ ${min}` };
+          return null;
+        }}
+        onSave={async ([min, max]) => {
+          // Collapse: if max equals min, store as null so display shows "{min} days"
+          const normalizedMax = max != null && min != null && max === min ? null : max;
+          await save({ production_days_min: min, production_days_max: normalizedMax });
+        }}
+      />
     </div>
   );
 }
