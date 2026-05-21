@@ -9,8 +9,10 @@ import { DecorationBlock } from "./DecorationBlock";
 import { AddAttributePopover } from "./AddAttributePopover";
 import { InlineText } from "@/components/inline/InlineText";
 import { InlineNumber } from "@/components/inline/InlineNumber";
+import { InlineNumberGroup } from "@/components/inline/InlineNumberGroup";
 import { ImageUploadCell } from "./ImageUploadCell";
 import { supabase } from "@/integrations/supabase/client";
+import { formatLeadTime } from "./helpers/formatLeadTime";
 
 interface SupplierProductRowProps {
   product: Product;
