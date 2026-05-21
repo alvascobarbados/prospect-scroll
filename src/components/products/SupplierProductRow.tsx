@@ -1,14 +1,15 @@
-import { Package, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Product, ProductDetailRow } from "./helpers/buildProductsList";
-import { formatLeadTime } from "./helpers/formatLeadTime";
 import { formatUpdated } from "./helpers/formatUpdated";
 import { weightUnit as weightUnitFor, linearUnit as linearUnitFor } from "@/lib/units";
 import { DecorationBlock } from "./DecorationBlock";
 import { AddAttributePopover } from "./AddAttributePopover";
 import { InlineText } from "@/components/inline/InlineText";
+import { InlineNumber } from "@/components/inline/InlineNumber";
+import { ImageUploadCell } from "./ImageUploadCell";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SupplierProductRowProps {
@@ -21,6 +22,12 @@ interface SupplierProductRowProps {
 const GRID_COLS = "160px 320px 120px 280px 280px";
 const VISIBLE_DECO_SLOTS = 2;
 
+async function updateProduct(id: string, patch: Record<string, unknown>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("products").update(patch as any).eq("id", id));
+  if (error) throw new Error(error.message);
+}
+
 export function SupplierProductRow({ product, showVariantChip = false, onChanged }: SupplierProductRowProps) {
   const [expanded, setExpanded] = useState(false);
   const allDecos = [...product.product_decorations].sort((a, b) => a.sort_order - b.sort_order);
@@ -30,6 +37,7 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
   ];
   const overflow = allDecos.slice(VISIBLE_DECO_SLOTS);
   const hasOverflow = overflow.length > 0;
+  const nextDecoSortOrder = (allDecos.at(-1)?.sort_order ?? 0) + 1;
 
   const system = product.supplier?.unit_system ?? "metric";
   const wUnit = weightUnitFor(system);
@@ -47,30 +55,13 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
       }}
     >
       {/* Image */}
-      <div
-        style={{
-          background: "#F3F4F6",
-          borderRadius: 6,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 160,
-          minHeight: 160,
-          aspectRatio: "1 / 1",
-          alignSelf: "start",
-          overflow: "hidden",
-        }}
-      >
-        {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6 }}
-          />
-        ) : (
-          <Package size={36} color="#9CA3AF" strokeWidth={1.5} />
-        )}
-      </div>
+      <ImageUploadCell
+        productId={product.id}
+        imageUrl={product.image_url}
+        productName={product.name}
+        size={160}
+        onChanged={onChanged}
+      />
 
       {/* Identity */}
       <IdentityCell product={product} showVariantChip={showVariantChip} onChanged={onChanged} />
@@ -80,12 +71,18 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
         product={product}
         weightUnit={wUnit}
         volumeUnit={lUnit}
+        onChanged={onChanged}
       />
 
       {/* Decoration slots — primary 2 */}
       {primary.map((slot, i) => (
         <div key={slot?.id ?? `empty-${i}`}>
-          <DecorationBlock decoration={slot} />
+          <DecorationBlock
+            decoration={slot}
+            productId={product.id}
+            nextSortOrder={nextDecoSortOrder + i}
+            onChanged={onChanged}
+          />
           {i === 1 && hasOverflow && (
             <button
               type="button"
@@ -108,7 +105,12 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
           {i === 1 && expanded && hasOverflow && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
               {overflow.map((d) => (
-                <DecorationBlock key={d.id} decoration={d} />
+                <DecorationBlock
+                  key={d.id}
+                  decoration={d}
+                  productId={product.id}
+                  onChanged={onChanged}
+                />
               ))}
             </div>
           )}
@@ -131,7 +133,7 @@ function IdentityCell({
 }) {
   const code = product.supplier?.code ?? null;
   const itemSuffix = stripCodePrefix(product.supplier_item_number, code);
-  const variantChip = product.variant_name ?? product.variant_label;
+  const variantChip = product.variant_name ?? product.variant_label ?? "";
 
   return (
     <div style={{ minWidth: 0 }}>
@@ -148,27 +150,12 @@ function IdentityCell({
           <InlineText
             value={product.name}
             onSave={async (next) => {
-              const { error } = await supabase
-                .from("products")
-                .update({ name: next.trim() })
-                .eq("id", product.id);
-              if (error) throw new Error(error.message);
+              await updateProduct(product.id, { name: next.trim() });
               onChanged?.();
             }}
             validate={(v) => (v.trim().length === 0 ? "Name required" : null)}
-            style={{
-              fontSize: 16,
-              fontWeight: 500,
-              color: "#0E2849",
-              lineHeight: 1.2,
-            }}
-            inputStyle={{
-              fontSize: 16,
-              fontWeight: 500,
-              color: "#0E2849",
-              lineHeight: 1.2,
-              minWidth: 120,
-            }}
+            style={{ fontSize: 16, fontWeight: 500, color: "#0E2849", lineHeight: 1.2 }}
+            inputStyle={{ fontSize: 16, fontWeight: 500, color: "#0E2849", lineHeight: 1.2, minWidth: 120 }}
           />
         </div>
         <span
@@ -183,12 +170,13 @@ function IdentityCell({
         </span>
       </div>
 
-      {/* Row 2: variant chip (omitted if no variant) */}
-      {showVariantChip && variantChip && (
-        <div style={{ marginTop: 4, marginBottom: 5 }}>
+      {/* Row 2: variant + parent edit */}
+      <div style={{ marginTop: 4, marginBottom: 5, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {showVariantChip && (
           <span
             style={{
-              display: "inline-block",
+              display: "inline-flex",
+              alignItems: "center",
               background: "#F3F4F6",
               color: "#4B5563",
               fontSize: 11,
@@ -199,12 +187,34 @@ function IdentityCell({
               textTransform: "uppercase",
             }}
           >
-            {variantChip}
+            <InlineText
+              value={variantChip}
+              placeholder="variant"
+              onSave={async (next) => {
+                const v = next.trim();
+                await updateProduct(product.id, { variant_name: v.length ? v : null });
+                onChanged?.();
+              }}
+              style={{ color: "#4B5563", fontSize: 11, fontWeight: 500, letterSpacing: "0.05em" }}
+              inputStyle={{ fontSize: 11, fontWeight: 500, minWidth: 60, textTransform: "uppercase" }}
+            />
           </span>
-        </div>
-      )}
-      {!(showVariantChip && variantChip) && <div style={{ height: 5 }} />}
-
+        )}
+        <span style={{ fontSize: 11, color: "#9CA3AF", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          parent:
+          <InlineText
+            value={product.parent_name ?? ""}
+            placeholder="+ link"
+            onSave={async (next) => {
+              const v = next.trim();
+              await updateProduct(product.id, { parent_name: v.length ? v : null });
+              onChanged?.();
+            }}
+            style={{ color: "#6B7280", fontSize: 11 }}
+            inputStyle={{ fontSize: 11, minWidth: 100 }}
+          />
+        </span>
+      </div>
 
       {/* Code pill + item suffix */}
       <div
@@ -222,9 +232,7 @@ function IdentityCell({
             <TooltipTrigger asChild>
               <span style={codePillStyle("warn")}>?</span>
             </TooltipTrigger>
-            <TooltipContent>
-              Supplier code not set — edit supplier to fix
-            </TooltipContent>
+            <TooltipContent>Supplier code not set — edit supplier to fix</TooltipContent>
           </Tooltip>
         )}
         <span
@@ -232,9 +240,28 @@ function IdentityCell({
             fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
             color: "#0E2849",
             fontSize: 12,
+            display: "inline-flex",
+            alignItems: "center",
           }}
         >
-          {itemSuffix ? `-${itemSuffix}` : code ? "" : " unset"}
+          {code ? "-" : ""}
+          <InlineText
+            value={itemSuffix}
+            placeholder="suffix"
+            onSave={async (next) => {
+              const v = next.trim().toUpperCase();
+              const assembled = code ? (v.length ? `${code}-${v}` : code) : v.length ? v : null;
+              await updateProduct(product.id, { supplier_item_number: assembled });
+              onChanged?.();
+            }}
+            validate={(v) => {
+              const t = v.trim();
+              if (t.length === 0) return null;
+              return /^[A-Za-z0-9-]+$/.test(t) ? null : "Use letters, numbers, hyphens";
+            }}
+            style={{ fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", color: "#0E2849" }}
+            inputStyle={{ fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", minWidth: 60 }}
+          />
         </span>
       </div>
 
@@ -303,7 +330,24 @@ function DetailRowItem({ row, onChanged }: { row: ProductDetailRow; onChanged?: 
       style={{ display: "contents" }}
     >
       <span style={{ color: "#6B7280" }}>{row.detail_label?.label ?? "—"}</span>
-      <span style={{ color: "#0E2849" }}>{row.value}</span>
+      <span style={{ color: "#0E2849" }}>
+        <InlineText
+          value={row.value}
+          onSave={async (next) => {
+            const v = next.trim();
+            if (!v) throw new Error("Value required");
+            const { error } = await supabase
+              .from("product_details")
+              .update({ value: v })
+              .eq("id", row.id);
+            if (error) throw new Error(error.message);
+            onChanged?.();
+          }}
+          validate={(v) => (v.trim().length === 0 ? "Required" : null)}
+          style={{ color: "#0E2849", fontSize: 12 }}
+          inputStyle={{ fontSize: 12, minWidth: 80 }}
+        />
+      </span>
       <button
         type="button"
         onClick={remove}
@@ -330,22 +374,7 @@ function DetailRowItem({ row, onChanged }: { row: ProductDetailRow; onChanged?: 
 }
 
 function codePillStyle(variant: "default" | "warn" = "default"): React.CSSProperties {
-  if (variant === "warn") {
-    return {
-      background: "#FEF3E2",
-      color: "#C2410C",
-      padding: "2px 7px",
-      borderRadius: 4,
-      fontWeight: 500,
-      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-      letterSpacing: "0.04em",
-      fontSize: 12,
-      cursor: "help",
-    };
-  }
-  return {
-    background: "#E5EAF1",
-    color: "#0E2849",
+  const base: React.CSSProperties = {
     padding: "2px 7px",
     borderRadius: 4,
     fontWeight: 500,
@@ -353,6 +382,10 @@ function codePillStyle(variant: "default" | "warn" = "default"): React.CSSProper
     letterSpacing: "0.04em",
     fontSize: 12,
   };
+  if (variant === "warn") {
+    return { ...base, background: "#FEF3E2", color: "#C2410C", cursor: "help" };
+  }
+  return { ...base, background: "#E5EAF1", color: "#0E2849" };
 }
 
 /** If the stored item number begins with "{code}-", return the rest. */
@@ -369,19 +402,17 @@ function SpecsCell({
   product,
   weightUnit,
   volumeUnit,
+  onChanged,
 }: {
   product: Product;
   weightUnit: string;
   volumeUnit: string;
+  onChanged?: () => void;
 }) {
-  const dims =
-    product.carton_length != null &&
-    product.carton_width != null &&
-    product.carton_height != null
-      ? `${trimNum(product.carton_length)}\u00d7${trimNum(product.carton_width)}\u00d7${trimNum(
-          product.carton_height,
-        )}`
-      : null;
+  const save = async (patch: Record<string, unknown>) => {
+    await updateProduct(product.id, patch);
+    onChanged?.();
+  };
 
   return (
     <div
@@ -397,24 +428,85 @@ function SpecsCell({
         lineHeight: 1.2,
       }}
     >
-      <SpecLine value={product.carton_pack} unit="unit / ctn" />
-      <SpecLine value={dims} unit={volumeUnit} />
-      <SpecLine value={product.carton_weight} unit={weightUnit} />
-      <span>{formatLeadTime(product.production_days_min, product.production_days_max)}</span>
+      {/* Carton pack */}
+      <span>
+        <InlineNumber
+          value={product.carton_pack}
+          integer
+          min={1}
+          nullable
+          width={48}
+          onSave={(v) => save({ carton_pack: v })}
+        />
+        <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>unit / ctn</span>
+      </span>
+
+      {/* L × W × H */}
+      <span style={{ display: "inline-flex", alignItems: "baseline", gap: 2 }}>
+        <InlineNumber
+          value={product.carton_length}
+          integer
+          min={1}
+          nullable
+          width={40}
+          onSave={(v) => save({ carton_length: v })}
+        />
+        <span>×</span>
+        <InlineNumber
+          value={product.carton_width}
+          integer
+          min={1}
+          nullable
+          width={40}
+          onSave={(v) => save({ carton_width: v })}
+        />
+        <span>×</span>
+        <InlineNumber
+          value={product.carton_height}
+          integer
+          min={1}
+          nullable
+          width={40}
+          onSave={(v) => save({ carton_height: v })}
+        />
+        <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>{volumeUnit}</span>
+      </span>
+
+      {/* Weight */}
+      <span>
+        <InlineNumber
+          value={product.carton_weight}
+          min={0}
+          nullable
+          width={56}
+          onSave={(v) => save({ carton_weight: v })}
+        />
+        <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>{weightUnit}</span>
+      </span>
+
+      {/* Lead time min – max */}
+      <span style={{ display: "inline-flex", alignItems: "baseline", gap: 2 }}>
+        <InlineNumber
+          value={product.production_days_min}
+          integer
+          min={1}
+          width={40}
+          onSave={(v) => {
+            if (v == null) return Promise.resolve();
+            return save({ production_days_min: v });
+          }}
+        />
+        <span>–</span>
+        <InlineNumber
+          value={product.production_days_max}
+          integer
+          min={product.production_days_min ?? 1}
+          nullable
+          width={40}
+          onSave={(v) => save({ production_days_max: v })}
+        />
+        <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>days</span>
+      </span>
     </div>
   );
-}
-
-function SpecLine({ value, unit }: { value: number | string | null; unit: string }) {
-  if (value == null || value === "") return <span style={{ color: "#9CA3AF" }}>—</span>;
-  return (
-    <span>
-      {typeof value === "number" ? trimNum(value) : value}
-      <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>{unit}</span>
-    </span>
-  );
-}
-
-function trimNum(n: number): string {
-  return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
 }

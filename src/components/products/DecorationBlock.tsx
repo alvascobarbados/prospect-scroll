@@ -1,24 +1,31 @@
+import { useState } from "react";
+import { X, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "./helpers/formatPrice";
-import type { ProductDecoration } from "./helpers/buildProductsList";
+import type { ProductDecoration, ProductBand } from "./helpers/buildProductsList";
+import { InlineNumber } from "@/components/inline/InlineNumber";
+import { MethodDetailPicker, methodDetailLabel } from "./MethodDetailPicker";
 
 interface DecorationBlockProps {
   decoration: ProductDecoration | null; // null → empty placeholder slot
+  productId: string;
+  /** Next sort order when creating a new decoration in an empty slot. */
+  nextSortOrder?: number;
+  onChanged?: () => void;
 }
 
-function methodLabel(deco: ProductDecoration): string {
-  const md = deco.method_detail;
-  if (!md) return "Decoration";
-  const methodName = (md.method?.name ?? "").trim();
-  const detail = (md.detail ?? "").trim();
-  if (!methodName && !detail) return "Decoration";
-  if (!methodName) return detail;
-  if (!detail) return methodName;
-  return methodName.toLowerCase() === detail.toLowerCase()
-    ? detail
-    : `${methodName} — ${detail}`;
-}
+const DEFAULT_TIERS = [100, 250, 500, 1000];
 
-export function DecorationBlock({ decoration }: DecorationBlockProps) {
+export function DecorationBlock({
+  decoration,
+  productId,
+  nextSortOrder = 0,
+  onChanged,
+}: DecorationBlockProps) {
+  const [hover, setHover] = useState(false);
+
+  // ── Empty slot: click to add ──────────────────────────────────────────
   if (!decoration) {
     return (
       <div
@@ -32,24 +39,120 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
           minWidth: 0,
         }}
       >
-        <span style={{ fontSize: 12, color: "#9CA3AF", fontStyle: "italic" }}>
-          + Add decoration
-        </span>
+        <MethodDetailPicker
+          trigger={
+            <button
+              type="button"
+              style={{
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                fontSize: 12,
+                color: "#9CA3AF",
+                fontStyle: "italic",
+                cursor: "pointer",
+              }}
+            >
+              + Add decoration
+            </button>
+          }
+          onPicked={async (md) => {
+            const { data: deco, error } = await supabase
+              .from("product_decorations")
+              .insert({
+                product_id: productId,
+                method_detail_id: md.id,
+                sort_order: nextSortOrder,
+              })
+              .select("id")
+              .single();
+            if (error || !deco) {
+              toast.error(`Failed to add decoration: ${error?.message ?? "unknown"}`);
+              return;
+            }
+            const tierRows = DEFAULT_TIERS.map((qty) => ({
+              product_decoration_id: deco.id,
+              qty,
+              unit_cost: 0,
+              setup_cost: 0,
+            }));
+            const { error: bErr } = await supabase
+              .from("product_decoration_bands")
+              .insert(tierRows);
+            if (bErr) toast.error(`Failed to seed tiers: ${bErr.message}`);
+            onChanged?.();
+          }}
+        />
       </div>
     );
   }
 
   const bands = [...decoration.product_decoration_bands].sort((a, b) => a.qty - b.qty);
+  const nextBandQty = (bands.at(-1)?.qty ?? 0) + 1;
+
+  const removeDecoration = async () => {
+    if (!window.confirm("Remove this decoration and all its pricing tiers?")) return;
+    const { error } = await supabase
+      .from("product_decorations")
+      .delete()
+      .eq("id", decoration.id);
+    if (error) {
+      toast.error(`Failed to remove: ${error.message}`);
+      return;
+    }
+    onChanged?.();
+  };
+
+  const addTier = async () => {
+    const { error } = await supabase.from("product_decoration_bands").insert({
+      product_decoration_id: decoration.id,
+      qty: nextBandQty,
+      unit_cost: 0,
+      setup_cost: 0,
+    });
+    if (error) {
+      toast.error(`Failed to add tier: ${error.message}`);
+      return;
+    }
+    onChanged?.();
+  };
 
   return (
     <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         paddingLeft: 10,
         paddingTop: 2,
         borderLeft: "0.5px solid #F1F2F4",
         minWidth: 0,
+        position: "relative",
       }}
     >
+      {hover && (
+        <button
+          type="button"
+          onClick={removeDecoration}
+          aria-label="Remove decoration"
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            background: "transparent",
+            border: "none",
+            padding: 2,
+            color: "#9CA3AF",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <X size={13} />
+        </button>
+      )}
+
+      {/* Method name (picker) */}
       <div
         style={{
           fontSize: 14,
@@ -62,8 +165,38 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
           alignItems: "flex-end",
         }}
       >
-        {methodLabel(decoration)}
+        <MethodDetailPicker
+          trigger={
+            <button
+              type="button"
+              className="cursor-pointer rounded px-0.5 hover:bg-[#F3F4F6] transition-colors text-left"
+              style={{
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                fontSize: 14,
+                fontWeight: 500,
+                color: "#0E2849",
+                lineHeight: 1.3,
+              }}
+            >
+              {methodDetailLabel(decoration.method_detail)}
+            </button>
+          }
+          onPicked={async (md) => {
+            const { error } = await supabase
+              .from("product_decorations")
+              .update({ method_detail_id: md.id })
+              .eq("id", decoration.id);
+            if (error) {
+              toast.error(`Failed: ${error.message}`);
+              return;
+            }
+            onChanged?.();
+          }}
+        />
       </div>
+
       <table
         style={{
           width: "100%",
@@ -77,19 +210,121 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
             <th style={headerCellStyle("left")}>Qty</th>
             <th style={headerCellStyle("right")}>Unit $</th>
             <th style={headerCellStyle("right")}>Setup $</th>
+            <th style={{ ...headerCellStyle("right"), width: 18 }} aria-hidden />
           </tr>
         </thead>
         <tbody>
           {bands.map((b) => (
-            <tr key={b.id}>
-              <td style={{ ...bodyCellStyle("left"), fontWeight: 500 }}>{b.qty}</td>
-              <td style={bodyCellStyle("right")}>{formatPrice(b.unit_cost)}</td>
-              <td style={bodyCellStyle("right")}>{formatPrice(b.setup_cost)}</td>
-            </tr>
+            <BandRow key={b.id} band={b} onChanged={onChanged} />
           ))}
         </tbody>
       </table>
+
+      <button
+        type="button"
+        onClick={addTier}
+        style={{
+          marginTop: 6,
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          color: "#E97817",
+          fontSize: 12,
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        <Plus size={12} /> Add tier
+      </button>
     </div>
+  );
+}
+
+function BandRow({ band, onChanged }: { band: ProductBand; onChanged?: () => void }) {
+  const [hover, setHover] = useState(false);
+
+  const qty = typeof band.qty === "string" ? Number(band.qty) : band.qty;
+  const unit = typeof band.unit_cost === "string" ? Number(band.unit_cost) : band.unit_cost;
+  const setup = typeof band.setup_cost === "string" ? Number(band.setup_cost) : band.setup_cost;
+
+  const save = async (patch: Partial<{ qty: number; unit_cost: number; setup_cost: number }>) => {
+    const { error } = await supabase
+      .from("product_decoration_bands")
+      .update(patch)
+      .eq("id", band.id);
+    if (error) throw new Error(error.message);
+    onChanged?.();
+  };
+
+  const remove = async () => {
+    if (!window.confirm("Remove this pricing tier?")) return;
+    const { error } = await supabase
+      .from("product_decoration_bands")
+      .delete()
+      .eq("id", band.id);
+    if (error) {
+      toast.error(`Failed: ${error.message}`);
+      return;
+    }
+    onChanged?.();
+  };
+
+  return (
+    <tr onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <td style={{ ...bodyCellStyle("left"), fontWeight: 500 }}>
+        <InlineNumber
+          value={qty}
+          integer
+          min={1}
+          width={56}
+          onSave={async (v) => {
+            if (v == null) return;
+            await save({ qty: v });
+          }}
+        />
+      </td>
+      <td style={bodyCellStyle("right")}>
+        <InlineNumber
+          value={unit}
+          min={0}
+          width={64}
+          format={(v) => (v == null || v === 0 ? "—" : formatPrice(v))}
+          onSave={async (v) => save({ unit_cost: v ?? 0 })}
+        />
+      </td>
+      <td style={bodyCellStyle("right")}>
+        <InlineNumber
+          value={setup}
+          min={0}
+          width={64}
+          format={(v) => (v == null || v === 0 ? "—" : formatPrice(v))}
+          onSave={async (v) => save({ setup_cost: v ?? 0 })}
+        />
+      </td>
+      <td style={{ ...bodyCellStyle("right"), width: 18, padding: "6px 0" }}>
+        <button
+          type="button"
+          onClick={remove}
+          aria-label="Remove tier"
+          style={{
+            opacity: hover ? 1 : 0,
+            transition: "opacity 120ms",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            color: "#9CA3AF",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <X size={11} />
+        </button>
+      </td>
+    </tr>
   );
 }
 
