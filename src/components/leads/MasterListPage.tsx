@@ -97,7 +97,7 @@ export const MasterListPage = ({ kind }: Props) => {
           return {
             id: s.id, raw: s,
             usage: md.supplierUsage(s.id, s.legacy_id),
-            cells: [s.name, codeCell, originCell, s.weight_unit ?? "kg", s.volume_unit ?? "cbm", s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
+            cells: [s.name, codeCell, originCell, (s.unit_system ?? "metric").toUpperCase(), s.default_shipping_mode ?? "—", md.supplierUsage(s.id, s.legacy_id)],
           };
         });
       return { columns: cols, rows: r };
