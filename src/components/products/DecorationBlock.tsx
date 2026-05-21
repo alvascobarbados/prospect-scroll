@@ -95,12 +95,12 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
 
 function headerCellStyle(align: "left" | "right"): React.CSSProperties {
   return {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 500,
     color: "#6B7280",
     letterSpacing: "0.05em",
     textTransform: "uppercase",
-    padding: "2px 4px 5px",
+    padding: "4px 8px 6px",
     textAlign: align,
     borderBottom: "0.5px solid #E5E7EB",
   };
@@ -108,7 +108,7 @@ function headerCellStyle(align: "left" | "right"): React.CSSProperties {
 
 function bodyCellStyle(align: "left" | "right"): React.CSSProperties {
   return {
-    padding: 4,
+    padding: "6px 8px",
     textAlign: align,
     color: "#0E2849",
   };
