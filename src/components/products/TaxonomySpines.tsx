@@ -1,14 +1,13 @@
 /**
  * Three stacked vertical spines on the left of a product card:
- *   SUPPLIER (darkest navy)  |  CATEGORY (mid navy)  |  SUBCATEGORY (light navy)
+ *   SUPPLIER (darkest navy) | CATEGORY (mid navy) | SUBCATEGORY (light navy)
  *
- * Each spine is 26px wide → total block 78px. When `clickable` is true (Card
- * 101 only), each spine opens its respective picker. For Card 102 groups,
- * spines are static — the user must split a variant out to change taxonomy.
+ * Total block width = 78px (three 26px spines). When `clickable` is true
+ * (Card 101 only), each spine opens its picker. For Card 102 groups, spines
+ * are static — split a variant out to change its taxonomy.
  */
-import { useState } from "react";
-import { SupplierPickerPopover } from "./SupplierPickerPopover";
-import { CategoryPickerPopover } from "./CategoryPickerPopover";
+import { SupplierPickerSpine, spineButton, SpineText } from "./SupplierPickerSpine";
+import { CategoryPickerSpine } from "./CategoryPickerSpine";
 
 interface TaxonomySpinesProps {
   productId: string;
@@ -27,8 +26,6 @@ export function TaxonomySpines({
   clickable,
   onChanged,
 }: TaxonomySpinesProps) {
-  const [open, setOpen] = useState<"sup" | "cat" | "sub" | null>(null);
-
   return (
     <div
       style={{
@@ -41,111 +38,43 @@ export function TaxonomySpines({
         zIndex: 1,
       }}
     >
-      <Spine
-        bg="#0E2849"
-        text={supplierName ?? "—"}
-        clickable={clickable}
-        onClick={() => setOpen("sup")}
-        ariaLabel="Change supplier"
-      />
-      <Spine
-        bg="#2C3E5C"
-        text={categoryName ?? "—"}
-        clickable={clickable}
-        onClick={() => setOpen("cat")}
-        ariaLabel="Change category"
-      />
-      <Spine
-        bg="#4A5874"
-        text={subcategoryName ?? "—"}
-        clickable={clickable}
-        onClick={() => setOpen("sub")}
-        ariaLabel="Change subcategory"
-      />
-
-      {clickable && (
+      {clickable ? (
         <>
-          <SupplierPickerPopover
-            open={open === "sup"}
-            onOpenChange={(o) => setOpen(o ? "sup" : null)}
+          <SupplierPickerSpine
             productId={productId}
+            supplierName={supplierName}
             onChanged={onChanged}
           />
-          <CategoryPickerPopover
-            open={open === "cat" || open === "sub"}
-            onOpenChange={(o) => setOpen(o ? "cat" : null)}
+          <CategoryPickerSpine
             productId={productId}
+            label={categoryName}
+            bg="#2C3E5C"
+            ariaLabel="Change category"
             onChanged={onChanged}
           />
+          <CategoryPickerSpine
+            productId={productId}
+            label={subcategoryName}
+            bg="#4A5874"
+            ariaLabel="Change subcategory"
+            onChanged={onChanged}
+          />
+        </>
+      ) : (
+        <>
+          <StaticSpine bg="#0E2849" text={supplierName ?? "—"} />
+          <StaticSpine bg="#2C3E5C" text={categoryName ?? "—"} />
+          <StaticSpine bg="#4A5874" text={subcategoryName ?? "—"} />
         </>
       )}
     </div>
   );
 }
 
-function Spine({
-  bg,
-  text,
-  clickable,
-  onClick,
-  ariaLabel,
-}: {
-  bg: string;
-  text: string;
-  clickable: boolean;
-  onClick: () => void;
-  ariaLabel: string;
-}) {
-  const content = (
-    <span
-      style={{
-        writingMode: "vertical-rl",
-        transform: "rotate(180deg)",
-        fontSize: 11,
-        color: "#FFFFFF",
-        letterSpacing: "0.14em",
-        textTransform: "uppercase",
-        fontWeight: 600,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {text}
-    </span>
-  );
-
-  if (!clickable) {
-    return (
-      <div
-        aria-hidden
-        style={{
-          width: 26,
-          background: bg,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {content}
-      </div>
-    );
-  }
+function StaticSpine({ bg, text }: { bg: string; text: string }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      style={{
-        width: 26,
-        background: bg,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        border: "none",
-        padding: 0,
-        cursor: "pointer",
-      }}
-    >
-      {content}
-    </button>
+    <div aria-hidden style={{ ...spineButton(bg), cursor: "default" }}>
+      <SpineText>{text}</SpineText>
+    </div>
   );
 }
