@@ -43,7 +43,7 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
         gap: 10,
         padding: "10px 12px 10px 38px",
         position: "relative",
-        minWidth: 1080,
+        minWidth: 1240,
       }}
     >
       {/* Image */}
@@ -54,8 +54,8 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 140,
-          minHeight: 140,
+          width: 160,
+          minHeight: 160,
           aspectRatio: "1 / 1",
           alignSelf: "start",
           overflow: "hidden",
