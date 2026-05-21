@@ -664,28 +664,34 @@ export const InlineAdd = ({ open, kind, initialName = "", onClose, onCreated }: 
               />
             </div>
             <div>
-              <label className={labelCls}>Weight unit</label>
-              <select
-                value={weightUnit}
-                onChange={(e) => { setWeightUnit(e.target.value as "kg" | "lbs"); setUnitsTouched(true); }}
-                className={inputCls}
-                style={{ minHeight: 48 }}
-              >
-                <option value="kg">kg</option>
-                <option value="lbs">lbs</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Volume unit</label>
-              <select
-                value={volumeUnit}
-                onChange={(e) => { setVolumeUnit(e.target.value as "cbm" | "cuft"); setUnitsTouched(true); }}
-                className={inputCls}
-                style={{ minHeight: 48 }}
-              >
-                <option value="cbm">cbm</option>
-                <option value="cuft">cuft</option>
-              </select>
+              <label className={labelCls}>Unit system</label>
+              <div className="flex gap-2">
+                {(["metric", "imperial"] as const).map((opt) => {
+                  const active = unitSystem === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => { setUnitSystem(opt); setUnitsTouched(true); }}
+                      className={inputCls}
+                      style={{
+                        flex: 1,
+                        minHeight: 48,
+                        textAlign: "center",
+                        textTransform: "uppercase",
+                        fontSize: 12,
+                        letterSpacing: "0.06em",
+                        fontWeight: active ? 600 : 400,
+                        background: active ? "#E5EAF1" : undefined,
+                        color: active ? "#0E2849" : undefined,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {opt === "metric" ? "Metric (kg, cm)" : "Imperial (lbs, in)"}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div>
               <label className={labelCls}>Default shipping</label>
