@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { buildSupplierProductDataList, type Product } from "./helpers/buildSupplierProductDataList";
 import { SupplierProductDataList } from "./SupplierProductDataList";
+import { AddProductDialog } from "./AddProductDialog";
 
 export function SupplierProductDataPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [addOpen, setAddOpen] = useState(false);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -83,7 +85,28 @@ export function SupplierProductDataPage() {
           <h1 className="font-display" style={{ fontSize: 32, color: "hsl(var(--brand-navy))", margin: 0 }}>
             Supplier Product Data
           </h1>
+          <button
+            onClick={() => setAddOpen(true)}
+            style={{
+              marginLeft: "auto",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: "hsl(var(--brand-orange))",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <Plus size={15} /> Add product
+          </button>
         </div>
+
+        <AddProductDialog open={addOpen} onClose={() => setAddOpen(false)} onCreated={reload} />
 
         {error && (
           <div style={{ color: "hsl(var(--destructive))", marginBottom: 16, fontSize: 13 }}>

@@ -13,6 +13,7 @@ import { InlineNumberGroup } from "@/components/inline/InlineNumberGroup";
 import { ImageUploadCell } from "./ImageUploadCell";
 import { supabase } from "@/integrations/supabase/client";
 import { formatLeadTime } from "./helpers/formatLeadTime";
+import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 
 interface SupplierProductRowProps {
   product: Product;
@@ -32,6 +33,9 @@ async function updateProduct(id: string, patch: Record<string, unknown>) {
 
 export function SupplierProductRow({ product, showVariantChip = false, onChanged }: SupplierProductRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const allDecos = [...product.product_decorations].sort((a, b) => a.sort_order - b.sort_order);
   const primary: (Product["product_decorations"][number] | null)[] = [
     allDecos[0] ?? null,
@@ -45,8 +49,26 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
   const wUnit = weightUnitFor(system);
   const lUnit = linearUnitFor(system);
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from("products").delete().eq("id", product.id) as any);
+      if (error) throw new Error(error.message);
+      toast.success(`Deleted ${product.name}`);
+      setConfirmDelete(false);
+      onChanged?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete product");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         display: "grid",
         gridTemplateColumns: GRID_COLS,
@@ -56,6 +78,41 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
         minWidth: 1240,
       }}
     >
+      <button
+        type="button"
+        onClick={() => setConfirmDelete(true)}
+        aria-label={`Delete ${product.name}`}
+        title="Delete product"
+        style={{
+          position: "absolute",
+          top: 6,
+          right: 6,
+          width: 22,
+          height: 22,
+          borderRadius: 6,
+          border: "none",
+          background: "rgba(239, 68, 68, 0.1)",
+          color: "#ef4444",
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: hovered ? 1 : 0,
+          transition: "opacity 120ms",
+          zIndex: 2,
+        }}
+      >
+        <X size={13} />
+      </button>
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete product?"
+        description={`Delete ${product.name}? This removes all its decorations, pricing, and details. This action cannot be undone.`}
+        confirmLabel={deleting ? "Deleting…" : "Delete"}
+        destructive
+        onConfirm={handleDelete}
+        onCancel={() => !deleting && setConfirmDelete(false)}
+      />
       {/* Image */}
       <ImageUploadCell
         productId={product.id}
