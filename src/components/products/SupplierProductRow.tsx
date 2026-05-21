@@ -24,8 +24,9 @@ export function SupplierProductRow({ product, showVariantChip = false }: Supplie
     decos[2] ?? null,
   ];
 
-  const weightUnit = product.supplier?.weight_unit ?? "kg";
-  const volumeUnit = product.supplier?.volume_unit ?? "cm";
+  const system = product.supplier?.unit_system ?? "metric";
+  const wUnit = weightUnitFor(system);
+  const lUnit = linearUnitFor(system);
 
   return (
     <div
