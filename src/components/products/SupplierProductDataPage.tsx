@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { buildSupplierProductDataList, type Product } from "./helpers/buildSupplierProductDataList";
 import { SupplierProductDataList } from "./SupplierProductDataList";
+import { AddProductDialog } from "./AddProductDialog";
 
 export function SupplierProductDataPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [addOpen, setAddOpen] = useState(false);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
