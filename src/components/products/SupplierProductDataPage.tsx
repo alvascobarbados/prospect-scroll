@@ -81,13 +81,13 @@ export function SupplierProductDataPage() {
             <ArrowLeft size={16} />
           </button>
           <h1 className="font-display" style={{ fontSize: 32, color: "hsl(var(--brand-navy))", margin: 0 }}>
-            Products
+            Supplier Product Data
           </h1>
         </div>
 
         {error && (
           <div style={{ color: "hsl(var(--destructive))", marginBottom: 16, fontSize: 13 }}>
-            Failed to load products: {error}
+            Failed to load supplier product data: {error}
           </div>
         )}
 
