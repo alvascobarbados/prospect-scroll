@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { buildProductsList, type Product } from "./helpers/buildProductsList";
+import { buildSupplierProductDataList, type Product } from "./helpers/buildSupplierProductDataList";
 import { ProductsList } from "./ProductsList";
 
 export function ProductsPage() {
@@ -56,7 +56,7 @@ export function ProductsPage() {
     };
   }, [reloadKey]);
 
-  const items = products ? buildProductsList(products) : [];
+  const items = products ? buildSupplierProductDataList(products) : [];
 
   return (
     <DesktopAppShell>

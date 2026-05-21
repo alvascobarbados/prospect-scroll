@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { Product, ProductDetailRow } from "./helpers/buildProductsList";
+import type { Product, ProductDetailRow } from "./helpers/buildSupplierProductDataList";
 import { formatUpdated } from "./helpers/formatUpdated";
 import { weightUnit as weightUnitFor, linearUnit as linearUnitFor } from "@/lib/units";
 import { DecorationBlock } from "./DecorationBlock";

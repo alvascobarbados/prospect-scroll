@@ -3,7 +3,7 @@ import { X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "./helpers/formatPrice";
-import type { ProductDecoration, ProductBand } from "./helpers/buildProductsList";
+import type { ProductDecoration, ProductBand } from "./helpers/buildSupplierProductDataList";
 import { InlineNumber } from "@/components/inline/InlineNumber";
 import { MethodDetailPicker, methodDetailLabel } from "./MethodDetailPicker";
 

@@ -91,7 +91,7 @@ function byProductName(a: Product, b: Product): number {
   return a.name.localeCompare(b.name);
 }
 
-export function buildProductsList(products: Product[]): ListItem[] {
+export function buildSupplierProductDataList(products: Product[]): ListItem[] {
   const groups = new Map<string, Product[]>();
   const standalone: Product[] = [];
 
