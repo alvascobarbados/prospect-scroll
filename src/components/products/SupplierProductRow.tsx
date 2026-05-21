@@ -408,7 +408,7 @@ function SpecLine({ value, unit }: { value: number | string | null; unit: string
   return (
     <span>
       {typeof value === "number" ? trimNum(value) : value}
-      <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 11 }}>{unit}</span>
+      <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>{unit}</span>
     </span>
   );
 }
