@@ -19,8 +19,7 @@ import { EditableText, EditableSelect } from "@/components/leads/CustomerListPag
 import { sanitizeSupplierCodeInput, isSupplierCodeChar, validateSupplierCode } from "@/lib/supplierCode";
 import type { ShippingMode } from "@/data/pipelines";
 
-const WEIGHT_OPTIONS = ["kg", "lbs"] as const;
-const VOLUME_OPTIONS = ["cbm", "cuft"] as const;
+const UNIT_SYSTEM_OPTIONS = ["metric", "imperial"] as const;
 const SHIPPING_OPTIONS = ["", "Air", "Ocean", "Local"] as const;
 
 export const SupplierListPage = () => {
