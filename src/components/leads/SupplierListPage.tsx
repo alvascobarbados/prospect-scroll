@@ -242,17 +242,9 @@ const SupplierRow = ({ supplier, onDelete }: { supplier: SupplierRecord; onDelet
         />
       </Td>
       <Td>
-        <EditableSelect
-          value={supplier.weight_unit ?? "kg"}
-          options={WEIGHT_OPTIONS}
-          onSave={updateWeight}
-        />
-      </Td>
-      <Td>
-        <EditableSelect
-          value={supplier.volume_unit ?? "cbm"}
-          options={VOLUME_OPTIONS}
-          onSave={updateVolume}
+        <UnitSystemCell
+          value={(supplier.unit_system ?? "metric") as "metric" | "imperial"}
+          onSave={updateUnitSystem}
         />
       </Td>
       <Td>
