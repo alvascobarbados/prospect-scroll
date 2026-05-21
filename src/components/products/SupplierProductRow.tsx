@@ -255,8 +255,8 @@ function DetailsGrid({ product, onChanged }: { product: Product; onChanged?: () 
           style={{
             display: "grid",
             gridTemplateColumns: "auto 1fr auto",
-            gap: "2px 10px",
-            fontSize: 11,
+            gap: "4px 16px",
+            fontSize: 12,
             lineHeight: 1.4,
           }}
         >
