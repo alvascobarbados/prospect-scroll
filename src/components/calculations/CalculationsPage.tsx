@@ -6,12 +6,24 @@ import { useCalculationRows, type CalcProduct } from "@/hooks/useCalculationRows
 
 const EM = "\u2014";
 
+type UnitSystem = "metric" | "imperial" | null;
+
 interface Row {
   key: string;
   supplierCode: string;
   productName: string;
   variantName: string | null;
   itemNumber: string | null;
+  // packaging
+  unitSystem: UnitSystem;
+  cartonPack: number | null;
+  volume: number | null;
+  volumeUnit: string;
+  weight: number | null;
+  weightUnit: string;
+  volumetricWeight: number | null;
+  chargeableWeight: number | null;
+  // cost
   decorationLabel: string;
   qty: number;
   unitCost: number;
@@ -35,9 +47,33 @@ function toNum(v: number | string | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function computePackaging(p: CalcProduct) {
+  const system: UnitSystem = (p.supplier?.unit_system ?? null) as UnitSystem;
+  const isImperial = system === "imperial";
+  const volumeUnit = isImperial ? "CFT" : "CBM";
+  const weightUnit = isImperial ? "lbs" : "kg";
+
+  const L = p.carton_length;
+  const W = p.carton_width;
+  const H = p.carton_height;
+  const wt = p.carton_weight;
+
+  const dimsOk = L != null && W != null && H != null && Number.isFinite(L) && Number.isFinite(W) && Number.isFinite(H);
+  const wtOk = wt != null && Number.isFinite(wt);
+
+  const volume = dimsOk ? (Number(L) * Number(W) * Number(H)) / (isImperial ? 1728 : 1_000_000) : null;
+  const volumetric = volume != null ? volume * (isImperial ? 10.4 : 200) : null;
+  const weightVal = wtOk ? Number(wt) : null;
+  const chargeable =
+    weightVal != null && volumetric != null ? Math.max(weightVal, volumetric) : null;
+
+  return { system, volume, volumeUnit, weight: weightVal, weightUnit, volumetric, chargeable };
+}
+
 function buildRows(products: CalcProduct[]): Row[] {
   const rows: Row[] = [];
   for (const p of products) {
+    const pack = computePackaging(p);
     const decos = (p.product_decorations ?? []).slice().sort((a, b) => a.sort_order - b.sort_order);
     for (const d of decos) {
       const bands = (d.product_decoration_bands ?? []).slice().sort((a, b) => a.qty - b.qty);
@@ -53,6 +89,14 @@ function buildRows(products: CalcProduct[]): Row[] {
           productName: p.name,
           variantName: p.variant_name,
           itemNumber: p.supplier_item_number,
+          unitSystem: pack.system,
+          cartonPack: p.carton_pack,
+          volume: pack.volume,
+          volumeUnit: pack.volumeUnit,
+          weight: pack.weight,
+          weightUnit: pack.weightUnit,
+          volumetricWeight: pack.volumetric,
+          chargeableWeight: pack.chargeable,
           decorationLabel: label,
           qty,
           unitCost: unit,
@@ -77,8 +121,18 @@ function fmtMoney(v: number): string {
   return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function fmtNum(v: number | null, decimals: number): string {
+  if (v == null || !Number.isFinite(v)) return EM;
+  return v.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function fmtInt(v: number | null): string {
+  if (v == null || !Number.isFinite(v)) return EM;
+  return v.toLocaleString();
+}
+
 const numCellStyle: React.CSSProperties = {
-  padding: "4px 10px",
+  padding: "3px 10px",
   fontSize: 12,
   textAlign: "right",
   fontVariantNumeric: "tabular-nums",
@@ -86,8 +140,17 @@ const numCellStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+const unitCellStyle: React.CSSProperties = {
+  padding: "3px 10px",
+  fontSize: 12,
+  textAlign: "left",
+  color: "#9CA3AF",
+  borderBottom: `0.5px solid ${ROW_BORDER}`,
+  whiteSpace: "nowrap",
+};
+
 const textCellStyle: React.CSSProperties = {
-  padding: "4px 10px",
+  padding: "3px 10px",
   fontSize: 12,
   textAlign: "left",
   borderBottom: `0.5px solid ${ROW_BORDER}`,
@@ -95,7 +158,7 @@ const textCellStyle: React.CSSProperties = {
 };
 
 const headerCellStyle: React.CSSProperties = {
-  padding: "8px 10px",
+  padding: "6px 10px",
   fontSize: 11,
   textTransform: "uppercase",
   letterSpacing: "0.05em",
@@ -109,7 +172,7 @@ const headerCellStyle: React.CSSProperties = {
 };
 
 const groupLabelStyle: React.CSSProperties = {
-  padding: "6px 10px",
+  padding: "4px 10px",
   fontSize: 10,
   textTransform: "uppercase",
   letterSpacing: "0.08em",
@@ -122,7 +185,7 @@ const groupLabelStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const blockDivider = `2px solid ${GROUP_BORDER}`;
+const blockDivider = `1.5px solid ${GROUP_BORDER}`;
 
 // Sticky left columns (identity, 4 cols).
 const STICKY_WIDTHS = [70, 220, 130, 120];
@@ -170,9 +233,7 @@ export function CalculationsPage() {
     [allRows, supplierFilter],
   );
 
-  // Group label row: spans columns. Identity = sticky across 4 cols (single th colSpan=4 sticky left:0 width=sum).
-  // For simplicity, use two rows of headers: top row = group labels, bottom row = column headers. Both sticky.
-  const GROUP_LABEL_HEIGHT = 26;
+  const GROUP_LABEL_HEIGHT = 22;
   const COL_HEADER_TOP = GROUP_LABEL_HEIGHT;
 
   return (
@@ -202,7 +263,7 @@ export function CalculationsPage() {
           </h1>
         </div>
         <div style={{ fontStyle: "italic", color: "#6B7280", fontSize: 12, marginBottom: 20, marginLeft: 44 }}>
-          Block 1 of N — Identity + Product Cost. No landed cost yet.
+          Block 3 of N — Identity, Packaging Details, Product Cost. Landed cost calculations not yet added.
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -246,7 +307,6 @@ export function CalculationsPage() {
         >
           <table style={{ borderCollapse: "separate", borderSpacing: 0, width: "max-content", minWidth: "100%" }}>
             <thead>
-              {/* Group label row */}
               <tr style={{ height: GROUP_LABEL_HEIGHT }}>
                 <th
                   colSpan={4}
@@ -263,6 +323,17 @@ export function CalculationsPage() {
                   Identity
                 </th>
                 <th
+                  colSpan={8}
+                  style={{
+                    ...groupLabelStyle,
+                    top: 0,
+                    zIndex: 3,
+                    borderLeft: blockDivider,
+                  }}
+                >
+                  Packaging Details
+                </th>
+                <th
                   colSpan={5}
                   style={{
                     ...groupLabelStyle,
@@ -274,12 +345,21 @@ export function CalculationsPage() {
                   Product Cost
                 </th>
               </tr>
-              {/* Column header row */}
               <tr>
                 <th style={{ ...headerCellStyle, ...stickyCellStyle(0, true, HEADER_BG, COL_HEADER_TOP) }}>Supplier</th>
                 <th style={{ ...headerCellStyle, ...stickyCellStyle(1, true, HEADER_BG, COL_HEADER_TOP) }}>Item Name</th>
                 <th style={{ ...headerCellStyle, ...stickyCellStyle(2, true, HEADER_BG, COL_HEADER_TOP) }}>Variant</th>
                 <th style={{ ...headerCellStyle, ...stickyCellStyle(3, true, HEADER_BG, COL_HEADER_TOP) }}>Item #</th>
+                {/* Packaging */}
+                <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2, borderLeft: blockDivider, textAlign: "right" }}>Pcs/Ctn</th>
+                <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2, textAlign: "right" }}>Volume</th>
+                <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2 }}>Unit</th>
+                <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2, textAlign: "right" }}>Weight</th>
+                <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2 }}>Unit</th>
+                <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2, textAlign: "right" }}>Vol Wt</th>
+                <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2 }}>Unit</th>
+                <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2, textAlign: "right" }}>Chargeable</th>
+                {/* Cost */}
                 <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2, borderLeft: blockDivider }}>Decoration</th>
                 <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2, textAlign: "right" }}>Qty</th>
                 <th style={{ ...headerCellStyle, top: COL_HEADER_TOP, zIndex: 2, textAlign: "right" }}>Price</th>
@@ -295,7 +375,7 @@ export function CalculationsPage() {
                     key={r.key}
                     onMouseEnter={() => setHoverKey(r.key)}
                     onMouseLeave={() => setHoverKey(null)}
-                    style={{ height: 32 }}
+                    style={{ height: 28 }}
                   >
                     <td style={{ ...textCellStyle, ...stickyCellStyle(0, false, bg) }}>{r.supplierCode}</td>
                     <td
@@ -311,29 +391,39 @@ export function CalculationsPage() {
                       {r.variantName ?? EM}
                     </td>
                     <td style={{ ...textCellStyle, ...stickyCellStyle(3, false, bg) }}>{r.itemNumber ?? EM}</td>
+                    {/* Packaging */}
+                    <td style={{ ...numCellStyle, borderLeft: blockDivider }}>{fmtInt(r.cartonPack)}</td>
+                    <td style={numCellStyle}>{fmtNum(r.volume, 4)}</td>
+                    <td style={unitCellStyle}>{r.volume != null ? r.volumeUnit : EM}</td>
+                    <td style={numCellStyle}>{fmtNum(r.weight, 2)}</td>
+                    <td style={unitCellStyle}>{r.weight != null ? r.weightUnit : EM}</td>
+                    <td style={numCellStyle}>{fmtNum(r.volumetricWeight, 2)}</td>
+                    <td style={unitCellStyle}>{r.volumetricWeight != null ? r.weightUnit : EM}</td>
+                    <td style={numCellStyle}>{fmtNum(r.chargeableWeight, 2)}</td>
+                    {/* Cost */}
                     <td
                       style={{ ...textCellStyle, borderLeft: blockDivider, overflow: "hidden", textOverflow: "ellipsis", maxWidth: 280 }}
                       title={r.decorationLabel}
                     >
                       {r.decorationLabel}
                     </td>
-                    <td style={{ ...numCellStyle }}>{r.qty.toLocaleString()}</td>
-                    <td style={{ ...numCellStyle }}>{fmtMoney(r.unitCost)}</td>
-                    <td style={{ ...numCellStyle }}>{fmtMoney(r.setupCost)}</td>
+                    <td style={numCellStyle}>{r.qty.toLocaleString()}</td>
+                    <td style={numCellStyle}>{fmtMoney(r.unitCost)}</td>
+                    <td style={numCellStyle}>{fmtMoney(r.setupCost)}</td>
                     <td style={{ ...numCellStyle, fontWeight: 600 }}>{fmtMoney(r.total)}</td>
                   </tr>
                 );
               })}
               {rows.length === 0 && products !== null && (
                 <tr>
-                  <td colSpan={9} style={{ padding: 24, fontSize: 12, color: "#9CA3AF", textAlign: "center" }}>
+                  <td colSpan={17} style={{ padding: 24, fontSize: 12, color: "#9CA3AF", textAlign: "center" }}>
                     No rows.
                   </td>
                 </tr>
               )}
               {products === null && (
                 <tr>
-                  <td colSpan={9} style={{ padding: 24, fontSize: 12, color: "#9CA3AF", textAlign: "center" }}>
+                  <td colSpan={17} style={{ padding: 24, fontSize: 12, color: "#9CA3AF", textAlign: "center" }}>
                     Loading…
                   </td>
                 </tr>
