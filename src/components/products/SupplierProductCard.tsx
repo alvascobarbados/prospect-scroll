@@ -4,9 +4,10 @@ import { SupplierProductRow } from "./SupplierProductRow";
 
 interface SupplierProductCardProps {
   product: Product;
+  onChanged?: () => void;
 }
 
-export function SupplierProductCard({ product }: SupplierProductCardProps) {
+export function SupplierProductCard({ product, onChanged }: SupplierProductCardProps) {
   const supplierName = product.supplier?.name ?? "Unknown Supplier";
   return (
     <div
@@ -20,7 +21,7 @@ export function SupplierProductCard({ product }: SupplierProductCardProps) {
       }}
     >
       <SupplierSpine supplierName={supplierName} />
-      <SupplierProductRow product={product} />
+      <SupplierProductRow product={product} onChanged={onChanged} />
     </div>
   );
 }
