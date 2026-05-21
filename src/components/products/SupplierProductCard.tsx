@@ -1,5 +1,5 @@
 import type { Product } from "./helpers/buildProductsList";
-import { SupplierSpine } from "./SupplierSpine";
+import { TaxonomySpines } from "./TaxonomySpines";
 import { SupplierProductRow } from "./SupplierProductRow";
 
 interface SupplierProductCardProps {
@@ -8,7 +8,6 @@ interface SupplierProductCardProps {
 }
 
 export function SupplierProductCard({ product, onChanged }: SupplierProductCardProps) {
-  const supplierName = product.supplier?.name ?? "Unknown Supplier";
   return (
     <div
       style={{
@@ -17,10 +16,17 @@ export function SupplierProductCard({ product, onChanged }: SupplierProductCardP
         borderRadius: 12,
         position: "relative",
         overflow: "hidden",
-        minWidth: 1085,
+        minWidth: 1137,
       }}
     >
-      <SupplierSpine supplierName={supplierName} />
+      <TaxonomySpines
+        productId={product.id}
+        supplierName={product.supplier?.name ?? null}
+        categoryName={product.subcategory?.category?.name ?? null}
+        subcategoryName={product.subcategory?.name ?? null}
+        clickable
+        onChanged={onChanged}
+      />
       <SupplierProductRow product={product} onChanged={onChanged} />
     </div>
   );
