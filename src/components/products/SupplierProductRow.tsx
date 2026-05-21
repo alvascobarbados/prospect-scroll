@@ -18,7 +18,7 @@ interface SupplierProductRowProps {
   onChanged?: () => void;
 }
 
-const GRID_COLS = "140px 260px 100px 240px 240px";
+const GRID_COLS = "160px 320px 120px 280px 280px";
 const VISIBLE_DECO_SLOTS = 2;
 
 export function SupplierProductRow({ product, showVariantChip = false, onChanged }: SupplierProductRowProps) {
@@ -43,7 +43,7 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
         gap: 10,
         padding: "10px 12px 10px 38px",
         position: "relative",
-        minWidth: 1080,
+        minWidth: 1240,
       }}
     >
       {/* Image */}
@@ -54,8 +54,8 @@ export function SupplierProductRow({ product, showVariantChip = false, onChanged
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 140,
-          minHeight: 140,
+          width: 160,
+          minHeight: 160,
           aspectRatio: "1 / 1",
           alignSelf: "start",
           overflow: "hidden",
@@ -158,13 +158,13 @@ function IdentityCell({
             }}
             validate={(v) => (v.trim().length === 0 ? "Name required" : null)}
             style={{
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 500,
               color: "#0E2849",
               lineHeight: 1.2,
             }}
             inputStyle={{
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 500,
               color: "#0E2849",
               lineHeight: 1.2,
@@ -194,7 +194,7 @@ function IdentityCell({
         </div>
         <span
           style={{
-            fontSize: 11,
+            fontSize: 12,
             fontStyle: "italic",
             color: "#9CA3AF",
             whiteSpace: "nowrap",
@@ -209,7 +209,7 @@ function IdentityCell({
         style={{
           display: "inline-flex",
           alignItems: "center",
-          fontSize: 11,
+          fontSize: 12,
           lineHeight: 1.5,
         }}
       >
@@ -229,7 +229,7 @@ function IdentityCell({
           style={{
             fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
             color: "#0E2849",
-            fontSize: 11,
+            fontSize: 12,
           }}
         >
           {itemSuffix ? `-${itemSuffix}` : code ? "" : " unset"}
@@ -255,8 +255,8 @@ function DetailsGrid({ product, onChanged }: { product: Product; onChanged?: () 
           style={{
             display: "grid",
             gridTemplateColumns: "auto 1fr auto",
-            gap: "2px 10px",
-            fontSize: 11,
+            gap: "4px 16px",
+            fontSize: 12,
             lineHeight: 1.4,
           }}
         >
@@ -337,7 +337,7 @@ function codePillStyle(variant: "default" | "warn" = "default"): React.CSSProper
       fontWeight: 500,
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
       letterSpacing: "0.04em",
-      fontSize: 11,
+      fontSize: 12,
       cursor: "help",
     };
   }
@@ -349,7 +349,7 @@ function codePillStyle(variant: "default" | "warn" = "default"): React.CSSProper
     fontWeight: 500,
     fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
     letterSpacing: "0.04em",
-    fontSize: 11,
+    fontSize: 12,
   };
 }
 
@@ -390,7 +390,7 @@ function SpecsCell({
         display: "flex",
         flexDirection: "column",
         gap: 6,
-        fontSize: 12,
+        fontSize: 13,
         color: "#0E2849",
         lineHeight: 1.2,
       }}
@@ -408,7 +408,7 @@ function SpecLine({ value, unit }: { value: number | string | null; unit: string
   return (
     <span>
       {typeof value === "number" ? trimNum(value) : value}
-      <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 11 }}>{unit}</span>
+      <span style={{ color: "#6B7280", marginLeft: 2, fontSize: 12 }}>{unit}</span>
     </span>
   );
 }

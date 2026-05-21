@@ -130,7 +130,7 @@ export function AddAttributePopover({
             border: "none",
             padding: 0,
             color: "#9CA3AF",
-            fontSize: 11,
+            fontSize: 12,
             fontStyle: "italic",
             cursor: "pointer",
           }}

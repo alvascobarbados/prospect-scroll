@@ -32,7 +32,7 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
           minWidth: 0,
         }}
       >
-        <span style={{ fontSize: 11, color: "#9CA3AF", fontStyle: "italic" }}>
+        <span style={{ fontSize: 12, color: "#9CA3AF", fontStyle: "italic" }}>
           + Add decoration
         </span>
       </div>
@@ -52,7 +52,7 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
     >
       <div
         style={{
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: 500,
           color: "#0E2849",
           lineHeight: 1.3,
@@ -68,7 +68,7 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
         style={{
           width: "100%",
           borderCollapse: "collapse",
-          fontSize: 12,
+          fontSize: 13,
           fontVariantNumeric: "tabular-nums",
         }}
       >
@@ -95,12 +95,12 @@ export function DecorationBlock({ decoration }: DecorationBlockProps) {
 
 function headerCellStyle(align: "left" | "right"): React.CSSProperties {
   return {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 500,
     color: "#6B7280",
     letterSpacing: "0.05em",
     textTransform: "uppercase",
-    padding: "2px 4px 5px",
+    padding: "4px 8px 6px",
     textAlign: align,
     borderBottom: "0.5px solid #E5E7EB",
   };
@@ -108,7 +108,7 @@ function headerCellStyle(align: "left" | "right"): React.CSSProperties {
 
 function bodyCellStyle(align: "left" | "right"): React.CSSProperties {
   return {
-    padding: 4,
+    padding: "6px 8px",
     textAlign: align,
     color: "#0E2849",
   };
