@@ -72,8 +72,7 @@ export const MasterListPage = ({ kind }: Props) => {
         { key: "name", label: "Name" },
         { key: "code", label: "Code" },
         { key: "origin", label: "Origin" },
-        { key: "weight_unit", label: "Weight" },
-        { key: "volume_unit", label: "Volume" },
+        { key: "unit_system", label: "Units" },
         { key: "default_shipping_mode", label: "Default mode" },
         { key: "usage", label: "Used in", align: "right" },
       ];
