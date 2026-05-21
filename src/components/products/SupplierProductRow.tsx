@@ -194,7 +194,7 @@ function IdentityCell({
         </div>
         <span
           style={{
-            fontSize: 11,
+            fontSize: 12,
             fontStyle: "italic",
             color: "#9CA3AF",
             whiteSpace: "nowrap",
