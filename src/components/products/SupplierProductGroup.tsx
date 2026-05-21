@@ -4,12 +4,13 @@ import { SupplierSpine } from "./SupplierSpine";
 import { SupplierProductRow } from "./SupplierProductRow";
 
 interface SupplierProductGroupProps {
-  parent: Product;
+  parentName: string;
   members: Product[];
+  onChanged?: () => void;
 }
 
-export function SupplierProductGroup({ parent, members }: SupplierProductGroupProps) {
-  const supplierName = parent.supplier?.name ?? "Unknown Supplier";
+export function SupplierProductGroup({ parentName, members, onChanged }: SupplierProductGroupProps) {
+  const supplierName = members[0]?.supplier?.name ?? "Unknown Supplier";
   const count = members.length;
 
   return (
@@ -38,7 +39,7 @@ export function SupplierProductGroup({ parent, members }: SupplierProductGroupPr
         <Link2 size={13} />
         <span>
           <strong style={{ color: "#0E2849", fontWeight: 500, fontSize: 12 }}>
-            {parent.name}
+            {parentName}
           </strong>{" "}
           · {count} linked variants
         </span>
@@ -73,7 +74,7 @@ export function SupplierProductGroup({ parent, members }: SupplierProductGroupPr
                 }}
               />
             )}
-            <SupplierProductRow product={m} showVariantChip />
+            <SupplierProductRow product={m} showVariantChip onChanged={onChanged} />
           </div>
         ))}
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
@@ -10,6 +10,9 @@ export function ProductsPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -17,7 +20,7 @@ export function ProductsPage() {
       const { data, error } = await supabase
         .from("products")
         .select(`
-          id, name, supplier_item_number, parent_product_id, display_order, variant_label,
+          id, name, supplier_item_number, parent_product_id, parent_name, variant_name, display_order, variant_label,
           image_url, updated_at,
           carton_pack, carton_length, carton_width, carton_height, carton_weight,
           production_days_min, production_days_max,
@@ -51,7 +54,7 @@ export function ProductsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   const items = products ? buildProductsList(products) : [];
 
@@ -92,7 +95,7 @@ export function ProductsPage() {
           {products === null ? (
             <div style={{ color: "#9CA3AF", fontSize: 13 }}>Loading…</div>
           ) : (
-            <ProductsList items={items} />
+            <ProductsList items={items} onChanged={reload} />
           )}
         </div>
       </div>

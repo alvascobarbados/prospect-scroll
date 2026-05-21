@@ -4,9 +4,10 @@ import { SupplierProductGroup } from "./SupplierProductGroup";
 
 interface ProductsListProps {
   items: ListItem[];
+  onChanged?: () => void;
 }
 
-export function ProductsList({ items }: ProductsListProps) {
+export function ProductsList({ items, onChanged }: ProductsListProps) {
   if (items.length === 0) {
     return (
       <div style={{ padding: "48px 0", color: "#9CA3AF", fontSize: 13 }}>
@@ -18,12 +19,13 @@ export function ProductsList({ items }: ProductsListProps) {
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {items.map((item) =>
         item.type === "card" ? (
-          <SupplierProductCard key={item.product.id} product={item.product} />
+          <SupplierProductCard key={item.product.id} product={item.product} onChanged={onChanged} />
         ) : (
           <SupplierProductGroup
-            key={item.parent.id}
-            parent={item.parent}
+            key={`group:${item.parentName}`}
+            parentName={item.parentName}
             members={item.members}
+            onChanged={onChanged}
           />
         ),
       )}

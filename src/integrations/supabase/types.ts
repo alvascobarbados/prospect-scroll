@@ -539,6 +539,7 @@ export type Database = {
           name: string
           notes: string | null
           origin_id: string
+          parent_name: string | null
           parent_product_id: string | null
           primary_item_number: string
           production_days_max: number | null
@@ -550,6 +551,7 @@ export type Database = {
           supplier_item_number: string | null
           updated_at: string
           variant_label: string | null
+          variant_name: string | null
         }
         Insert: {
           carton_height?: number | null
@@ -565,6 +567,7 @@ export type Database = {
           name: string
           notes?: string | null
           origin_id: string
+          parent_name?: string | null
           parent_product_id?: string | null
           primary_item_number: string
           production_days_max?: number | null
@@ -576,6 +579,7 @@ export type Database = {
           supplier_item_number?: string | null
           updated_at?: string
           variant_label?: string | null
+          variant_name?: string | null
         }
         Update: {
           carton_height?: number | null
@@ -591,6 +595,7 @@ export type Database = {
           name?: string
           notes?: string | null
           origin_id?: string
+          parent_name?: string | null
           parent_product_id?: string | null
           primary_item_number?: string
           production_days_max?: number | null
@@ -602,6 +607,7 @@ export type Database = {
           supplier_item_number?: string | null
           updated_at?: string
           variant_label?: string | null
+          variant_name?: string | null
         }
         Relationships: [
           {
