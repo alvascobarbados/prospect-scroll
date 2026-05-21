@@ -1126,6 +1126,7 @@ export type Database = {
           name: string
           notes: string | null
           origin_id: string | null
+          unit_system: Database["public"]["Enums"]["unit_system"]
           updated_at: string
           volume_unit: string
           weight_unit: string
@@ -1140,6 +1141,7 @@ export type Database = {
           name: string
           notes?: string | null
           origin_id?: string | null
+          unit_system?: Database["public"]["Enums"]["unit_system"]
           updated_at?: string
           volume_unit?: string
           weight_unit?: string
@@ -1154,6 +1156,7 @@ export type Database = {
           name?: string
           notes?: string | null
           origin_id?: string | null
+          unit_system?: Database["public"]["Enums"]["unit_system"]
           updated_at?: string
           volume_unit?: string
           weight_unit?: string
@@ -1209,7 +1212,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      unit_system: "metric" | "imperial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1336,6 +1339,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      unit_system: ["metric", "imperial"],
+    },
   },
 } as const
