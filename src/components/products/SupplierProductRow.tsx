@@ -70,8 +70,8 @@ export function SupplierProductRow({ product, showVariantChip = false }: Supplie
       {/* Specs */}
       <SpecsCell
         product={product}
-        weightUnit={weightUnit}
-        volumeUnit={volumeUnit}
+        weightUnit={wUnit}
+        volumeUnit={lUnit}
       />
 
       {/* Decoration slots */}
