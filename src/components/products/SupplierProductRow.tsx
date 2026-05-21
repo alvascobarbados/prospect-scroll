@@ -115,16 +115,32 @@ function IdentityCell({
         }}
       >
         <div style={{ minWidth: 0, flex: 1 }}>
-          <span
+          <InlineText
+            value={product.name}
+            onSave={async (next) => {
+              const { error } = await supabase
+                .from("products")
+                .update({ name: next.trim() })
+                .eq("id", product.id);
+              if (error) throw new Error(error.message);
+              onChanged?.();
+            }}
+            validate={(v) => (v.trim().length === 0 ? "Name required" : null)}
             style={{
               fontSize: 14,
               fontWeight: 500,
               color: "#0E2849",
               lineHeight: 1.2,
             }}
-          >
-            {product.name}
-          </span>
+            inputStyle={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: "#0E2849",
+              lineHeight: 1.2,
+              minWidth: 120,
+            }}
+          />
+
           {showVariantChip && variantChip && (
             <span
               style={{
