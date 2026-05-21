@@ -64,7 +64,7 @@ const App = () => (
                     {/* Legacy redirects from old /products paths */}
                     <Route path="/products" element={<Navigate to="/supplier-product-data" replace />} />
                     <Route path="/products/new" element={<Navigate to="/supplier-product-data/new" replace />} />
-                    <Route path="/products/:id" element={<LegacyProductIdRedirect />} />
+                    <Route path="/products/:id" element={<ProductDetailPage />} />
                     <Route path="/detail-labels" element={<DetailLabelsPage />} />
                     {/* v1.0: deferred routes redirect to Pipeline */}
                     <Route path="/spreadsheet" element={<Navigate to="/" replace />} />
