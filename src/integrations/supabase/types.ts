@@ -532,6 +532,7 @@ export type Database = {
           carton_weight: number | null
           carton_width: number | null
           created_at: string
+          display_order: number | null
           id: string
           image_url: string | null
           moq: number | null
@@ -548,6 +549,7 @@ export type Database = {
           supplier_item_name: string | null
           supplier_item_number: string | null
           updated_at: string
+          variant_label: string | null
         }
         Insert: {
           carton_height?: number | null
@@ -556,6 +558,7 @@ export type Database = {
           carton_weight?: number | null
           carton_width?: number | null
           created_at?: string
+          display_order?: number | null
           id?: string
           image_url?: string | null
           moq?: number | null
@@ -572,6 +575,7 @@ export type Database = {
           supplier_item_name?: string | null
           supplier_item_number?: string | null
           updated_at?: string
+          variant_label?: string | null
         }
         Update: {
           carton_height?: number | null
@@ -580,6 +584,7 @@ export type Database = {
           carton_weight?: number | null
           carton_width?: number | null
           created_at?: string
+          display_order?: number | null
           id?: string
           image_url?: string | null
           moq?: number | null
@@ -596,6 +601,7 @@ export type Database = {
           supplier_item_name?: string | null
           supplier_item_number?: string | null
           updated_at?: string
+          variant_label?: string | null
         }
         Relationships: [
           {
