@@ -3,9 +3,8 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNowStrict } from "date-fns";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
-import { useSupplierProductData } from "@/hooks/useSupplierProductData";
+import { useCalculationRows, type CalcProduct } from "@/hooks/useCalculationRows";
 import { formatLeadTime } from "@/components/products/helpers/formatLeadTime";
-import type { Product } from "@/components/products/helpers/buildSupplierProductDataList";
 
 const EM = "\u2014";
 
@@ -39,7 +38,7 @@ function decorationLabel(method: string | null, detail: string | null): string {
   return `${m} ${d}`;
 }
 
-function buildRows(products: Product[]): Row[] {
+function buildRows(products: CalcProduct[]): Row[] {
   const rows: Row[] = [];
   for (const p of products) {
     const unitSystem = p.supplier?.unit_system ?? "metric";
@@ -72,7 +71,7 @@ function buildRows(products: Product[]): Row[] {
           dims: { l: p.carton_length, w: p.carton_width, h: p.carton_height, unit: linUnit },
           weight: { value: p.carton_weight, unit: wtUnit },
           leadTime: formatLeadTime(p.production_days_min, p.production_days_max),
-          moq: (p as Product & { moq?: number | null }).moq ?? null,
+          moq: p.moq ?? null,
           updated: formatDistanceToNowStrict(new Date(p.updated_at), { addSuffix: false }) + " ago",
           origin: p.origin?.name ?? null,
           category: p.subcategory?.name ?? null,
@@ -165,7 +164,7 @@ const unitSuffixStyle: React.CSSProperties = {
 
 export function CalculationsPage() {
   const navigate = useNavigate();
-  const { products, error } = useSupplierProductData();
+  const { products, error } = useCalculationRows();
   const [hoverKey, setHoverKey] = useState<string | null>(null);
   const [supplierFilter, setSupplierFilter] = useState<string>("__all__");
 
