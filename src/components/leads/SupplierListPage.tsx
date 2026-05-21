@@ -126,7 +126,7 @@ export const SupplierListPage = () => {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
+                    <td colSpan={8} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
                       {q ? "No matches." : "No suppliers yet."}
                     </td>
                   </tr>
