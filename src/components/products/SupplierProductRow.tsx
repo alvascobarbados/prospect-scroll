@@ -241,10 +241,12 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 function IdentityCell({
   product,
   showVariantInline,
+  autoEditVariant,
   onChanged,
 }: {
   product: Product;
   showVariantInline: boolean;
+  autoEditVariant?: boolean;
   onChanged?: () => void;
 }) {
   const code = product.supplier?.code ?? null;
