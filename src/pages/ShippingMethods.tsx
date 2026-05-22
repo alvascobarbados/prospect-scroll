@@ -532,12 +532,13 @@ const MethodGroup = ({
 };
 
 const RouteAndTiers = ({
-  route, tiers, origins, destinations, oCode, dCode,
+  route, tiers, origins, destinations, oCode, dCode, chargeableUnit,
   onUpdateRoute, onUpdateTier, onAddTier, onDeleteRoute, onDeleteTier,
 }: {
   route: SRoute; tiers: STier[];
   origins: OriginRow[]; destinations: DestRow[];
   oCode: string; dCode: string;
+  chargeableUnit: string;
   onUpdateRoute: (row: SRoute, key: keyof SRoute, raw: string) => Promise<boolean>;
   onUpdateTier: (row: STier, key: keyof STier, raw: string) => Promise<boolean>;
   onAddTier: () => void;
