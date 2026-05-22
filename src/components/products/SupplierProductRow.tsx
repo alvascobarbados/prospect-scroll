@@ -414,8 +414,8 @@ function IdentityCell({
         <KvValue>{product.origin?.name ?? "—"}</KvValue>
       </div>
 
-      {/* Details grid */}
-      <DetailsGrid product={product} onChanged={onChanged} />
+      {/* Details grid (rendered in column 3 when hideDetails) */}
+      {!hideDetails && <DetailsGrid product={product} onChanged={onChanged} />}
     </div>
   );
 }
