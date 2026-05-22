@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Package, Plus, Star, Trash2, Upload, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Star, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteImage,
