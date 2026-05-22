@@ -73,13 +73,8 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const allDecos = [...product.product_decorations].sort((a, b) => a.sort_order - b.sort_order);
-  const primary: (Product["product_decorations"][number] | null)[] = [
-    allDecos[0] ?? null,
-    allDecos[1] ?? null,
-  ];
-  const overflow = allDecos.slice(VISIBLE_DECO_SLOTS);
-  const hasOverflow = overflow.length > 0;
   const nextDecoSortOrder = (allDecos.at(-1)?.sort_order ?? 0) + 1;
+
 
   const system = product.supplier?.unit_system ?? "metric";
   const wUnit = weightUnitFor(system);
