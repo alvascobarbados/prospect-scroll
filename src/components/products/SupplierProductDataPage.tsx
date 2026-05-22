@@ -209,6 +209,9 @@ export function SupplierProductDataPage() {
               <SupplierProductDataList
                 items={items}
                 categoryById={categoryById}
+                allCategories={allCategories}
+                suppliers={suppliers}
+                origins={origins}
                 autoFocusVariantForId={autoFocusVariantForId}
                 onChanged={reload}
                 onDuplicated={(newId) => setAutoFocusVariantForId(newId)}
