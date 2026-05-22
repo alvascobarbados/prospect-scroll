@@ -273,10 +273,10 @@ describe("calcEngine — invalid-data routing", () => {
     const r = computeProductCalc(product, [bad], settings);
     const t = r.rows[0].transports[bad.id];
     expect(t.active).toBe(false);
-    if (!t.active) expect(t.reason).toBe("invalid data");
+    if ("reason" in t) expect(t.reason).toBe("invalid data");
     const bb = r.rows[0].bbOutputs[bad.id];
     expect(bb.active).toBe(false);
-    if (!bb.active) expect(bb.reason).toBe("invalid data");
+    if ("reason" in bb) expect(bb.reason).toBe("invalid data");
   });
 
   it("matched tier.rateUsd=null → reason 'invalid data'", () => {
@@ -287,6 +287,6 @@ describe("calcEngine — invalid-data routing", () => {
     const r = computeProductCalc(product, [bad], settings);
     const t = r.rows[0].transports[bad.id];
     expect(t.active).toBe(false);
-    if (!t.active) expect(t.reason).toBe("invalid data");
+    if ("reason" in t) expect(t.reason).toBe("invalid data");
   });
 });
