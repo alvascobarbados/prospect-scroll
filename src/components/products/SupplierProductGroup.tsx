@@ -91,6 +91,9 @@ export function SupplierProductGroup({ parentName, members, resolveCategory, all
             <SupplierProductRow
               product={m}
               categoryName={resolveCategory ? resolveCategory(m.subcategory?.id) : null}
+              allCategories={allCategories}
+              suppliers={suppliers}
+              origins={origins}
               showVariantInline
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
