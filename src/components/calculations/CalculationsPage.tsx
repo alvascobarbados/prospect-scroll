@@ -85,7 +85,7 @@ export function CalculationsPage() {
         {settings && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {visibleProducts.map((p) => (
-              <div key={p.id} style={{ overflowX: "auto" }}>
+              <div key={p.id} style={{ overflowX: "auto", width: "100%", WebkitOverflowScrolling: "touch" }}>
                 <CalculationsCard product={p} routes={routes} settings={settings} />
               </div>
             ))}
