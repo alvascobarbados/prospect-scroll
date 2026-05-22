@@ -39,6 +39,9 @@ export type PricingTier = {
   qty: number;
   unitUsd: number;
   setupUsd: number;
+  /** Optional inland (ground) freight USD for this tier, supplier → forwarder.
+   *  NULL = not entered. Only applied when the route's includeInlandFreight=true. */
+  inlandFreightUsd?: number | null;
 };
 
 export type ProductInput = {
