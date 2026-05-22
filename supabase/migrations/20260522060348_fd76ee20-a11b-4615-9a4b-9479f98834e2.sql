@@ -1,0 +1,1 @@
+DELETE FROM public.app_settings WHERE key = 'bb_customs_usd_factor';
