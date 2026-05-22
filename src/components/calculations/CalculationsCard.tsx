@@ -707,6 +707,7 @@ const RouteColumnBlock = ({
       padding: "12px 14px",
       borderRight: BLOCK_BORDER,
       background: isOutput ? AMBER_BG : "#FFFFFF",
+      flexShrink: 0,
     }}
   >
     <BlockHeader title={title} currency={currency} tag={tag} scopeBB={scopeBB} />
