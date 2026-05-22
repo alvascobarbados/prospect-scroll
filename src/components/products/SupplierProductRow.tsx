@@ -10,7 +10,7 @@ import { AddAttributePopover } from "./AddAttributePopover";
 import { InlineText } from "@/components/inline/InlineText";
 import { InlineNumber } from "@/components/inline/InlineNumber";
 import { InlineNumberGroup } from "@/components/inline/InlineNumberGroup";
-import { ImageUploadCell } from "./ImageUploadCell";
+import { ProductImageGallery } from "./ProductImageGallery";
 import { supabase } from "@/integrations/supabase/client";
 import { formatLeadTime } from "./helpers/formatLeadTime";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
@@ -82,7 +82,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
       onMouseLeave={() => setHovered(false)}
       style={{
         display: "grid",
-        gridTemplateColumns: "minmax(360px, 1.4fr) minmax(220px, 1fr) minmax(420px, 2.1fr)",
+        gridTemplateColumns: "minmax(440px, 1.5fr) minmax(220px, 1fr) minmax(420px, 2fr)",
         gap: 28,
         padding: "20px 22px",
         position: "relative",
@@ -148,11 +148,10 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
       {/* ── BLOCK 1: Identity ──────────────────────────────────────── */}
       <div style={{ display: "flex", gap: 14, minWidth: 0 }}>
-        <ImageUploadCell
+        <ProductImageGallery
           productId={product.id}
-          imageUrl={product.image_url}
           productName={product.name}
-          size={140}
+          legacyImageUrl={product.image_url}
           onChanged={onChanged}
         />
         <IdentityCell product={product} showVariantInline={showVariantInline} autoEditVariant={autoFocusVariantForId === product.id} onChanged={onChanged} />
