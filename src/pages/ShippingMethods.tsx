@@ -267,20 +267,43 @@ export default function ShippingMethodsPage() {
               style={{ minHeight: 48 }} />
           </div>
 
-          <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
-            <table className="w-full text-[13px] border-collapse">
+          <div className="rounded-2xl border border-border/60 bg-card overflow-x-auto">
+            <table className="w-full text-[13px] border-collapse" style={{ minWidth: 1100 }}>
               <thead>
+                <tr style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.06)", background: "hsl(var(--brand-navy) / 0.03)" }}>
+                  <Th rowSpan={2}>Code / Route / Band</Th>
+                  <Th rowSpan={2}>Name / From → To</Th>
+                  <Th rowSpan={2}>Fuel %</Th>
+                  <Th rowSpan={2} divider>Buffer %</Th>
+                  <Th rowSpan={2}>Fixed cost</Th>
+                  <Th rowSpan={2} divider>Rate</Th>
+                  <th
+                    colSpan={2}
+                    className="text-center text-[10px] uppercase tracking-[0.18em] font-semibold px-3 pt-2.5 pb-1"
+                    style={{
+                      color: "hsl(var(--brand-navy) / 0.7)",
+                      background: "rgba(229, 234, 241, 0.6)",
+                      borderRight: "1px solid hsl(var(--brand-navy) / 0.12)",
+                    }}
+                  >
+                    LAC (BBD)
+                  </th>
+                  <Th rowSpan={2}>Notes</Th>
+                  <th rowSpan={2} className="w-8" />
+                </tr>
                 <tr style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.1)", background: "hsl(var(--brand-navy) / 0.03)" }}>
-                  <Th>Code / Route / Band</Th>
-                  <Th>Name / From → To</Th>
-                  <Th>Fuel %</Th>
-                  <Th>Buffer %</Th>
-                  <Th>Fixed cost</Th>
-                  <Th>LAC fixed (BBD)</Th>
-                  <Th>LAC/CBM (BBD)</Th>
-                  <Th>Rate</Th>
-                  <Th>Notes</Th>
-                  <Th className="w-8" />
+                  <th
+                    className="text-left text-[10px] uppercase tracking-[0.14em] font-medium px-3 pb-2"
+                    style={{ color: "hsl(var(--brand-navy) / 0.55)", background: "rgba(229, 234, 241, 0.6)" }}
+                  >
+                    Fixed
+                  </th>
+                  <th
+                    className="text-left text-[10px] uppercase tracking-[0.14em] font-medium px-3 pb-2"
+                    style={{ color: "hsl(var(--brand-navy) / 0.55)", background: "rgba(229, 234, 241, 0.6)", borderRight: "1px solid hsl(var(--brand-navy) / 0.12)" }}
+                  >
+                    Per CBM
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -344,9 +367,13 @@ export default function ShippingMethodsPage() {
   );
 }
 
-const Th = ({ children, className }: { children?: React.ReactNode; className?: string }) => (
-  <th className={cn("text-left text-[10px] uppercase tracking-[0.18em] font-semibold px-3 py-2.5", className)}
-    style={{ color: "hsl(var(--brand-navy) / 0.65)" }}>{children}</th>
+const DIVIDER_L: React.CSSProperties = { borderLeft: "1px solid hsl(var(--brand-navy) / 0.12)" };
+const LAC_TINT: React.CSSProperties = { background: "rgba(229, 234, 241, 0.4)" };
+const LAC_TINT_R: React.CSSProperties = { background: "rgba(229, 234, 241, 0.4)", borderRight: "1px solid hsl(var(--brand-navy) / 0.12)" };
+
+const Th = ({ children, className, rowSpan, divider }: { children?: React.ReactNode; className?: string; rowSpan?: number; divider?: boolean }) => (
+  <th rowSpan={rowSpan} className={cn("text-left text-[10px] uppercase tracking-[0.18em] font-semibold px-3 py-2.5", className)}
+    style={{ color: "hsl(var(--brand-navy) / 0.65)", borderLeft: divider ? "1px solid hsl(var(--brand-navy) / 0.12)" : undefined }}>{children}</th>
 );
 
 // ─── Inline select (origin / destination) ────────────────────────────────
@@ -399,13 +426,13 @@ const MethodGroup = ({
         <td className="px-3 py-2 align-top">
           <EditableCell value={String(method.fuel_surcharge_pct)} onSave={(v) => onUpdateMethod(method, "fuel_surcharge_pct", v)} />
         </td>
-        <td className="px-3 py-2 align-top">
+        <td className="px-3 py-2 align-top" style={DIVIDER_L}>
           <EditableCell value={String(method.buffer_pct)} onSave={(v) => onUpdateMethod(method, "buffer_pct", v)} />
         </td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic" style={DIVIDER_L}>—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic" style={LAC_TINT}>—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic" style={LAC_TINT_R}>—</td>
         <td className="px-3 py-2 align-top">
           <EditableCell value={method.notes ?? ""} onSave={(v) => onUpdateMethod(method, "notes", v)} />
         </td>
@@ -485,17 +512,17 @@ const RouteAndTiers = ({
         </div>
       </td>
       <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-      <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
+      <td className="px-3 py-2 align-top text-muted-foreground italic" style={DIVIDER_L}>—</td>
       <td className="px-3 py-2 align-top">
         <EditableCell value={String(route.fixed_cost)} onSave={(v) => onUpdateRoute(route, "fixed_cost", v)} />
       </td>
-      <td className="px-3 py-2 align-top">
-        <EditableCell value={String(route.lac_fixed_bbd)} onSave={(v) => onUpdateRoute(route, "lac_fixed_bbd", v)} />
+      <td className="px-3 py-2 align-top text-muted-foreground italic" style={DIVIDER_L}>—</td>
+      <td className="px-3 py-2 align-top" style={LAC_TINT}>
+        <EditableCell value={route.lac_fixed_bbd ? String(route.lac_fixed_bbd) : ""} onSave={(v) => onUpdateRoute(route, "lac_fixed_bbd", v)} />
       </td>
-      <td className="px-3 py-2 align-top">
-        <EditableCell value={String(route.lac_per_cbm_bbd)} onSave={(v) => onUpdateRoute(route, "lac_per_cbm_bbd", v)} />
+      <td className="px-3 py-2 align-top" style={LAC_TINT_R}>
+        <EditableCell value={route.lac_per_cbm_bbd ? String(route.lac_per_cbm_bbd) : ""} onSave={(v) => onUpdateRoute(route, "lac_per_cbm_bbd", v)} />
       </td>
-      <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
       <td className="px-3 py-2 align-top">
         <EditableCell value={route.notes ?? ""} onSave={(v) => onUpdateRoute(route, "notes", v)} />
       </td>
@@ -534,12 +561,13 @@ const RouteAndTiers = ({
           </div>
         </td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic" style={DIVIDER_L}>—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top">
+        <td className="px-3 py-2 align-top" style={DIVIDER_L}>
           <EditableCell value={String(t.rate)} onSave={(v) => onUpdateTier(t, "rate", v)} />
         </td>
+        <td className="px-3 py-2 align-top" style={LAC_TINT} aria-hidden />
+        <td className="px-3 py-2 align-top" style={LAC_TINT_R} aria-hidden />
         <td className="px-3 py-2 align-top">
           <EditableCell value={t.notes ?? ""} onSave={(v) => onUpdateTier(t, "notes", v)} />
         </td>
