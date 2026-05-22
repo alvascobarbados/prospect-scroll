@@ -403,10 +403,15 @@ function IdentityCell({
         <KvValue>{product.origin?.name ?? "—"}</KvValue>
 
         <KvLabel>Category</KvLabel>
-        <KvValue>{product.subcategory?.parent?.name ?? "—"}</KvValue>
+        <KvValue>{categoryName ?? "—"}</KvValue>
 
         <KvLabel>Subcategory</KvLabel>
         <KvValue>{product.subcategory?.name ?? "—"}</KvValue>
+      </div>
+
+      {/* Updated timestamp under subcategory */}
+      <div style={{ marginTop: 8, fontSize: 11, fontStyle: "italic", color: "#9CA3AF" }}>
+        {formatUpdated(product.updated_at)}
       </div>
     </div>
   );
