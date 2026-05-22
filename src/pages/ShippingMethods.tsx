@@ -512,17 +512,17 @@ const RouteAndTiers = ({
         </div>
       </td>
       <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-      <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
+      <td className="px-3 py-2 align-top text-muted-foreground italic" style={DIVIDER_L}>—</td>
       <td className="px-3 py-2 align-top">
         <EditableCell value={String(route.fixed_cost)} onSave={(v) => onUpdateRoute(route, "fixed_cost", v)} />
       </td>
-      <td className="px-3 py-2 align-top">
-        <EditableCell value={String(route.lac_fixed_bbd)} onSave={(v) => onUpdateRoute(route, "lac_fixed_bbd", v)} />
+      <td className="px-3 py-2 align-top text-muted-foreground italic" style={DIVIDER_L}>—</td>
+      <td className="px-3 py-2 align-top" style={LAC_TINT}>
+        <EditableCell value={route.lac_fixed_bbd ? String(route.lac_fixed_bbd) : ""} onSave={(v) => onUpdateRoute(route, "lac_fixed_bbd", v)} />
       </td>
-      <td className="px-3 py-2 align-top">
-        <EditableCell value={String(route.lac_per_cbm_bbd)} onSave={(v) => onUpdateRoute(route, "lac_per_cbm_bbd", v)} />
+      <td className="px-3 py-2 align-top" style={LAC_TINT_R}>
+        <EditableCell value={route.lac_per_cbm_bbd ? String(route.lac_per_cbm_bbd) : ""} onSave={(v) => onUpdateRoute(route, "lac_per_cbm_bbd", v)} />
       </td>
-      <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
       <td className="px-3 py-2 align-top">
         <EditableCell value={route.notes ?? ""} onSave={(v) => onUpdateRoute(route, "notes", v)} />
       </td>
