@@ -1,6 +1,5 @@
 import { Link2 } from "lucide-react";
 import type { Product } from "./helpers/buildSupplierProductDataList";
-import { SupplierSpine } from "./SupplierSpine";
 import { SupplierProductRow } from "./SupplierProductRow";
 
 interface SupplierProductGroupProps {
@@ -10,7 +9,6 @@ interface SupplierProductGroupProps {
 }
 
 export function SupplierProductGroup({ parentName, members, onChanged }: SupplierProductGroupProps) {
-  const supplierName = members[0]?.supplier?.name ?? "Unknown Supplier";
   const count = members.length;
 
   return (
@@ -20,13 +18,11 @@ export function SupplierProductGroup({ parentName, members, onChanged }: Supplie
         borderRadius: 12,
         background: "#FFFFFF",
         overflow: "hidden",
-        minWidth: 1240,
       }}
     >
-      {/* Header strip */}
       <div
         style={{
-          padding: "8px 14px",
+          padding: "10px 18px",
           background: "#F9FAFB",
           borderBottom: "0.5px solid #F1F2F4",
           fontSize: 11,
@@ -38,9 +34,7 @@ export function SupplierProductGroup({ parentName, members, onChanged }: Supplie
       >
         <Link2 size={13} />
         <span>
-          <strong style={{ color: "#0E2849", fontWeight: 500, fontSize: 12 }}>
-            {parentName}
-          </strong>{" "}
+          <strong style={{ color: "#0E2849", fontWeight: 600, fontSize: 13 }}>{parentName}</strong>{" "}
           · {count} linked variants
         </span>
         <span
@@ -60,21 +54,11 @@ export function SupplierProductGroup({ parentName, members, onChanged }: Supplie
         </span>
       </div>
 
-      {/* Body — single shared spine */}
-      <div style={{ position: "relative" }}>
-        <SupplierSpine supplierName={supplierName} />
+      <div>
         {members.map((m, i) => (
           <div key={m.id}>
-            {i > 0 && (
-              <div
-                style={{
-                  height: "0.5px",
-                  background: "#F1F2F4",
-                  marginLeft: 26,
-                }}
-              />
-            )}
-            <SupplierProductRow product={m} showVariantChip onChanged={onChanged} />
+            {i > 0 && <div style={{ height: "0.5px", background: "#F1F2F4" }} />}
+            <SupplierProductRow product={m} showVariantInline onChanged={onChanged} />
           </div>
         ))}
       </div>
