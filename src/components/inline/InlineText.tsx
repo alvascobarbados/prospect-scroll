@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useInlineEdit } from "@/lib/useInlineEdit";
 
 type InlineTextProps = {
@@ -10,6 +11,8 @@ type InlineTextProps = {
   style?: React.CSSProperties;
   validate?: (value: string) => string | null;
   multiline?: boolean;
+  /** When true, immediately enter edit mode on mount (used after duplicate-as-variant). */
+  autoEdit?: boolean;
 };
 
 export function InlineText({
@@ -22,9 +25,15 @@ export function InlineText({
   style,
   validate,
   multiline,
+  autoEdit,
 }: InlineTextProps) {
   const { isEditing, value: edit, setValue, error, saving, startEdit, cancelEdit, commitEdit } =
     useInlineEdit<string>({ initialValue: value, onSave, validate });
+
+  useEffect(() => {
+    if (autoEdit && !isEditing) startEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEdit]);
 
   if (!isEditing) {
     return (

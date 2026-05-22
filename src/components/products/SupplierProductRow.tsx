@@ -14,12 +14,17 @@ import { ImageUploadCell } from "./ImageUploadCell";
 import { supabase } from "@/integrations/supabase/client";
 import { formatLeadTime } from "./helpers/formatLeadTime";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
+import { ProductCardMenu } from "./ProductCardMenu";
+import { duplicateProductAsVariant } from "./helpers/duplicateProductAsVariant";
 
 interface SupplierProductRowProps {
   product: Product;
   /** Inside a variant group, show the variant label more prominently. */
   showVariantInline?: boolean;
+  /** When this matches product.id, the variant-label inline editor opens automatically. */
+  autoFocusVariantForId?: string | null;
   onChanged?: () => void;
+  onDuplicated?: (newId: string) => void;
 }
 
 const VISIBLE_DECO_SLOTS = 2;
@@ -30,7 +35,7 @@ async function updateProduct(id: string, patch: Record<string, unknown>) {
   if (error) throw new Error(error.message);
 }
 
-export function SupplierProductRow({ product, showVariantInline = false, onChanged }: SupplierProductRowProps) {
+export function SupplierProductRow({ product, showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -83,32 +88,54 @@ export function SupplierProductRow({ product, showVariantInline = false, onChang
         position: "relative",
       }}
     >
-      <button
-        type="button"
-        onClick={() => setConfirmDelete(true)}
-        aria-label={`Delete ${product.name}`}
-        title="Delete product"
+      <div
         style={{
           position: "absolute",
           top: 8,
           right: 8,
-          width: 22,
-          height: 22,
-          borderRadius: 6,
-          border: "none",
-          background: "rgba(239, 68, 68, 0.1)",
-          color: "#ef4444",
-          cursor: "pointer",
           display: "inline-flex",
           alignItems: "center",
-          justifyContent: "center",
-          opacity: hovered ? 1 : 0,
-          transition: "opacity 120ms",
+          gap: 4,
           zIndex: 2,
         }}
       >
-        <X size={13} />
-      </button>
+        <div style={{ opacity: hovered ? 1 : 0.45, transition: "opacity 120ms" }}>
+          <ProductCardMenu
+            onDuplicateAsVariant={async () => {
+              try {
+                const newId = await duplicateProductAsVariant(product.id);
+                toast.success("Variant created");
+                onDuplicated?.(newId);
+                onChanged?.();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to duplicate");
+              }
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          aria-label={`Delete ${product.name}`}
+          title="Delete product"
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            border: "none",
+            background: "rgba(239, 68, 68, 0.1)",
+            color: "#ef4444",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: hovered ? 1 : 0,
+            transition: "opacity 120ms",
+          }}
+        >
+          <X size={13} />
+        </button>
+      </div>
       <ConfirmDialog
         open={confirmDelete}
         title="Delete product?"
@@ -128,7 +155,7 @@ export function SupplierProductRow({ product, showVariantInline = false, onChang
           size={140}
           onChanged={onChanged}
         />
-        <IdentityCell product={product} showVariantInline={showVariantInline} onChanged={onChanged} />
+        <IdentityCell product={product} showVariantInline={showVariantInline} autoEditVariant={autoFocusVariantForId === product.id} onChanged={onChanged} />
       </div>
 
       {/* ── BLOCK 2: Specs ─────────────────────────────────────────── */}
@@ -214,10 +241,12 @@ export function SupplierProductRow({ product, showVariantInline = false, onChang
 function IdentityCell({
   product,
   showVariantInline,
+  autoEditVariant,
   onChanged,
 }: {
   product: Product;
   showVariantInline: boolean;
+  autoEditVariant?: boolean;
   onChanged?: () => void;
 }) {
   const code = product.supplier?.code ?? null;
@@ -260,11 +289,12 @@ function IdentityCell({
       </div>
 
       {/* Row 2: variant sub-name (always shown if present) */}
-      {(variantText || showVariantInline) && (
+      {(variantText || showVariantInline || autoEditVariant) && (
         <div style={{ marginTop: 2, marginBottom: 6 }}>
           <InlineText
             value={variantText}
             placeholder="add variant"
+            autoEdit={autoEditVariant}
             onSave={async (next) => {
               const v = next.trim();
               await updateProduct(product.id, { variant_name: v.length ? v : null });

@@ -23,6 +23,7 @@ export function SupplierProductDataPage() {
   const [drafts, setDrafts] = useState<string[]>([]);
   const [filter, setFilter] = useState<ProductFilterState>(EMPTY_PRODUCT_FILTER);
   const [categoryParentBySubId, setCategoryParentBySubId] = useState<Map<string, string>>(new Map());
+  const [autoFocusVariantForId, setAutoFocusVariantForId] = useState<string | null>(null);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -171,7 +172,12 @@ export function SupplierProductDataPage() {
                   onDiscard={() => discardDraft(id)}
                 />
               ))}
-              <SupplierProductDataList items={items} onChanged={reload} />
+              <SupplierProductDataList
+                items={items}
+                autoFocusVariantForId={autoFocusVariantForId}
+                onChanged={reload}
+                onDuplicated={(newId) => setAutoFocusVariantForId(newId)}
+              />
             </div>
           )}
         </div>
