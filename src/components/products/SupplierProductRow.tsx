@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Product, ProductDetailRow } from "./helpers/buildSupplierProductDataList";
-import { formatUpdated } from "./helpers/formatUpdated";
+
 import { weightUnitLabel as weightUnitFor, linearUnit as linearUnitFor } from "@/lib/units";
 import { DecorationBlock } from "./DecorationBlock";
 import { AddAttributePopover } from "./AddAttributePopover";
