@@ -155,7 +155,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           size={140}
           onChanged={onChanged}
         />
-        <IdentityCell product={product} showVariantInline={showVariantInline} onChanged={onChanged} />
+        <IdentityCell product={product} showVariantInline={showVariantInline} autoEditVariant={autoFocusVariantForId === product.id} onChanged={onChanged} />
       </div>
 
       {/* ── BLOCK 2: Specs ─────────────────────────────────────────── */}
