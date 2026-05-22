@@ -108,11 +108,9 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
     }
   };
 
-  const BLOCK_GAP = 32;
-  const blockStyle = (isLast: boolean): React.CSSProperties => ({
-    flex: "0 0 auto",
+  const cellStyle = (isLast: boolean): React.CSSProperties => ({
     minWidth: 0,
-    paddingRight: isLast ? 0 : BLOCK_GAP,
+    paddingRight: isLast ? 0 : SHEET_COL_GAP,
     borderRight: isLast ? "none" : "1px solid #E5E7EB",
   });
 
@@ -121,13 +119,12 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "stretch",
-        gap: BLOCK_GAP,
-        padding: "20px 22px",
+        display: "grid",
+        gridTemplateColumns: SHEET_GRID_TEMPLATE,
+        columnGap: SHEET_COL_GAP,
+        alignItems: "start",
+        padding: SHEET_ROW_PADDING,
         position: "relative",
-        overflowX: "auto",
       }}
     >
       <div
@@ -189,7 +186,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
       />
 
       {/* ── BLOCK 1: Images ────────────────────────────────────────── */}
-      <div style={{ ...blockStyle(false), width: "auto" }}>
+      <div style={cellStyle(false)}>
         <ProductImageGallery
           productId={product.id}
           productName={product.name}
@@ -198,8 +195,8 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         />
       </div>
 
-      {/* ── BLOCK 2: Identity (no header) ──────────────────────────── */}
-      <div style={{ ...blockStyle(false), width: 280 }}>
+      {/* ── BLOCK 2: Identity ──────────────────────────────────────── */}
+      <div style={cellStyle(false)}>
         <IdentityCell
           product={product}
           showVariantInline={showVariantInline}
@@ -209,17 +206,14 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
       </div>
 
       {/* ── BLOCK 3: Product Details (Attributes + Includes) ──────── */}
-      <div style={{ ...blockStyle(false), width: 260 }}>
+      <div style={cellStyle(false)}>
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            marginBottom: 8,
-            gap: 8,
+            justifyContent: "flex-end",
+            marginBottom: 4,
           }}
         >
-          <div style={{ ...BLOCK_HEADER_STYLE, marginBottom: 0 }}>Product Details</div>
           <span
             style={{
               fontSize: 11,
@@ -235,8 +229,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
       </div>
 
       {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
-      <div style={{ ...blockStyle(false), width: 240 }}>
-        <BlockHeader>Packing &amp; Production</BlockHeader>
+      <div style={cellStyle(false)}>
         {specsIncomplete && (
           <div
             style={{
@@ -265,36 +258,30 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         />
       </div>
 
-      {/* ── BLOCK 5..N: Pricing — one block per decoration + Add slot ── */}
-      {allDecos.map((d, i) => {
-        const hasGround = d.product_decoration_bands.some(
-          (b) => b.inland_freight_usd != null && b.inland_freight_usd !== "",
-        );
-        const blockWidth = hasGround ? 400 : 320;
-        return (
-          <div key={d.id} style={{ ...blockStyle(false), width: blockWidth }}>
-            {i === 0 && <BlockHeader>Pricing</BlockHeader>}
+      {/* ── BLOCK 5: Pricing — all decorations stack vertically ──── */}
+      <div style={cellStyle(true)}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {allDecos.map((d, i) => (
             <DecorationBlock
+              key={d.id}
               decoration={d}
               productId={product.id}
               nextSortOrder={nextDecoSortOrder + i}
               onChanged={onChanged}
             />
-          </div>
-        );
-      })}
-      <div style={{ ...blockStyle(true), width: 320 }}>
-        {allDecos.length === 0 && <BlockHeader>Pricing</BlockHeader>}
-        <DecorationBlock
-          decoration={null}
-          productId={product.id}
-          nextSortOrder={nextDecoSortOrder + allDecos.length}
-          onChanged={onChanged}
-        />
+          ))}
+          <DecorationBlock
+            decoration={null}
+            productId={product.id}
+            nextSortOrder={nextDecoSortOrder + allDecos.length}
+            onChanged={onChanged}
+          />
+        </div>
       </div>
     </div>
   );
 }
+
 
 
 // ─── Identity ─────────────────────────────────────────────────────────────
