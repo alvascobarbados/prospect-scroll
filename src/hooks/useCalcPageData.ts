@@ -176,6 +176,7 @@ export function useCalcPageData() {
         fxBbdPerUsdBase: numFromSetting(s, SETTINGS_KEYS.fxBase, 2.02768),
         fxFeePct: numFromSetting(s, SETTINGS_KEYS.fxFee, 2.0) / 100, // stored as percent points
         customsMultiplier: numFromSetting(s, SETTINGS_KEYS.customs, 2.0),
+        dvf: numFromSetting(s, SETTINGS_KEYS.dvf, 1.0),
         kgToLbs: numFromSetting(s, SETTINGS_KEYS.kgToLbs, 2.20462),
         cbmDivisor: numFromSetting(s, SETTINGS_KEYS.cbm, 1_000_000),
         volumetricDivisor: numFromSetting(s, SETTINGS_KEYS.vol, 200),
