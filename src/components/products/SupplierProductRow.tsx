@@ -19,6 +19,8 @@ import { formatLeadTime } from "./helpers/formatLeadTime";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { ProductCardMenu } from "./ProductCardMenu";
 import { duplicateProductAsVariant } from "./helpers/duplicateProductAsVariant";
+import { SHEET_GRID_TEMPLATE, SHEET_COL_GAP, SHEET_ROW_PADDING } from "./helpers/sheetGrid";
+
 
 const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
 
