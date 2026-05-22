@@ -258,9 +258,12 @@ const SpecsBlock = ({ p }: { p: CalcPageProduct }) => {
       : p.production_days_max == null
         ? `${p.production_days_min}d`
         : `${p.production_days_min}–${p.production_days_max}d`;
+  const dimUnit = p.supplier?.dimension_unit ?? "cm";
+  const wtUnit = p.supplier?.weight_unit_v2 ?? "kg";
+  const wtLabel = wtUnit === "lb" ? "lbs" : "kg";
   const dims =
     p.carton_length != null && p.carton_width != null && p.carton_height != null
-      ? `${p.carton_length}×${p.carton_width}×${p.carton_height} cm`
+      ? `${p.carton_length}×${p.carton_width}×${p.carton_height} ${dimUnit}`
       : EM;
   return (
     <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 200, whiteSpace: "nowrap", flexShrink: 0 }}>
@@ -270,7 +273,7 @@ const SpecsBlock = ({ p }: { p: CalcPageProduct }) => {
       <div style={{ fontSize: 13, color: "#374151", display: "grid", gap: 4 }}>
         <div><span style={{ color: "#9CA3AF" }}>Pcs/Ctn </span>{p.carton_pack ?? EM}</div>
         <div><span style={{ color: "#9CA3AF" }}>Ctn </span>{dims}</div>
-        <div><span style={{ color: "#9CA3AF" }}>Wt </span>{p.carton_weight != null ? `${p.carton_weight} kg` : EM}</div>
+        <div><span style={{ color: "#9CA3AF" }}>Wt </span>{p.carton_weight != null ? `${p.carton_weight} ${wtLabel}` : EM}</div>
         <div><span style={{ color: "#9CA3AF" }}>Lead </span>{leadTime}</div>
       </div>
     </div>
