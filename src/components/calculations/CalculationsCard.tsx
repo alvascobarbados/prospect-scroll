@@ -261,7 +261,7 @@ const SpecsBlock = ({ p }: { p: CalcPageProduct }) => {
       ? `${p.carton_length}×${p.carton_width}×${p.carton_height} cm`
       : EM;
   return (
-    <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 180, whiteSpace: "nowrap" }}>
+    <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 200, whiteSpace: "nowrap", flexShrink: 0 }}>
       <div style={{ fontSize: 11, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
         Specs
       </div>
