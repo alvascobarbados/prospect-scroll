@@ -218,7 +218,7 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       </div>
 
       {/* ── BLOCK 3: Product Details (Attributes + Includes) ──────── */}
-      <div style={{ ...cellStyle(false), paddingTop: 6 }}>
+      <div style={{ ...cellStyle(false), paddingTop: 14 }}>
         <DetailsGrid product={product} onChanged={onChanged} />
         <Divider />
       </div>
