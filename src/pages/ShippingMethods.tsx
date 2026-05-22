@@ -176,6 +176,8 @@ export default function ShippingMethodsPage() {
       const n = numOrZero(raw);
       if (n < 0) { toast.error("Must be ≥ 0"); return false; }
       value = n;
+    } else if (key === "include_inland_freight") {
+      value = raw === "true";
     } else if (key === "origin_id" || key === "destination_id") {
       if (!value) return false;
     } else if (!value) value = null;
