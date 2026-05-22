@@ -82,7 +82,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
       onMouseLeave={() => setHovered(false)}
       style={{
         display: "grid",
-        gridTemplateColumns: "minmax(360px, 1.4fr) minmax(220px, 1fr) minmax(420px, 2.1fr)",
+        gridTemplateColumns: "minmax(440px, 1.5fr) minmax(220px, 1fr) minmax(420px, 2fr)",
         gap: 28,
         padding: "20px 22px",
         position: "relative",
