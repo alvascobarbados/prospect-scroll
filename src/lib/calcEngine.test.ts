@@ -22,6 +22,7 @@ const settings: Settings = {
   fxBbdPerUsdBase: 2.02768,
   fxFeePct: 0.02,
   customsMultiplier: 2.0,
+  dvf: 1.0,
   kgToLbs: 2.20462,
   cbmDivisor: 1_000_000,
   volumetricDivisor: 200,
