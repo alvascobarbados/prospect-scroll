@@ -13,7 +13,9 @@ import {
   type ProductFilterState,
 } from "./SupplierProductFilterBar";
 
-interface CategoryRow { id: string; parent_id: string | null }
+interface CategoryRow { id: string; name: string; parent_id: string | null }
+
+export interface CategoryMeta { name: string; parentId: string | null }
 
 export function SupplierProductDataPage() {
   const navigate = useNavigate();
@@ -22,7 +24,7 @@ export function SupplierProductDataPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [drafts, setDrafts] = useState<string[]>([]);
   const [filter, setFilter] = useState<ProductFilterState>(EMPTY_PRODUCT_FILTER);
-  const [categoryParentBySubId, setCategoryParentBySubId] = useState<Map<string, string>>(new Map());
+  const [categoryById, setCategoryById] = useState<Map<string, CategoryMeta>>(new Map());
   const [autoFocusVariantForId, setAutoFocusVariantForId] = useState<string | null>(null);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
@@ -69,22 +71,31 @@ export function SupplierProductDataPage() {
     };
   }, [reloadKey]);
 
-  // Cache category parent_id per subcategory_id for filter resolution.
+  // Cache category id → { name, parentId } so we can resolve a subcategory's
+  // parent category name without nesting an FK select on the products query.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("product_categories")
-        .select("id, parent_id");
+        .select("id, name, parent_id");
       if (cancelled) return;
-      const map = new Map<string, string>();
+      const map = new Map<string, CategoryMeta>();
       for (const row of (data ?? []) as CategoryRow[]) {
-        if (row.parent_id) map.set(row.id, row.parent_id);
+        map.set(row.id, { name: row.name, parentId: row.parent_id });
       }
-      setCategoryParentBySubId(map);
+      setCategoryById(map);
     })();
     return () => { cancelled = true; };
   }, []);
+
+  const categoryParentBySubId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const [id, meta] of categoryById) {
+      if (meta.parentId) m.set(id, meta.parentId);
+    }
+    return m;
+  }, [categoryById]);
 
   const filtered = useMemo(() => {
     if (!products) return null;
@@ -174,6 +185,7 @@ export function SupplierProductDataPage() {
               ))}
               <SupplierProductDataList
                 items={items}
+                categoryById={categoryById}
                 autoFocusVariantForId={autoFocusVariantForId}
                 onChanged={reload}
                 onDuplicated={(newId) => setAutoFocusVariantForId(newId)}
