@@ -94,9 +94,22 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
   const cellStyle = (isLast: boolean): React.CSSProperties => ({
     minWidth: 0,
-    paddingRight: isLast ? 0 : SHEET_COL_GAP,
-    borderRight: isLast ? "none" : "1px solid #E5E7EB",
+    position: "relative",
   });
+  const Divider = () => (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        right: -SHEET_COL_GAP / 2,
+        width: 1,
+        background: "#E5E7EB",
+        pointerEvents: "none",
+      }}
+    />
+  );
 
   return (
     <div
