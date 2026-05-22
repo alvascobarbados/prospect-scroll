@@ -40,6 +40,8 @@ const KV_GRID_STYLE: React.CSSProperties = {
 
 interface SupplierProductRowProps {
   product: Product;
+  /** Resolved parent-category name (from in-memory category map). */
+  categoryName?: string | null;
   /** Inside a variant group, show the variant label more prominently. */
   showVariantInline?: boolean;
   /** When this matches product.id, the variant-label inline editor opens automatically. */
@@ -56,7 +58,7 @@ async function updateProduct(id: string, patch: Record<string, unknown>) {
   if (error) throw new Error(error.message);
 }
 
-export function SupplierProductRow({ product, showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
+export function SupplierProductRow({ product, categoryName, showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
   const [hovered, setHovered] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -197,6 +199,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
       <div style={cellStyle(false)}>
         <IdentityCell
           product={product}
+          categoryName={categoryName ?? null}
           showVariantInline={showVariantInline}
           autoEditVariant={autoFocusVariantForId === product.id}
           onChanged={onChanged}
@@ -206,24 +209,6 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
       {/* ── BLOCK 3: Product Details (Attributes + Includes) ──────── */}
       <div style={cellStyle(false)}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            marginBottom: 4,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 11,
-              fontStyle: "italic",
-              color: "#9CA3AF",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {formatUpdated(product.updated_at)}
-          </span>
-        </div>
         <DetailsGrid product={product} onChanged={onChanged} />
         <Divider />
       </div>
@@ -289,11 +274,13 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
 function IdentityCell({
   product,
+  categoryName,
   showVariantInline: _showVariantInline,
   autoEditVariant,
   onChanged,
 }: {
   product: Product;
+  categoryName: string | null;
   showVariantInline: boolean;
   autoEditVariant?: boolean;
   onChanged?: () => void;
@@ -416,10 +403,15 @@ function IdentityCell({
         <KvValue>{product.origin?.name ?? "—"}</KvValue>
 
         <KvLabel>Category</KvLabel>
-        <KvValue>{product.subcategory?.parent?.name ?? "—"}</KvValue>
+        <KvValue>{categoryName ?? "—"}</KvValue>
 
         <KvLabel>Subcategory</KvLabel>
         <KvValue>{product.subcategory?.name ?? "—"}</KvValue>
+      </div>
+
+      {/* Updated timestamp under subcategory */}
+      <div style={{ marginTop: 8, fontSize: 11, fontStyle: "italic", color: "#9CA3AF" }}>
+        {formatUpdated(product.updated_at)}
       </div>
     </div>
   );
@@ -523,7 +515,7 @@ function AttributeLabelPicker({
 
   return (
     <InlinePicker
-      display={<span style={{ color: "#6B7280", fontSize: 12 }}>{currentLabel || "—"}</span>}
+      display={<span style={{ color: "#6B7280", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em" }}>{currentLabel || "—"}</span>}
       options={options}
       onSelect={async (opt) => {
         const label = allLabels.find((l) => l.id === opt.id);
@@ -645,7 +637,7 @@ function VirtualAttributeRow({
 }) {
   return (
     <div style={{ display: "contents" }}>
-      <span style={{ color: "#6B7280", fontSize: 12 }}>{labelName}</span>
+      <span style={{ color: "#6B7280", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em" }}>{labelName}</span>
       <span style={{ color: "#0E2849" }}>
         <InlineText
           value=""

@@ -71,12 +71,7 @@ export interface Product {
   carton_weight: number | null;
   production_days_min: number | null;
   production_days_max: number | null;
-  subcategory: {
-    id: string;
-    name: string;
-    code: string | null;
-    parent?: { id: string; name: string; code: string | null } | null;
-  } | null;
+  subcategory: { id: string; name: string; code: string | null } | null;
   supplier: ProductSupplier | null;
   origin: { id: string; name: string } | null;
   product_details: ProductDetailRow[];
