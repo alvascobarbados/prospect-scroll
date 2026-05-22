@@ -40,23 +40,16 @@ const NUM_FONT: React.CSSProperties = { fontVariantNumeric: "tabular-nums" };
 
 // ───────── Helpers ─────────
 
-function dutyDecimal(p: CalcPageProduct): number {
+/** Decode subcategory.duty_rate_pct → engine decimal or null.
+ *  null  = rate not set (engine flags dutyMissing).
+ *  0     = legitimate 0% duty (real 0).
+ *  20    = 20% → 0.20. */
+function dutyDecimal(p: CalcPageProduct): number | null {
   const raw = p.subcategory?.duty_rate_pct;
-  if (raw == null || raw === "") return 0;
+  if (raw == null || raw === "") return null;
   const n = typeof raw === "string" ? parseFloat(raw) : raw;
-  if (!Number.isFinite(n)) return 0;
-  // Stored as percent points (20 = 20%) → convert to decimal.
+  if (!Number.isFinite(n)) return null;
   return n / 100;
-}
-
-/** True when the subcategory has no duty rate set at all (NULL / empty / non-numeric).
- *  A legitimate 0% is NOT considered unset. Used to surface a visible warning so a
- *  missing rate can't silently under-cost a quote. */
-function isDutyUnset(p: CalcPageProduct): boolean {
-  const raw = p.subcategory?.duty_rate_pct;
-  if (raw == null || raw === "") return true;
-  const n = typeof raw === "string" ? parseFloat(raw) : raw;
-  return !Number.isFinite(n);
 }
 
 function toProductInput(p: CalcPageProduct): ProductInput | null {
@@ -97,10 +90,10 @@ function toProductInput(p: CalcPageProduct): ProductInput | null {
     id: p.id,
     origin: p.origin.code,
     pcsPerCtn: Number(p.carton_pack),
-    ctnLengthCm: Number(p.carton_length),
-    ctnWidthCm: Number(p.carton_width),
-    ctnHeightCm: Number(p.carton_height),
-    wtPerCtnKg: Number(p.carton_weight),
+    ctnLengthRaw: Number(p.carton_length),
+    ctnWidthRaw: Number(p.carton_width),
+    ctnHeightRaw: Number(p.carton_height),
+    wtPerCtnRaw: Number(p.carton_weight),
     dimensionUnit: (p.supplier?.dimension_unit ?? "cm") as "cm" | "in",
     weightUnit: (p.supplier?.weight_unit_v2 ?? "kg") as "kg" | "lb",
     dutyRate: dutyDecimal(p),
