@@ -10,7 +10,7 @@ import { AddAttributePopover } from "./AddAttributePopover";
 import { InlineText } from "@/components/inline/InlineText";
 import { InlineNumber } from "@/components/inline/InlineNumber";
 import { InlineNumberGroup } from "@/components/inline/InlineNumberGroup";
-import { ImageUploadCell } from "./ImageUploadCell";
+import { ProductImageGallery } from "./ProductImageGallery";
 import { supabase } from "@/integrations/supabase/client";
 import { formatLeadTime } from "./helpers/formatLeadTime";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
