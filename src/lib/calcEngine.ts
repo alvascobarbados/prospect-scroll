@@ -83,6 +83,9 @@ export type RouteInput = {
   bufferPct: number;              // decimal
   lacFixedBbd: number;
   lacPerCbmBbd: number;
+  /** When TRUE, this route adds the tier's inlandFreightUsd to transportPre
+   *  (and propagates through fuel + buffer). FALSE = no ground leg. */
+  includeInlandFreight: boolean;
   tiers: RouteTier[];
   sortOrder: number;
 };
