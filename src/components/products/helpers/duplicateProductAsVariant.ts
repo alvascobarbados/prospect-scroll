@@ -70,10 +70,8 @@ export async function duplicateProductAsVariant(sourceProductId: string): Promis
     newItemNum = `${baseItem}-V${n}`;
   }
 
-  // 6. Anchor parent: parent's parent if source already a variant, else source itself.
-  const parentId = src.parent_product_id ?? src.id;
-
-  // 7. Insert new product
+  // 6. Insert new product — name-based grouping means we just keep the name.
+  //    parent_product_id is no longer used for grouping.
   const insert = {
     name: src.name,
     supplier_id: src.supplier_id,
@@ -81,8 +79,8 @@ export async function duplicateProductAsVariant(sourceProductId: string): Promis
     subcategory_id: src.subcategory_id,
     primary_item_number: newPrimary,
     supplier_item_number: newItemNum,
-    parent_product_id: parentId,
-    parent_name: src.name,
+    parent_product_id: null,
+    parent_name: null,
     variant_name: null,
     variant_label: null,
     image_url: src.image_url ?? null,
