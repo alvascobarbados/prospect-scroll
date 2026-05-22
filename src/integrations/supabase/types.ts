@@ -1133,6 +1133,7 @@ export type Database = {
           country: string
           created_at: string
           default_shipping_mode: string | null
+          dimension_unit: string
           id: string
           legacy_id: string | null
           name: string
@@ -1142,12 +1143,14 @@ export type Database = {
           updated_at: string
           volume_unit: string
           weight_unit: string
+          weight_unit_v2: string
         }
         Insert: {
           code?: string | null
           country?: string
           created_at?: string
           default_shipping_mode?: string | null
+          dimension_unit?: string
           id?: string
           legacy_id?: string | null
           name: string
@@ -1157,12 +1160,14 @@ export type Database = {
           updated_at?: string
           volume_unit?: string
           weight_unit?: string
+          weight_unit_v2?: string
         }
         Update: {
           code?: string | null
           country?: string
           created_at?: string
           default_shipping_mode?: string | null
+          dimension_unit?: string
           id?: string
           legacy_id?: string | null
           name?: string
@@ -1172,6 +1177,7 @@ export type Database = {
           updated_at?: string
           volume_unit?: string
           weight_unit?: string
+          weight_unit_v2?: string
         }
         Relationships: [
           {
