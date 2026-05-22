@@ -172,7 +172,12 @@ export function SupplierProductDataPage() {
                   onDiscard={() => discardDraft(id)}
                 />
               ))}
-              <SupplierProductDataList items={items} onChanged={reload} />
+              <SupplierProductDataList
+                items={items}
+                autoFocusVariantForId={autoFocusVariantForId}
+                onChanged={reload}
+                onDuplicated={(newId) => setAutoFocusVariantForId(newId)}
+              />
             </div>
           )}
         </div>
