@@ -30,9 +30,7 @@ export function DecorationBlock({
     return (
       <div
         style={{
-          paddingLeft: 10,
           paddingTop: 2,
-          borderLeft: "0.5px dashed #E5E7EB",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
