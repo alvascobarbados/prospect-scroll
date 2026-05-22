@@ -76,6 +76,7 @@ export interface Product {
   origin: { id: string; name: string } | null;
   product_details: ProductDetailRow[];
   product_decorations: ProductDecoration[];
+  product_includes?: ProductIncludeRow[];
 }
 
 export type ListItem =
