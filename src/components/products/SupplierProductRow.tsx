@@ -199,6 +199,7 @@ export function SupplierProductRow({ product, categoryName, showVariantInline = 
       <div style={cellStyle(false)}>
         <IdentityCell
           product={product}
+          categoryName={categoryName ?? null}
           showVariantInline={showVariantInline}
           autoEditVariant={autoFocusVariantForId === product.id}
           onChanged={onChanged}
@@ -208,24 +209,6 @@ export function SupplierProductRow({ product, categoryName, showVariantInline = 
 
       {/* ── BLOCK 3: Product Details (Attributes + Includes) ──────── */}
       <div style={cellStyle(false)}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            marginBottom: 4,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 11,
-              fontStyle: "italic",
-              color: "#9CA3AF",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {formatUpdated(product.updated_at)}
-          </span>
-        </div>
         <DetailsGrid product={product} onChanged={onChanged} />
         <Divider />
       </div>
@@ -291,11 +274,13 @@ export function SupplierProductRow({ product, categoryName, showVariantInline = 
 
 function IdentityCell({
   product,
+  categoryName,
   showVariantInline: _showVariantInline,
   autoEditVariant,
   onChanged,
 }: {
   product: Product;
+  categoryName: string | null;
   showVariantInline: boolean;
   autoEditVariant?: boolean;
   onChanged?: () => void;
