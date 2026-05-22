@@ -40,6 +40,8 @@ const KV_GRID_STYLE: React.CSSProperties = {
 
 interface SupplierProductRowProps {
   product: Product;
+  /** Resolved parent-category name (from in-memory category map). */
+  categoryName?: string | null;
   /** Inside a variant group, show the variant label more prominently. */
   showVariantInline?: boolean;
   /** When this matches product.id, the variant-label inline editor opens automatically. */
@@ -56,7 +58,7 @@ async function updateProduct(id: string, patch: Record<string, unknown>) {
   if (error) throw new Error(error.message);
 }
 
-export function SupplierProductRow({ product, showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
+export function SupplierProductRow({ product, categoryName, showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
   const [hovered, setHovered] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
