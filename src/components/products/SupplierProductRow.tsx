@@ -81,18 +81,26 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
     }
   };
 
+  const BLOCK_GAP = 32;
+  const blockStyle = (isLast: boolean): React.CSSProperties => ({
+    flex: "0 0 auto",
+    minWidth: 0,
+    paddingRight: isLast ? 0 : BLOCK_GAP,
+    borderRight: isLast ? "none" : "1px solid #E5E7EB",
+  });
+
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        display: "grid",
-        gridTemplateColumns:
-          "minmax(280px, 320px) minmax(280px, 1.1fr) minmax(280px, 1.1fr) minmax(420px, 2fr)",
-        gap: 24,
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "stretch",
+        gap: BLOCK_GAP,
         padding: "20px 22px",
         position: "relative",
-        alignItems: "start",
+        overflowX: "auto",
       }}
     >
       <div
@@ -153,8 +161,8 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         onCancel={() => !deleting && setConfirmDelete(false)}
       />
 
-      {/* ── COLUMN 1: Images ───────────────────────────────────────── */}
-      <div style={{ minWidth: 0 }}>
+      {/* ── BLOCK 1: Images ────────────────────────────────────────── */}
+      <div style={{ ...blockStyle(false), width: 280 }}>
         <ProductImageGallery
           productId={product.id}
           productName={product.name}
@@ -163,19 +171,33 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         />
       </div>
 
-      {/* ── COLUMN 2: Identity ─────────────────────────────────────── */}
-      <div style={{ minWidth: 0 }}>
+      {/* ── BLOCK 2: Identity ──────────────────────────────────────── */}
+      <div style={{ ...blockStyle(false), width: 280 }}>
         <IdentityCell
           product={product}
           showVariantInline={showVariantInline}
           autoEditVariant={autoFocusVariantForId === product.id}
           onChanged={onChanged}
-          hideDetails
         />
       </div>
 
-      {/* ── COLUMN 3: Specs + Attributes + Includes ───────────────── */}
-      <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* ── BLOCK 3: Attributes + Includes (with Updated) ─────────── */}
+      <div style={{ ...blockStyle(false), width: 260, display: "flex", flexDirection: "column", gap: 8 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontStyle: "italic",
+            color: "#9CA3AF",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {formatUpdated(product.updated_at)}
+        </span>
+        <DetailsGrid product={product} onChanged={onChanged} />
+      </div>
+
+      {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
+      <div style={{ ...blockStyle(false), width: 240, display: "flex", flexDirection: "column", gap: 10 }}>
         {specsIncomplete && (
           <div
             style={{
@@ -201,53 +223,26 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           volumeUnit={lUnit}
           onChanged={onChanged}
         />
-        <DetailsGrid product={product} onChanged={onChanged} />
       </div>
 
-      {/* ── COLUMN 4: Pricing ──────────────────────────────────────── */}
-      <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          {primary.map((slot, i) => (
-            <DecorationBlock
-              key={slot?.id ?? `empty-${i}`}
-              decoration={slot}
-              productId={product.id}
-              nextSortOrder={nextDecoSortOrder + i}
-              onChanged={onChanged}
-            />
-          ))}
+      {/* ── BLOCK 5..N: Pricing — one block per decoration + Add slot ── */}
+      {allDecos.map((d, i) => (
+        <div key={d.id} style={{ ...blockStyle(false), width: 320 }}>
+          <DecorationBlock
+            decoration={d}
+            productId={product.id}
+            nextSortOrder={nextDecoSortOrder + i}
+            onChanged={onChanged}
+          />
         </div>
-        {hasOverflow && (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            style={{
-              alignSelf: "flex-start",
-              background: "transparent",
-              border: "none",
-              padding: 0,
-              color: "#E97817",
-              fontSize: 11,
-              cursor: "pointer",
-            }}
-          >
-            {expanded
-              ? "− hide extra decorations"
-              : `+ ${overflow.length} more decoration${overflow.length === 1 ? "" : "s"}`}
-          </button>
-        )}
-        {expanded && hasOverflow && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {overflow.map((d) => (
-              <DecorationBlock
-                key={d.id}
-                decoration={d}
-                productId={product.id}
-                onChanged={onChanged}
-              />
-            ))}
-          </div>
-        )}
+      ))}
+      <div style={{ ...blockStyle(true), width: 320 }}>
+        <DecorationBlock
+          decoration={null}
+          productId={product.id}
+          nextSortOrder={nextDecoSortOrder + allDecos.length}
+          onChanged={onChanged}
+        />
       </div>
     </div>
   );
