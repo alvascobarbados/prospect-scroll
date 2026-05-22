@@ -561,12 +561,13 @@ const RouteAndTiers = ({
           </div>
         </td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic" style={DIVIDER_L}>—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top">
+        <td className="px-3 py-2 align-top" style={DIVIDER_L}>
           <EditableCell value={String(t.rate)} onSave={(v) => onUpdateTier(t, "rate", v)} />
         </td>
+        <td className="px-3 py-2 align-top" style={LAC_TINT} aria-hidden />
+        <td className="px-3 py-2 align-top" style={LAC_TINT_R} aria-hidden />
         <td className="px-3 py-2 align-top">
           <EditableCell value={t.notes ?? ""} onSave={(v) => onUpdateTier(t, "notes", v)} />
         </td>
