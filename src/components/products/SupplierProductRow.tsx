@@ -198,6 +198,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
       {/* ── BLOCK 2: Identity ──────────────────────────────────────── */}
       <div style={{ ...blockStyle(false), width: 280 }}>
+        <BlockHeader>Product Details</BlockHeader>
         <IdentityCell
           product={product}
           showVariantInline={showVariantInline}
@@ -206,23 +207,35 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         />
       </div>
 
-      {/* ── BLOCK 3: Attributes + Includes (with Updated) ─────────── */}
-      <div style={{ ...blockStyle(false), width: 260, display: "flex", flexDirection: "column", gap: 8 }}>
-        <span
+      {/* ── BLOCK 3: Attributes + Includes ─────────────────────────── */}
+      <div style={{ ...blockStyle(false), width: 260 }}>
+        <div
           style={{
-            fontSize: 11,
-            fontStyle: "italic",
-            color: "#9CA3AF",
-            whiteSpace: "nowrap",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: 8,
+            gap: 8,
           }}
         >
-          {formatUpdated(product.updated_at)}
-        </span>
+          <div style={{ ...BLOCK_HEADER_STYLE, marginBottom: 0 }}>Attributes</div>
+          <span
+            style={{
+              fontSize: 11,
+              fontStyle: "italic",
+              color: "#9CA3AF",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {formatUpdated(product.updated_at)}
+          </span>
+        </div>
         <DetailsGrid product={product} onChanged={onChanged} />
       </div>
 
       {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
-      <div style={{ ...blockStyle(false), width: 240, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ ...blockStyle(false), width: 240 }}>
+        <BlockHeader>Packing &amp; Production</BlockHeader>
         {specsIncomplete && (
           <div
             style={{
@@ -236,6 +249,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
               fontWeight: 500,
               padding: "3px 8px",
               borderRadius: 4,
+              marginBottom: 8,
             }}
             title="Engine-critical specs missing — this product will not be costed until carton pack, dimensions, and weight are filled."
           >
@@ -272,6 +286,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
     </div>
   );
 }
+
 
 // ─── Identity ─────────────────────────────────────────────────────────────
 
