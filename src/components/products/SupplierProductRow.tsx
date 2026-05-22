@@ -94,9 +94,22 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
   const cellStyle = (isLast: boolean): React.CSSProperties => ({
     minWidth: 0,
-    paddingRight: isLast ? 0 : SHEET_COL_GAP,
-    borderRight: isLast ? "none" : "1px solid #E5E7EB",
+    position: "relative",
   });
+  const Divider = () => (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        right: -SHEET_COL_GAP / 2,
+        width: 1,
+        background: "#E5E7EB",
+        pointerEvents: "none",
+      }}
+    />
+  );
 
   return (
     <div
@@ -177,6 +190,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           legacyImageUrl={product.image_url}
           onChanged={onChanged}
         />
+        <Divider />
       </div>
 
       {/* ── BLOCK 2: Identity ──────────────────────────────────────── */}
@@ -187,6 +201,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           autoEditVariant={autoFocusVariantForId === product.id}
           onChanged={onChanged}
         />
+        <Divider />
       </div>
 
       {/* ── BLOCK 3: Product Details (Attributes + Includes) ──────── */}
@@ -210,6 +225,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           </span>
         </div>
         <DetailsGrid product={product} onChanged={onChanged} />
+        <Divider />
       </div>
 
       {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
@@ -240,6 +256,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           volumeUnit={lUnit}
           onChanged={onChanged}
         />
+        <Divider />
       </div>
 
       {/* ── BLOCK 5: Pricing — all decorations stack vertically ──── */}
@@ -397,6 +414,9 @@ function IdentityCell({
 
         <KvLabel>Origin</KvLabel>
         <KvValue>{product.origin?.name ?? "—"}</KvValue>
+
+        <KvLabel>Category</KvLabel>
+        <KvValue>{product.subcategory?.parent?.name ?? "—"}</KvValue>
 
         <KvLabel>Subcategory</KvLabel>
         <KvValue>{product.subcategory?.name ?? "—"}</KvValue>
