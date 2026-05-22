@@ -289,11 +289,12 @@ function IdentityCell({
       </div>
 
       {/* Row 2: variant sub-name (always shown if present) */}
-      {(variantText || showVariantInline) && (
+      {(variantText || showVariantInline || autoEditVariant) && (
         <div style={{ marginTop: 2, marginBottom: 6 }}>
           <InlineText
             value={variantText}
             placeholder="add variant"
+            autoEdit={autoEditVariant}
             onSave={async (next) => {
               const v = next.trim();
               await updateProduct(product.id, { variant_name: v.length ? v : null });
