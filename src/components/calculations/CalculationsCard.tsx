@@ -333,6 +333,8 @@ export function CalculationsCard({ product, routes, settings }: Props) {
     return out;
   }, [calc]);
 
+  const dutyUnset = isDutyUnset(product);
+
   return (
     <div
       style={{
@@ -344,6 +346,26 @@ export function CalculationsCard({ product, routes, settings }: Props) {
       }}
     >
       <SupplierSpine supplierName={supplierName} />
+      {dutyUnset && (
+        <div
+          role="alert"
+          style={{
+            marginLeft: 26,
+            padding: "6px 12px",
+            background: "#FEF3C7",
+            borderBottom: "0.5px solid #F2D9B2",
+            color: "#92400E",
+            fontSize: 11,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span style={{ fontSize: 13 }}>⚠</span>
+          Duty rate not set for "{product.subcategory?.name ?? "subcategory"}" — landed cost is computed with 0% duty and may be understated.
+        </div>
+      )}
       <div
         style={{
           display: "flex",
