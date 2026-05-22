@@ -1,10 +1,10 @@
 /**
  * Shared product types + grouping logic for the Products page.
  *
- * Grouping is driven by `parent_name`: any 2+ products that share the same
- * normalized parent_name (trimmed, lowercased) render as a single Card 102
- * group. Products with no parent_name — or whose parent_name is unique —
- * render as standalone Card 101s.
+ * Variants of the same parent are grouped via `parent_product_id`. Any product
+ * referenced as a parent_product_id by another (or itself referencing a parent)
+ * forms a group, sorted by display_order then variant. Standalones render as
+ * single cards.
  */
 export interface ProductBand {
   id: string;
@@ -72,12 +72,6 @@ export type ListItem =
   | { type: "card"; product: Product }
   | { type: "group"; parentName: string; members: Product[] };
 
-function normalizeKey(s: string | null | undefined): string | null {
-  if (!s) return null;
-  const trimmed = s.trim();
-  return trimmed.length === 0 ? null : trimmed.toLowerCase();
-}
-
 function byDisplayOrderThenVariantThenName(a: Product, b: Product): number {
   const ao = a.display_order ?? Number.MAX_SAFE_INTEGER;
   const bo = b.display_order ?? Number.MAX_SAFE_INTEGER;
@@ -92,39 +86,67 @@ function byProductName(a: Product, b: Product): number {
   return a.name.localeCompare(b.name);
 }
 
+/**
+ * Group products by parent_product_id. The "root" of a group is whichever
+ * product all variants reference (or, if the root is missing, the smallest
+ * common parent_product_id seen).
+ */
 export function buildSupplierProductDataList(products: Product[]): ListItem[] {
+  const byId = new Map<string, Product>(products.map((p) => [p.id, p]));
+
+  // Build groups keyed by the resolved root id.
   const groups = new Map<string, Product[]>();
-  const standalone: Product[] = [];
+
+  const rootOf = (p: Product): string => {
+    // If this product has a parent, that's the root key. Otherwise it's a
+    // potential root itself — only treat as a group root if anyone else points
+    // to it.
+    if (p.parent_product_id && byId.has(p.parent_product_id)) return p.parent_product_id;
+    return p.id;
+  };
+
+  // First pass: count children per potential root.
+  const childCount = new Map<string, number>();
+  for (const p of products) {
+    if (p.parent_product_id && byId.has(p.parent_product_id)) {
+      childCount.set(p.parent_product_id, (childCount.get(p.parent_product_id) ?? 0) + 1);
+    }
+  }
 
   for (const p of products) {
-    const key = normalizeKey(p.parent_name);
-    if (key) {
-      const arr = groups.get(key) ?? [];
+    const root = rootOf(p);
+    // Only group when the root has at least one child OR this product has a parent.
+    const isPartOfGroup =
+      (childCount.get(root) ?? 0) > 0 || (p.parent_product_id && byId.has(p.parent_product_id));
+    if (isPartOfGroup) {
+      const arr = groups.get(root) ?? [];
       arr.push(p);
-      groups.set(key, arr);
-    } else {
-      standalone.push(p);
+      groups.set(root, arr);
     }
   }
 
-  const items: ListItem[] = [];
   const consumed = new Set<string>();
+  const items: ListItem[] = [];
 
-  for (const members of groups.values()) {
-    if (members.length >= 2) {
-      const sorted = [...members].sort(byDisplayOrderThenVariantThenName);
-      const displayName = (sorted[0].parent_name ?? "").trim();
-      items.push({ type: "group", parentName: displayName, members: sorted });
-      sorted.forEach((m) => consumed.add(m.id));
-    }
+  // Emit groups (sorted by parent product name for stable list order).
+  const orderedGroupRoots = Array.from(groups.entries())
+    .filter(([, members]) => members.length >= 2)
+    .sort(([rootA, ma], [rootB, mb]) => {
+      const aName = byId.get(rootA)?.name ?? ma[0]?.name ?? "";
+      const bName = byId.get(rootB)?.name ?? mb[0]?.name ?? "";
+      return aName.localeCompare(bName);
+    });
+
+  for (const [rootId, members] of orderedGroupRoots) {
+    const sorted = [...members].sort(byDisplayOrderThenVariantThenName);
+    const parentName = byId.get(rootId)?.name ?? sorted[0].parent_name ?? sorted[0].name;
+    items.push({ type: "group", parentName, members: sorted });
+    sorted.forEach((m) => consumed.add(m.id));
   }
 
-  const remaining = [
-    ...standalone,
-    ...Array.from(groups.values()).flat().filter((p) => !consumed.has(p.id)),
-  ].sort(byProductName);
-
-  for (const p of remaining) {
+  // Standalones — anything not in a multi-member group.
+  const standalones = products.filter((p) => !consumed.has(p.id)).sort(byProductName);
+  for (const p of standalones) {
     items.push({ type: "card", product: p });
   }
 
