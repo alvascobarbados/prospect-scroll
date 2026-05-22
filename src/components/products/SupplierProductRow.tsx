@@ -255,7 +255,7 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       </div>
 
       {/* ── BLOCK 5: Pricing — all decorations stack vertically ──── */}
-      <div style={cellStyle(true)}>
+      <div style={{ ...cellStyle(true), paddingTop: 14 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {allDecos.map((d, i) => (
             <DecorationBlock
