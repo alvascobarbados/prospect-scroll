@@ -63,10 +63,11 @@ export function IncludesBlock({ productId, rows, onChanged }: IncludesBlockProps
         style={{
           fontSize: 10,
           textTransform: "uppercase",
-          letterSpacing: "0.06em",
+          letterSpacing: "0.08em",
           color: "#6B7280",
-          marginBottom: 4,
+          marginBottom: 8,
           fontWeight: 600,
+          lineHeight: 1.2,
         }}
       >
         Includes

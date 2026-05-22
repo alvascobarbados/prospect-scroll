@@ -22,6 +22,31 @@ import { duplicateProductAsVariant } from "./helpers/duplicateProductAsVariant";
 
 const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
 
+const BLOCK_HEADER_STYLE: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 600,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "#6B7280",
+  marginBottom: 8,
+  lineHeight: 1.2,
+};
+
+function BlockHeader({ children }: { children: React.ReactNode }) {
+  return <div style={BLOCK_HEADER_STYLE}>{children}</div>;
+}
+
+const KV_GRID_STYLE: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "88px 1fr",
+  rowGap: 6,
+  columnGap: 12,
+  fontSize: 12,
+  lineHeight: 1.4,
+  alignItems: "baseline",
+};
+
+
 interface SupplierProductRowProps {
   product: Product;
   /** Inside a variant group, show the variant label more prominently. */
@@ -173,6 +198,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
       {/* ── BLOCK 2: Identity ──────────────────────────────────────── */}
       <div style={{ ...blockStyle(false), width: 280 }}>
+        <BlockHeader>Product Details</BlockHeader>
         <IdentityCell
           product={product}
           showVariantInline={showVariantInline}
@@ -181,23 +207,35 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         />
       </div>
 
-      {/* ── BLOCK 3: Attributes + Includes (with Updated) ─────────── */}
-      <div style={{ ...blockStyle(false), width: 260, display: "flex", flexDirection: "column", gap: 8 }}>
-        <span
+      {/* ── BLOCK 3: Attributes + Includes ─────────────────────────── */}
+      <div style={{ ...blockStyle(false), width: 260 }}>
+        <div
           style={{
-            fontSize: 11,
-            fontStyle: "italic",
-            color: "#9CA3AF",
-            whiteSpace: "nowrap",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: 8,
+            gap: 8,
           }}
         >
-          {formatUpdated(product.updated_at)}
-        </span>
+          <div style={{ ...BLOCK_HEADER_STYLE, marginBottom: 0 }}>Attributes</div>
+          <span
+            style={{
+              fontSize: 11,
+              fontStyle: "italic",
+              color: "#9CA3AF",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {formatUpdated(product.updated_at)}
+          </span>
+        </div>
         <DetailsGrid product={product} onChanged={onChanged} />
       </div>
 
       {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
-      <div style={{ ...blockStyle(false), width: 240, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ ...blockStyle(false), width: 240 }}>
+        <BlockHeader>Packing &amp; Production</BlockHeader>
         {specsIncomplete && (
           <div
             style={{
@@ -211,6 +249,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
               fontWeight: 500,
               padding: "3px 8px",
               borderRadius: 4,
+              marginBottom: 8,
             }}
             title="Engine-critical specs missing — this product will not be costed until carton pack, dimensions, and weight are filled."
           >
@@ -247,6 +286,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
     </div>
   );
 }
+
 
 // ─── Identity ─────────────────────────────────────────────────────────────
 
@@ -328,16 +368,8 @@ function IdentityCell({
       )}
 
       {/* Supplier / Item Number / Origin / Subcategory */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "auto 1fr",
-          gap: "4px 12px",
-          fontSize: 12,
-          lineHeight: 1.4,
-          alignItems: "baseline",
-        }}
-      >
+      <div style={KV_GRID_STYLE}>
+
         <KvLabel>Supplier</KvLabel>
         <KvValue>{product.supplier?.name ?? "—"}</KvValue>
 
@@ -425,15 +457,17 @@ function DetailsGrid({ product, onChanged }: { product: Product; onChanged?: () 
   const includes = product.product_includes ?? [];
 
   return (
-    <div style={{ marginTop: 10 }}>
+    <div>
       {(rows.length > 0 || virtualDefaults.length > 0) && (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "auto 1fr auto",
-            gap: "4px 16px",
+            gridTemplateColumns: "88px 1fr 16px",
+            rowGap: 6,
+            columnGap: 12,
             fontSize: 12,
             lineHeight: 1.4,
+            alignItems: "baseline",
           }}
         >
           {rows.map((d) => (
@@ -456,6 +490,7 @@ function DetailsGrid({ product, onChanged }: { product: Product; onChanged?: () 
           ))}
         </div>
       )}
+
       <div style={{ marginTop: rows.length > 0 || virtualDefaults.length > 0 ? 4 : 0 }}>
         <AddAttributePopover
           productId={product.id}
@@ -682,7 +717,7 @@ function SpecsCell({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: 6,
         fontSize: 13,
         color: "#0E2849",
         lineHeight: 1.3,
@@ -756,11 +791,11 @@ function SpecsCell({
 
 function SpecRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "baseline" }}>
-      <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "#6B7280" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "88px 1fr", columnGap: 12, alignItems: "baseline" }}>
+      <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "#6B7280", lineHeight: 1.4 }}>
         {label}
       </span>
-      <span>{children}</span>
+      <span style={{ fontSize: 13, color: "#0E2849", lineHeight: 1.4 }}>{children}</span>
     </div>
   );
 }
