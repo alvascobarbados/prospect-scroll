@@ -196,8 +196,8 @@ const RouteColumnHeader = ({ label }: { label: string }) => (
   </div>
 );
 
-const BUBBLE_W = 168;
-const ROW_H = 56;
+const BUBBLE_W = 196;
+const ROW_H = 64;
 const BUBBLE_GAP = 6;
 
 interface BubbleProps {
