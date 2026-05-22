@@ -56,6 +56,7 @@ const SETTINGS_KEYS = {
   fxBase: "fx_rate_usd_bbd",
   fxFee: "fx_fee_pct",
   customs: "customs_multiplier",
+  dvf: "dvf",
   kgToLbs: "conversions_kg_to_lbs",
   cbm: "conversions_cbm_divisor",
   vol: "conversions_volumetric_divisor",
