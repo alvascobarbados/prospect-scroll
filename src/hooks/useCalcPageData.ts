@@ -64,11 +64,46 @@ const SETTINGS_KEYS = {
   inToCm: "conversions_in_to_cm",
 } as const;
 
+/** Strict numeric parser for required DB fields. null/""/non-finite → null
+ *  (NEVER 0). The engine treats null as "data error" so callers can never
+ *  silently bill $0 from a missing rate or fee. */
+function parseRequiredNumber(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    if (value.trim() === "") return null;
+    const n = parseFloat(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/** Parser for fields where 0 is a legitimate value (e.g. LAC components).
+ *  Distinguishes 0 from null/unparseable — both 0 and null are returned
+ *  faithfully; the caller decides whether null should warn or pass through. */
+function parseNullableNumber(value: unknown): number | null {
+  return parseRequiredNumber(value);
+}
+
 function numFromSetting(rows: SettingsRow[], key: string, fallback: number): number {
   const row = rows.find((r) => r.key === key);
-  if (!row || row.value == null) return fallback;
+  if (!row) {
+    // eslint-disable-next-line no-console
+    console.warn(`[calc settings] missing app_settings key "${key}" — falling back to ${fallback}`);
+    return fallback;
+  }
+  if (row.value == null) {
+    // eslint-disable-next-line no-console
+    console.warn(`[calc settings] app_settings key "${key}" is NULL — falling back to ${fallback}`);
+    return fallback;
+  }
   const n = parseFloat(row.value);
-  return Number.isFinite(n) ? n : fallback;
+  if (!Number.isFinite(n)) {
+    // eslint-disable-next-line no-console
+    console.warn(`[calc settings] app_settings key "${key}" non-numeric (${row.value}) — falling back to ${fallback}`);
+    return fallback;
+  }
+  return n;
 }
 
 export function useCalcPageData() {
