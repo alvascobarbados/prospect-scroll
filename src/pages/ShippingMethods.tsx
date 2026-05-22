@@ -26,6 +26,7 @@ interface SRoute {
   id: string; shipping_method_id: string;
   origin_id: string; destination_id: string;
   fixed_cost: number; notes: string | null;
+  lac_fixed_bbd: number; lac_per_cbm_bbd: number;
 }
 interface STier {
   id: string; route_id: string;
@@ -144,8 +145,11 @@ export default function ShippingMethodsPage() {
   // ─── Routes ───────────────────────────────────────────────────────────
   const updateRoute = async (row: SRoute, key: keyof SRoute, raw: string) => {
     let value: any = raw.trim();
-    if (key === "fixed_cost") value = numOrZero(raw);
-    else if (key === "origin_id" || key === "destination_id") {
+    if (key === "fixed_cost" || key === "lac_fixed_bbd" || key === "lac_per_cbm_bbd") {
+      const n = numOrZero(raw);
+      if (n < 0) { toast.error("Must be ≥ 0"); return false; }
+      value = n;
+    } else if (key === "origin_id" || key === "destination_id") {
       if (!value) return false;
     } else if (!value) value = null;
     const prev = routes;
@@ -272,6 +276,8 @@ export default function ShippingMethodsPage() {
                   <Th>Fuel %</Th>
                   <Th>Buffer %</Th>
                   <Th>Fixed cost</Th>
+                  <Th>LAC fixed (BBD)</Th>
+                  <Th>LAC/CBM (BBD)</Th>
                   <Th>Rate</Th>
                   <Th>Notes</Th>
                   <Th className="w-8" />
@@ -297,7 +303,7 @@ export default function ShippingMethodsPage() {
                   />
                 ))}
                 {groups.length === 0 && (
-                  <tr><td colSpan={8} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
+                  <tr><td colSpan={10} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
                     {q ? "No matches." : "No methods yet."}
                   </td></tr>
                 )}
