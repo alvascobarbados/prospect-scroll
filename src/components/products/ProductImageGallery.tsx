@@ -219,6 +219,14 @@ export function ProductImageGallery({
         }}
       />
 
+      {updatedAt && (
+        <div style={{ fontSize: 11, fontStyle: "italic", color: "#9CA3AF", marginTop: 2 }}>
+          {formatUpdated(updatedAt)}
+        </div>
+      )}
+
+
+
       {lightboxIdx !== null && images[lightboxIdx] && (
         <Lightbox
           images={images}
