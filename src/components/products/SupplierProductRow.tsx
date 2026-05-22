@@ -317,7 +317,7 @@ function IdentityCell({
             />
           </span>
         </div>
-      ) : showVariantInline ? (
+      ) : (
         <div style={{ marginTop: 2, marginBottom: 6 }}>
           <InlineText
             value=""
@@ -331,7 +331,7 @@ function IdentityCell({
             inputStyle={{ fontSize: 12, color: "#0E2849", minWidth: 100 }}
           />
         </div>
-      ) : null}
+      )}
 
       {/* Code pill + item suffix */}
       <div style={{ display: "inline-flex", alignItems: "center", fontSize: 12, lineHeight: 1.5, marginTop: 2 }}>
