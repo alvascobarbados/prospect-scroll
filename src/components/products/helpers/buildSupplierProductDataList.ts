@@ -1,10 +1,13 @@
 /**
  * Shared product types + grouping logic for the Products page.
  *
- * Variants of the same parent are grouped via `parent_product_id`. Any product
- * referenced as a parent_product_id by another (or itself referencing a parent)
- * forms a group, sorted by display_order then variant. Standalones render as
- * single cards.
+ * GROUPING RULE — pure name-based grouping:
+ *   Two products are grouped IFF they share the same (normalized) primary name
+ *   AND the same supplier. Grouping is a DISPLAY convenience computed at render
+ *   time; there is no stored link. Editing a product's name automatically
+ *   joins / leaves a group with no other action required.
+ *
+ * `parent_product_id` is intentionally ignored as a grouping driver.
  */
 export interface ProductBand {
   id: string;
@@ -70,16 +73,17 @@ export interface Product {
 
 export type ListItem =
   | { type: "card"; product: Product }
-  | { type: "group"; parentName: string; members: Product[] };
+  | { type: "group"; parentName: string; supplierId: string | null; members: Product[] };
 
-function byDisplayOrderThenVariantThenName(a: Product, b: Product): number {
-  const ao = a.display_order ?? Number.MAX_SAFE_INTEGER;
-  const bo = b.display_order ?? Number.MAX_SAFE_INTEGER;
-  if (ao !== bo) return ao - bo;
-  const av = a.variant_name ?? a.variant_label ?? "";
-  const bv = b.variant_name ?? b.variant_label ?? "";
+function normName(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function byVariantThenItem(a: Product, b: Product): number {
+  const av = (a.variant_name ?? a.variant_label ?? "").toLowerCase();
+  const bv = (b.variant_name ?? b.variant_label ?? "").toLowerCase();
   if (av !== bv) return av.localeCompare(bv);
-  return a.name.localeCompare(b.name);
+  return (a.supplier_item_number ?? "").localeCompare(b.supplier_item_number ?? "");
 }
 
 function byProductName(a: Product, b: Product): number {
@@ -87,64 +91,39 @@ function byProductName(a: Product, b: Product): number {
 }
 
 /**
- * Group products by parent_product_id. The "root" of a group is whichever
- * product all variants reference (or, if the root is missing, the smallest
- * common parent_product_id seen).
+ * Group purely by (normalized name + supplier_id). Any (name, supplier) bucket
+ * with ≥2 members renders as a group; single-member buckets render as a
+ * standalone card.
  */
 export function buildSupplierProductDataList(products: Product[]): ListItem[] {
-  const byId = new Map<string, Product>(products.map((p) => [p.id, p]));
-
-  // Build groups keyed by the resolved root id.
-  const groups = new Map<string, Product[]>();
-
-  const rootOf = (p: Product): string => {
-    // If this product has a parent, that's the root key. Otherwise it's a
-    // potential root itself — only treat as a group root if anyone else points
-    // to it.
-    if (p.parent_product_id && byId.has(p.parent_product_id)) return p.parent_product_id;
-    return p.id;
-  };
-
-  // First pass: count children per potential root.
-  const childCount = new Map<string, number>();
+  const buckets = new Map<string, Product[]>();
   for (const p of products) {
-    if (p.parent_product_id && byId.has(p.parent_product_id)) {
-      childCount.set(p.parent_product_id, (childCount.get(p.parent_product_id) ?? 0) + 1);
-    }
+    const key = `${p.supplier?.id ?? "none"}::${normName(p.name)}`;
+    const arr = buckets.get(key) ?? [];
+    arr.push(p);
+    buckets.set(key, arr);
   }
 
-  for (const p of products) {
-    const root = rootOf(p);
-    // Only group when the root has at least one child OR this product has a parent.
-    const isPartOfGroup =
-      (childCount.get(root) ?? 0) > 0 || (p.parent_product_id && byId.has(p.parent_product_id));
-    if (isPartOfGroup) {
-      const arr = groups.get(root) ?? [];
-      arr.push(p);
-      groups.set(root, arr);
-    }
-  }
-
-  const consumed = new Set<string>();
   const items: ListItem[] = [];
 
-  // Emit groups (sorted by parent product name for stable list order).
-  const orderedGroupRoots = Array.from(groups.entries())
+  // Emit groups (≥2 members) in stable name order.
+  const groupEntries = Array.from(buckets.entries())
     .filter(([, members]) => members.length >= 2)
-    .sort(([rootA, ma], [rootB, mb]) => {
-      const aName = byId.get(rootA)?.name ?? ma[0]?.name ?? "";
-      const bName = byId.get(rootB)?.name ?? mb[0]?.name ?? "";
-      return aName.localeCompare(bName);
-    });
+    .sort(([, ma], [, mb]) => ma[0].name.localeCompare(mb[0].name));
 
-  for (const [rootId, members] of orderedGroupRoots) {
-    const sorted = [...members].sort(byDisplayOrderThenVariantThenName);
-    const parentName = byId.get(rootId)?.name ?? sorted[0].parent_name ?? sorted[0].name;
-    items.push({ type: "group", parentName, members: sorted });
+  const consumed = new Set<string>();
+  for (const [, members] of groupEntries) {
+    const sorted = [...members].sort(byVariantThenItem);
+    items.push({
+      type: "group",
+      parentName: sorted[0].name,
+      supplierId: sorted[0].supplier?.id ?? null,
+      members: sorted,
+    });
     sorted.forEach((m) => consumed.add(m.id));
   }
 
-  // Standalones — anything not in a multi-member group.
+  // Standalones — single-member buckets.
   const standalones = products.filter((p) => !consumed.has(p.id)).sort(byProductName);
   for (const p of standalones) {
     items.push({ type: "card", product: p });

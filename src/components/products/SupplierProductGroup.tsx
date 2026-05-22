@@ -1,6 +1,9 @@
 import { Link2 } from "lucide-react";
+import { toast } from "sonner";
 import type { Product } from "./helpers/buildSupplierProductDataList";
 import { SupplierProductRow } from "./SupplierProductRow";
+import { InlineText } from "@/components/inline/InlineText";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SupplierProductGroupProps {
   parentName: string;
@@ -12,6 +15,21 @@ interface SupplierProductGroupProps {
 
 export function SupplierProductGroup({ parentName, members, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductGroupProps) {
   const count = members.length;
+
+  const renameAll = async (next: string) => {
+    const v = next.trim();
+    if (!v) throw new Error("Name required");
+    if (v === parentName) return;
+    const ids = members.map((m) => m.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from("products").update({ name: v } as any).in("id", ids));
+    if (error) {
+      toast.error(`Failed to rename: ${error.message}`);
+      throw new Error(error.message);
+    }
+    toast.success(`Renamed ${ids.length} variants`);
+    onChanged?.();
+  };
 
   return (
     <div
@@ -35,10 +53,14 @@ export function SupplierProductGroup({ parentName, members, autoFocusVariantForI
         }}
       >
         <Link2 size={13} />
-        <span>
-          <strong style={{ color: "#0E2849", fontWeight: 600, fontSize: 13 }}>{parentName}</strong>{" "}
-          · {count} linked variants
-        </span>
+        <InlineText
+          value={parentName}
+          onSave={renameAll}
+          validate={(v) => (v.trim().length === 0 ? "Name required" : null)}
+          style={{ color: "#0E2849", fontWeight: 600, fontSize: 13 }}
+          inputStyle={{ color: "#0E2849", fontWeight: 600, fontSize: 13, minWidth: 200 }}
+        />
+        <span>· {count} variants</span>
         <span
           style={{
             marginLeft: "auto",
@@ -51,8 +73,9 @@ export function SupplierProductGroup({ parentName, members, autoFocusVariantForI
             borderRadius: 999,
             fontWeight: 500,
           }}
+          title="Grouped by shared name + supplier. Edit a card's name to remove it from the group."
         >
-          Associated
+          Grouped
         </span>
       </div>
 
