@@ -134,6 +134,11 @@ export default function ShippingMethodsPage() {
       if (!value) { toast.error("Name is required"); return false; }
     } else if (key === "fuel_surcharge_pct" || key === "buffer_pct") {
       value = numOrZero(raw);
+    } else if (key === "chargeable_metric") {
+      const allowed = ["ACTUAL_WEIGHT","VOLUMETRIC_WEIGHT","CHARGEABLE_WEIGHT","VOLUME"];
+      if (!allowed.includes(value)) { toast.error("Invalid chargeable metric"); return false; }
+    } else if (key === "chargeable_unit") {
+      if (!value) { toast.error("Unit is required"); return false; }
     } else if (!value) value = null;
     const prev = methods;
     setMethods((ms) => ms.map((m) => (m.id === row.id ? { ...m, [key]: value } as SMethod : m)));
