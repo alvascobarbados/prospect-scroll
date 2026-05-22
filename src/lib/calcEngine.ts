@@ -268,8 +268,8 @@ export function computeProductCalc(
         const lacAmt = route.lacFixedBbd + totalCbm * route.lacPerCbmBbd;
         // CASH path — uses effectiveFx (includes FX fee)
         const ldfAmt = cifAmt * effectiveFx + lacAmt;
-        // CUSTOMS path — uses customsMultiplier ONLY (never FX, never fee)
-        const dutyAmt = cifAmt * settings.customsMultiplier * product.dutyRate;
+        // CUSTOMS path — uses customsMultiplier × DVF ONLY (never FX, never fee)
+        const dutyAmt = cifAmt * settings.customsMultiplier * settings.dvf * product.dutyRate;
         const ldpAmt = ldfAmt + dutyAmt;
         bbOutputs[route.id] = {
           active: true,
