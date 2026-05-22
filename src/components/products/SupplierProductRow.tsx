@@ -333,12 +333,8 @@ function IdentityCell({
   const subcategoryOptionsAll = allCategories
     .filter((c) => c.parent_id != null)
     .sort(byCategoryCode);
-  const subcategoryOptionsScoped = currentCategoryId
-    ? subcategoryOptionsAll.filter((c) => c.parent_id === currentCategoryId)
-    : subcategoryOptionsAll;
 
-  // Origins / suppliers — sorted by name.
-  const originOptions = [...origins].sort((a, b) => a.name.localeCompare(b.name));
+  // Suppliers — sorted by name.
   const supplierOptions = [...suppliers].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
