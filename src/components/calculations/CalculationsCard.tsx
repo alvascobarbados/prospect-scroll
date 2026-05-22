@@ -666,7 +666,7 @@ const OutputColumn = ({
   columns: { id: string; label: string }[];
   children: React.ReactNode;
 }) => (
-  <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, background: AMBER_BG }}>
+  <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, background: AMBER_BG, flexShrink: 0 }}>
     <BlockHeader title={label} currency="USD" tag="output" />
     <div style={{ display: "flex", gap: BUBBLE_GAP, marginBottom: 4 }}>
       {columns.map((c) => (
