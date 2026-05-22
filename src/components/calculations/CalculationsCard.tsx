@@ -170,7 +170,7 @@ const BlockHeader = ({
   tag: "built" | "new" | "output";
 }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, whiteSpace: "nowrap" }}>
-    <span style={{ fontSize: 11, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+    <span style={{ fontSize: 14, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em" }}>
       {title}
     </span>
     <Tag kind={tag}>{tag}</Tag>
