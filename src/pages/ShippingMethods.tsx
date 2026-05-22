@@ -47,6 +47,7 @@ interface SRoute {
   origin_id: string; destination_id: string;
   fixed_cost: number; notes: string | null;
   lac_fixed_bbd: number; lac_per_cbm_bbd: number;
+  include_inland_freight: boolean;
 }
 interface STier {
   id: string; route_id: string;
