@@ -89,6 +89,7 @@ export function DecorationBlock({
 
   const bands = [...decoration.product_decoration_bands].sort((a, b) => a.qty - b.qty);
   const nextBandQty = (bands.at(-1)?.qty ?? 0) + 1;
+  const groundOn = bands.some((b) => b.inland_freight_usd != null && b.inland_freight_usd !== "");
 
   const removeDecoration = async () => {
     if (!window.confirm("Remove this decoration and all its pricing tiers?")) return;
@@ -114,6 +115,17 @@ export function DecorationBlock({
       toast.error(`Failed to add tier: ${error.message}`);
       return;
     }
+    onChanged?.();
+  };
+
+  const toggleGround = async () => {
+    const next = groundOn ? null : 0;
+    const ids = bands.map((b) => b.id);
+    const { error } = await supabase
+      .from("product_decoration_bands")
+      .update({ inland_freight_usd: next } as any)
+      .in("id", ids);
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
     onChanged?.();
   };
 
