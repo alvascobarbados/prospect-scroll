@@ -161,6 +161,7 @@ export function useCalcPageData() {
             bufferPct: (Number(m.buffer_pct) || 0) / 100,
             lacFixedBbd: Number(r.lac_fixed_bbd) || 0,
             lacPerCbmBbd: Number(r.lac_per_cbm_bbd) || 0,
+            includeInlandFreight: r.include_inland_freight === true,
             tiers,
             sortOrder: methodSortRank(m.code) * 1000,
           } as RouteInput;
