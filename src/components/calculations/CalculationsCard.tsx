@@ -423,7 +423,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
               {calc.rows.map((row, i) => (
                 <Bubble key={i} amber>
                   <div style={{ fontWeight: 600 }}>{formatMoney(row.spec.productTotalUsd)}</div>
-                  <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(row.spec.fobUnitUsd)} /u</div>
+                  <div style={{ fontSize: 12, opacity: 0.75 }}>{formatMoney(row.spec.fobUnitUsd)} /u</div>
                 </Bubble>
               ))}
             </OutputColumn>
@@ -441,7 +441,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   return (
                     <Bubble key={route.id} gray>
                       <div style={{ textAlign: "center" }}>{EM}</div>
-                      <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
+                      <div style={{ fontSize: 11, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
                     </Bubble>
                   );
                 }
@@ -453,10 +453,10 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                 const selected = selectedByRow[i] === route.id;
                 return (
                   <Bubble key={route.id} selected={selected}>
-                    <div style={{ fontSize: 10, color: "#6B7280", lineHeight: 1.3 }}>
+                    <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.3 }}>
                       {formatNumber(c.applied, 2)} {route.rateUnit} · {tierLabel} @ {formatMoney({ amount: c.tier!.rateUsd, currency: "USD" })}
                     </div>
-                    <div style={{ fontSize: 10, color: "#374151", lineHeight: 1.3 }}>
+                    <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.3 }}>
                       ({formatMoney({ amount: route.baseFeeUsd, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })})
                       {surchargeStr} = <strong>{formatMoney(c.transportUsd)}</strong>
                     </div>
@@ -487,7 +487,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                 return (
                   <Bubble key={route.id} amber selected={selected}>
                     <div style={{ fontWeight: 600 }}>{formatMoney(c.cifUsd)}</div>
-                    <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(c.cifUnitUsd)} /u</div>
+                    <div style={{ fontSize: 12, opacity: 0.75 }}>{formatMoney(c.cifUnitUsd)} /u</div>
                   </Bubble>
                 );
               }}
@@ -508,17 +508,17 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                     return (
                       <Bubble key={route.id} gray>
                         <div style={{ textAlign: "center" }}>{EM}</div>
-                        <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
+                        <div style={{ fontSize: 11, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
                       </Bubble>
                     );
                   }
                   const selected = selectedByRow[i] === route.id;
                   return (
                     <Bubble key={route.id} selected={selected}>
-                      <div style={{ fontSize: 10, color: "#6B7280", lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.3 }}>
                         {formatMoney({ amount: route.lacFixedBbd, currency: "BBD" })} + {formatNumber(row.spec.totalCbm, 5)} × {formatMoney({ amount: route.lacPerCbmBbd, currency: "BBD" })}
                       </div>
-                      <div style={{ fontSize: 11, fontWeight: 600 }}>{formatMoney(c.lacBbd)}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{formatMoney(c.lacBbd)}</div>
                     </Bubble>
                   );
                 }}
@@ -549,7 +549,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   return (
                     <Bubble key={route.id} amber selected={selected}>
                       <div style={{ fontWeight: 600 }}>{formatMoney(c.ldfBbd)}</div>
-                      <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(c.ldfUnitBbd)} /u</div>
+                      <div style={{ fontSize: 12, opacity: 0.75 }}>{formatMoney(c.ldfUnitBbd)} /u</div>
                     </Bubble>
                   );
                 }}
@@ -578,12 +578,12 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   const selected = selectedByRow[i] === route.id;
                   return (
                     <Bubble key={route.id} selected={selected} amber={dutyUnset}>
-                      <div style={{ fontSize: 10, color: dutyUnset ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 12, color: dutyUnset ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
                         {dutyUnset
                           ? "duty rate not set"
                           : `${formatMoney(t.cifUsd)} × ${formatNumber(settings.customsMultiplier, 1)} × ${formatNumber(productInput!.dutyRate * 100, 0)}%`}
                       </div>
-                      <div style={{ fontSize: 11, fontWeight: 600 }}>{formatMoney(c.dutyBbd)}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{formatMoney(c.dutyBbd)}</div>
                     </Bubble>
                   );
                 }}
@@ -614,7 +614,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   return (
                     <Bubble key={route.id} amber selected={selected}>
                       <div style={{ fontWeight: 700 }}>{formatMoney(c.ldpBbd)}</div>
-                      <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(c.ldpUnitBbd)} /u</div>
+                      <div style={{ fontSize: 12, opacity: 0.75 }}>{formatMoney(c.ldpUnitBbd)} /u</div>
                     </Bubble>
                   );
                 }}
