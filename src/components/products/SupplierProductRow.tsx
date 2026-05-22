@@ -43,6 +43,12 @@ interface SupplierProductRowProps {
   product: Product;
   /** Resolved parent-category name (from in-memory category map). */
   categoryName?: string | null;
+  /** All categories (parents + subcategories) — used to populate inline pickers. */
+  allCategories?: CategoryRowLite[];
+  /** All suppliers — used by the supplier inline picker. */
+  suppliers?: SupplierLite[];
+  /** All origins — used by the origin inline picker. */
+  origins?: OriginLite[];
   /** Inside a variant group, show the variant label more prominently. */
   showVariantInline?: boolean;
   /** When this matches product.id, the variant-label inline editor opens automatically. */
