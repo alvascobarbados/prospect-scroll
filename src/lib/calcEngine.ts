@@ -111,7 +111,14 @@ export type TransportCell =
       applied: number;             // lbs OR CBM
       tier: RouteTier | null;
       tierCostUsd: number;
-      transportPreUsd: number;     // base + tier
+      /** Inland (ground) freight USD added to transportPre. 0 when route
+       *  switch is off OR tier has no value set (see itcMissing). */
+      itcUsd: number;
+      /** TRUE when the route's includeInlandFreight=true but the tier has
+       *  no inlandFreightUsd set — surfaces a visible warning so a
+       *  configured ground leg can't silently under-cost a quote. */
+      itcMissing: boolean;
+      transportPreUsd: number;     // base + tier + itc
       transportUsd: Money;         // after fuel + buffer
       cifUsd: Money;
       cifUnitUsd: Money;
