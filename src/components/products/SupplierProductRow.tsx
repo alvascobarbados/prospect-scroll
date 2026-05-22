@@ -10,12 +10,17 @@ import { AddAttributePopover } from "./AddAttributePopover";
 import { InlineText } from "@/components/inline/InlineText";
 import { InlineNumber } from "@/components/inline/InlineNumber";
 import { InlineNumberGroup } from "@/components/inline/InlineNumberGroup";
+import { InlinePicker } from "@/components/inline/InlinePicker";
 import { ProductImageGallery } from "./ProductImageGallery";
+import { IncludesBlock } from "./IncludesBlock";
+import { useDetailLabels, ensureDetailLabel, type DetailLabel } from "./helpers/useDetailLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { formatLeadTime } from "./helpers/formatLeadTime";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { ProductCardMenu } from "./ProductCardMenu";
 import { duplicateProductAsVariant } from "./helpers/duplicateProductAsVariant";
+
+const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
 
 interface SupplierProductRowProps {
   product: Product;
