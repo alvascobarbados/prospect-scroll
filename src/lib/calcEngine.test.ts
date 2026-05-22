@@ -25,6 +25,7 @@ const settings: Settings = {
   kgToLbs: 2.20462,
   cbmDivisor: 1_000_000,
   volumetricDivisor: 200,
+  inToCm: 2.54,
 };
 
 const product: ProductInput = {

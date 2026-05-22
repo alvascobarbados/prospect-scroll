@@ -29,6 +29,7 @@ export type Settings = {
   kgToLbs: number;                // 2.20462
   cbmDivisor: number;             // 1_000_000
   volumetricDivisor: number;      // 200
+  inToCm: number;                 // 2.54
 };
 
 export type PricingTier = {
@@ -41,10 +42,17 @@ export type ProductInput = {
   id: string;
   origin: string;                 // origin.code (CHINA, USA_MIAMI, ...)
   pcsPerCtn: number;
+  /** Raw carton dimensions in supplier's native unit (cm OR in). Field name
+   *  preserved as `*Cm` for backwards compatibility — the canonical conversion
+   *  happens inside computeProductCalc using `dimensionUnit`. */
   ctnLengthCm: number;
   ctnWidthCm: number;
   ctnHeightCm: number;
+  /** Raw carton weight in supplier's native unit (kg OR lb). */
   wtPerCtnKg: number;
+  /** Supplier-native units for the raw values above. Defaults to metric. */
+  dimensionUnit?: "cm" | "in";
+  weightUnit?: "kg" | "lb";
   dutyRate: number;               // decimal: 0.20 for 20%
   pricingTiers: PricingTier[];
   /** Optional FOB extras (FC/ITC/ED). Defaults all zero. v1 unused. */
@@ -168,13 +176,20 @@ export function computeProductCalc(
     (product.fobExtras?.itcUsd ?? 0) +
     (product.fobExtras?.edUsd ?? 0);
 
+  // Normalize supplier-native carton dimensions/weight to canonical cm/kg ONCE,
+  // up-front. Every downstream formula then runs on canonical units regardless
+  // of whether the supplier ships in metric or imperial.
+  const inToCm = settings.inToCm;
+  const kgToLbs = settings.kgToLbs;
+  const lenCm = product.dimensionUnit === "in" ? product.ctnLengthCm * inToCm : product.ctnLengthCm;
+  const widCm = product.dimensionUnit === "in" ? product.ctnWidthCm * inToCm : product.ctnWidthCm;
+  const hgtCm = product.dimensionUnit === "in" ? product.ctnHeightCm * inToCm : product.ctnHeightCm;
+  const wtKg = product.weightUnit === "lb" ? product.wtPerCtnKg / kgToLbs : product.wtPerCtnKg;
+
   const rows: CalcRow[] = product.pricingTiers.map((tier) => {
     const cartons = tier.qty / product.pcsPerCtn;
-    const totalCbm =
-      cartons *
-      ((product.ctnLengthCm * product.ctnWidthCm * product.ctnHeightCm) /
-        settings.cbmDivisor);
-    const totalWeightKg = cartons * product.wtPerCtnKg;
+    const totalCbm = cartons * ((lenCm * widCm * hgtCm) / settings.cbmDivisor);
+    const totalWeightKg = cartons * wtKg;
     const volumetricKg = totalCbm * settings.volumetricDivisor;
     const chargeableKg = Math.max(totalWeightKg, volumetricKg);
     const productTotalAmt = tier.qty * tier.unitUsd + tier.setupUsd + fobExtras;

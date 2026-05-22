@@ -28,7 +28,7 @@ export interface CalcPageProduct {
   production_days_max: number | null;
   moq: number | null;
   subcategory: { id: string; name: string; duty_rate_pct: number | string | null } | null;
-  supplier: { id: string; code: string | null; name: string; unit_system: "metric" | "imperial" | null } | null;
+  supplier: { id: string; code: string | null; name: string; unit_system: "metric" | "imperial" | null; dimension_unit: "cm" | "in" | null; weight_unit_v2: "kg" | "lb" | null } | null;
   origin: { id: string; code: string; name: string } | null;
   product_decorations: Array<{
     id: string;
@@ -59,6 +59,7 @@ const SETTINGS_KEYS = {
   kgToLbs: "conversions_kg_to_lbs",
   cbm: "conversions_cbm_divisor",
   vol: "conversions_volumetric_divisor",
+  inToCm: "conversions_in_to_cm",
 } as const;
 
 function numFromSetting(rows: SettingsRow[], key: string, fallback: number): number {
@@ -86,7 +87,7 @@ export function useCalcPageData() {
           carton_pack, carton_length, carton_width, carton_height, carton_weight,
           production_days_min, production_days_max,
           subcategory:product_categories!products_subcategory_id_fkey(id, name, duty_rate_pct),
-          supplier:suppliers(id, code, name, unit_system),
+          supplier:suppliers(id, code, name, unit_system, dimension_unit, weight_unit_v2),
           origin:origins(id, code, name),
           product_decorations(
             id, sort_order,
@@ -177,6 +178,7 @@ export function useCalcPageData() {
         kgToLbs: numFromSetting(s, SETTINGS_KEYS.kgToLbs, 2.20462),
         cbmDivisor: numFromSetting(s, SETTINGS_KEYS.cbm, 1_000_000),
         volumetricDivisor: numFromSetting(s, SETTINGS_KEYS.vol, 200),
+        inToCm: numFromSetting(s, SETTINGS_KEYS.inToCm, 2.54),
       });
     })();
     return () => {
