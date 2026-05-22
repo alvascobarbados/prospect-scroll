@@ -22,6 +22,31 @@ import { duplicateProductAsVariant } from "./helpers/duplicateProductAsVariant";
 
 const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
 
+const BLOCK_HEADER_STYLE: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 600,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "#6B7280",
+  marginBottom: 8,
+  lineHeight: 1.2,
+};
+
+function BlockHeader({ children }: { children: React.ReactNode }) {
+  return <div style={BLOCK_HEADER_STYLE}>{children}</div>;
+}
+
+const KV_GRID_STYLE: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "88px 1fr",
+  rowGap: 6,
+  columnGap: 12,
+  fontSize: 12,
+  lineHeight: 1.4,
+  alignItems: "baseline",
+};
+
+
 interface SupplierProductRowProps {
   product: Product;
   /** Inside a variant group, show the variant label more prominently. */
