@@ -518,6 +518,7 @@ const MethodGroup = ({
             destinations={destinations}
             oCode={oCode}
             dCode={dCode}
+            chargeableUnit={method.chargeable_unit}
             onUpdateRoute={onUpdateRoute}
             onUpdateTier={onUpdateTier}
             onAddTier={() => onAddTier(r.id)}
