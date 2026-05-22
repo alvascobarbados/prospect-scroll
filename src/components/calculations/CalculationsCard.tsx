@@ -407,7 +407,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   return (
                     <Bubble key={route.id} gray>
                       <div style={{ textAlign: "center" }}>{EM}</div>
-                      <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "center" }}>{c.reason}</div>
+                      <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
                     </Bubble>
                   );
                 }
@@ -474,7 +474,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                     return (
                       <Bubble key={route.id} gray>
                         <div style={{ textAlign: "center" }}>{EM}</div>
-                        <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "center" }}>{c.reason}</div>
+                        <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
                       </Bubble>
                     );
                   }
