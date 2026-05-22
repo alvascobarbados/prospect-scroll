@@ -187,7 +187,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
       />
 
       {/* ── BLOCK 1: Images ────────────────────────────────────────── */}
-      <div style={{ ...blockStyle(false), width: 280 }}>
+      <div style={{ ...blockStyle(false), width: "auto" }}>
         <ProductImageGallery
           productId={product.id}
           productName={product.name}
@@ -196,9 +196,8 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         />
       </div>
 
-      {/* ── BLOCK 2: Identity ──────────────────────────────────────── */}
+      {/* ── BLOCK 2: Identity (no header) ──────────────────────────── */}
       <div style={{ ...blockStyle(false), width: 280 }}>
-        <BlockHeader>Product Details</BlockHeader>
         <IdentityCell
           product={product}
           showVariantInline={showVariantInline}
@@ -207,7 +206,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         />
       </div>
 
-      {/* ── BLOCK 3: Attributes + Includes ─────────────────────────── */}
+      {/* ── BLOCK 3: Product Details (Attributes + Includes) ──────── */}
       <div style={{ ...blockStyle(false), width: 260 }}>
         <div
           style={{
@@ -218,7 +217,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
             gap: 8,
           }}
         >
-          <div style={{ ...BLOCK_HEADER_STYLE, marginBottom: 0 }}>Attributes</div>
+          <div style={{ ...BLOCK_HEADER_STYLE, marginBottom: 0 }}>Product Details</div>
           <span
             style={{
               fontSize: 11,
@@ -265,17 +264,22 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
       </div>
 
       {/* ── BLOCK 5..N: Pricing — one block per decoration + Add slot ── */}
-      {allDecos.map((d, i) => (
-        <div key={d.id} style={{ ...blockStyle(false), width: 320 }}>
-          <DecorationBlock
-            decoration={d}
-            productId={product.id}
-            nextSortOrder={nextDecoSortOrder + i}
-            onChanged={onChanged}
-          />
-        </div>
-      ))}
+      {allDecos.map((d, i) => {
+        const isLast = i === allDecos.length - 1 && allDecos.length > 0 && false; // Add slot follows
+        return (
+          <div key={d.id} style={{ ...blockStyle(isLast), width: 320 }}>
+            {i === 0 && <BlockHeader>Pricing</BlockHeader>}
+            <DecorationBlock
+              decoration={d}
+              productId={product.id}
+              nextSortOrder={nextDecoSortOrder + i}
+              onChanged={onChanged}
+            />
+          </div>
+        );
+      })}
       <div style={{ ...blockStyle(true), width: 320 }}>
+        {allDecos.length === 0 && <BlockHeader>Pricing</BlockHeader>}
         <DecorationBlock
           decoration={null}
           productId={product.id}
