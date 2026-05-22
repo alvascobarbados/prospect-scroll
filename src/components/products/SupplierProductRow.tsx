@@ -87,10 +87,12 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
       onMouseLeave={() => setHovered(false)}
       style={{
         display: "grid",
-        gridTemplateColumns: "minmax(440px, 1.5fr) minmax(220px, 1fr) minmax(420px, 2fr)",
-        gap: 28,
+        gridTemplateColumns:
+          "minmax(280px, 320px) minmax(280px, 1.1fr) minmax(280px, 1.1fr) minmax(420px, 2fr)",
+        gap: 24,
         padding: "20px 22px",
         position: "relative",
+        alignItems: "start",
       }}
     >
       <div
@@ -151,23 +153,34 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         onCancel={() => !deleting && setConfirmDelete(false)}
       />
 
-      {/* ── BLOCK 1: Identity ──────────────────────────────────────── */}
-      <div style={{ display: "flex", gap: 14, minWidth: 0 }}>
+      {/* ── COLUMN 1: Images ───────────────────────────────────────── */}
+      <div style={{ minWidth: 0 }}>
         <ProductImageGallery
           productId={product.id}
           productName={product.name}
           legacyImageUrl={product.image_url}
           onChanged={onChanged}
         />
-        <IdentityCell product={product} showVariantInline={showVariantInline} autoEditVariant={autoFocusVariantForId === product.id} onChanged={onChanged} />
       </div>
 
-      {/* ── BLOCK 2: Specs ─────────────────────────────────────────── */}
+      {/* ── COLUMN 2: Identity ─────────────────────────────────────── */}
       <div style={{ minWidth: 0 }}>
+        <IdentityCell
+          product={product}
+          showVariantInline={showVariantInline}
+          autoEditVariant={autoFocusVariantForId === product.id}
+          onChanged={onChanged}
+          hideDetails
+        />
+      </div>
+
+      {/* ── COLUMN 3: Specs + Attributes + Includes ───────────────── */}
+      <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
         {specsIncomplete && (
           <div
             style={{
               display: "inline-flex",
+              alignSelf: "flex-start",
               alignItems: "center",
               gap: 6,
               background: "#FEF3E2",
@@ -176,7 +189,6 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
               fontWeight: 500,
               padding: "3px 8px",
               borderRadius: 4,
-              marginBottom: 8,
             }}
             title="Engine-critical specs missing — this product will not be costed until carton pack, dimensions, and weight are filled."
           >
@@ -189,9 +201,10 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           volumeUnit={lUnit}
           onChanged={onChanged}
         />
+        <DetailsGrid product={product} onChanged={onChanged} />
       </div>
 
-      {/* ── BLOCK 3: Pricing ───────────────────────────────────────── */}
+      {/* ── COLUMN 4: Pricing ──────────────────────────────────────── */}
       <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {primary.map((slot, i) => (
@@ -247,11 +260,13 @@ function IdentityCell({
   showVariantInline,
   autoEditVariant,
   onChanged,
+  hideDetails,
 }: {
   product: Product;
   showVariantInline: boolean;
   autoEditVariant?: boolean;
   onChanged?: () => void;
+  hideDetails?: boolean;
 }) {
   const code = product.supplier?.code ?? null;
   const itemSuffix = stripCodePrefix(product.supplier_item_number, code);
@@ -399,8 +414,8 @@ function IdentityCell({
         <KvValue>{product.origin?.name ?? "—"}</KvValue>
       </div>
 
-      {/* Details grid */}
-      <DetailsGrid product={product} onChanged={onChanged} />
+      {/* Details grid (rendered in column 3 when hideDetails) */}
+      {!hideDetails && <DetailsGrid product={product} onChanged={onChanged} />}
     </div>
   );
 }
