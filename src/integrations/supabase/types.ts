@@ -397,6 +397,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          inland_freight_usd: number | null
           product_decoration_id: string
           qty: number
           setup_cost: number
@@ -406,6 +407,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          inland_freight_usd?: number | null
           product_decoration_id: string
           qty: number
           setup_cost?: number
@@ -415,6 +417,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          inland_freight_usd?: number | null
           product_decoration_id?: string
           qty?: number
           setup_cost?: number
@@ -998,6 +1001,7 @@ export type Database = {
           destination_id: string
           fixed_cost: number
           id: string
+          include_inland_freight: boolean
           lac_fixed_bbd: number
           lac_per_cbm_bbd: number
           notes: string | null
@@ -1010,6 +1014,7 @@ export type Database = {
           destination_id: string
           fixed_cost?: number
           id?: string
+          include_inland_freight?: boolean
           lac_fixed_bbd?: number
           lac_per_cbm_bbd?: number
           notes?: string | null
@@ -1022,6 +1027,7 @@ export type Database = {
           destination_id?: string
           fixed_cost?: number
           id?: string
+          include_inland_freight?: boolean
           lac_fixed_bbd?: number
           lac_per_cbm_bbd?: number
           notes?: string | null
