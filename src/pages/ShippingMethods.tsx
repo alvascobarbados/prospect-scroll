@@ -17,10 +17,30 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { EditableCell } from "@/components/leads/SimpleMasterPage";
 import { supabase } from "@/integrations/supabase/client";
 
+type ChargeableMetric = "ACTUAL_WEIGHT" | "VOLUMETRIC_WEIGHT" | "CHARGEABLE_WEIGHT" | "VOLUME";
+
+const METRIC_LABEL: Record<ChargeableMetric, string> = {
+  ACTUAL_WEIGHT: "Actual Weight",
+  VOLUMETRIC_WEIGHT: "Volumetric Weight",
+  CHARGEABLE_WEIGHT: "Chargeable Weight",
+  VOLUME: "Volume",
+};
+
+/** Singular form of a unit for "per <unit>" labels (e.g. lbs → lb, CBM → CBM). */
+const unitSingular = (u: string) => {
+  const t = u.trim();
+  if (!t) return t;
+  if (t.toLowerCase() === "lbs") return "lb";
+  if (t.toLowerCase() === "kgs") return "kg";
+  return t;
+};
+
 interface SMethod {
   id: string; code: string; name: string;
   fuel_surcharge_pct: number; buffer_pct: number;
   notes: string | null;
+  chargeable_metric: ChargeableMetric;
+  chargeable_unit: string;
 }
 interface SRoute {
   id: string; shipping_method_id: string;
