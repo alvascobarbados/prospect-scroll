@@ -267,20 +267,43 @@ export default function ShippingMethodsPage() {
               style={{ minHeight: 48 }} />
           </div>
 
-          <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
-            <table className="w-full text-[13px] border-collapse">
+          <div className="rounded-2xl border border-border/60 bg-card overflow-x-auto">
+            <table className="w-full text-[13px] border-collapse" style={{ minWidth: 1100 }}>
               <thead>
+                <tr style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.06)", background: "hsl(var(--brand-navy) / 0.03)" }}>
+                  <Th rowSpan={2}>Code / Route / Band</Th>
+                  <Th rowSpan={2}>Name / From → To</Th>
+                  <Th rowSpan={2}>Fuel %</Th>
+                  <Th rowSpan={2} divider>Buffer %</Th>
+                  <Th rowSpan={2}>Fixed cost</Th>
+                  <Th rowSpan={2} divider>Rate</Th>
+                  <th
+                    colSpan={2}
+                    className="text-center text-[10px] uppercase tracking-[0.18em] font-semibold px-3 pt-2.5 pb-1"
+                    style={{
+                      color: "hsl(var(--brand-navy) / 0.7)",
+                      background: "rgba(229, 234, 241, 0.6)",
+                      borderRight: "1px solid hsl(var(--brand-navy) / 0.12)",
+                    }}
+                  >
+                    LAC (BBD)
+                  </th>
+                  <Th rowSpan={2}>Notes</Th>
+                  <th rowSpan={2} className="w-8" />
+                </tr>
                 <tr style={{ borderBottom: "1px solid hsl(var(--brand-navy) / 0.1)", background: "hsl(var(--brand-navy) / 0.03)" }}>
-                  <Th>Code / Route / Band</Th>
-                  <Th>Name / From → To</Th>
-                  <Th>Fuel %</Th>
-                  <Th>Buffer %</Th>
-                  <Th>Fixed cost</Th>
-                  <Th>LAC fixed (BBD)</Th>
-                  <Th>LAC/CBM (BBD)</Th>
-                  <Th>Rate</Th>
-                  <Th>Notes</Th>
-                  <Th className="w-8" />
+                  <th
+                    className="text-left text-[10px] uppercase tracking-[0.14em] font-medium px-3 pb-2"
+                    style={{ color: "hsl(var(--brand-navy) / 0.55)", background: "rgba(229, 234, 241, 0.6)" }}
+                  >
+                    Fixed
+                  </th>
+                  <th
+                    className="text-left text-[10px] uppercase tracking-[0.14em] font-medium px-3 pb-2"
+                    style={{ color: "hsl(var(--brand-navy) / 0.55)", background: "rgba(229, 234, 241, 0.6)", borderRight: "1px solid hsl(var(--brand-navy) / 0.12)" }}
+                  >
+                    Per CBM
+                  </th>
                 </tr>
               </thead>
               <tbody>
