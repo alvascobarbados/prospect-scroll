@@ -5,6 +5,7 @@ import { SHEET_GRID_TEMPLATE, SHEET_COL_GAP, SHEET_ROW_PADDING } from "./helpers
 
 interface SupplierProductDataListProps {
   items: ListItem[];
+  categoryById?: Map<string, { name: string; parentId: string | null }>;
   autoFocusVariantForId?: string | null;
   onChanged?: () => void;
   onDuplicated?: (newId: string) => void;
@@ -44,7 +45,7 @@ function SheetHeader() {
   );
 }
 
-export function SupplierProductDataList({ items, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductDataListProps) {
+export function SupplierProductDataList({ items, categoryById, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductDataListProps) {
   if (items.length === 0) {
     return (
       <div style={{ padding: "48px 0", color: "#9CA3AF", fontSize: 13 }}>
@@ -52,6 +53,12 @@ export function SupplierProductDataList({ items, autoFocusVariantForId, onChange
       </div>
     );
   }
+  const resolveCategory = (subId: string | null | undefined): string | null => {
+    if (!subId || !categoryById) return null;
+    const sub = categoryById.get(subId);
+    if (!sub?.parentId) return null;
+    return categoryById.get(sub.parentId)?.name ?? null;
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       <SheetHeader />
@@ -61,6 +68,7 @@ export function SupplierProductDataList({ items, autoFocusVariantForId, onChange
             <SupplierProductCard
               key={item.product.id}
               product={item.product}
+              categoryName={resolveCategory(item.product.subcategory?.id)}
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
               onDuplicated={onDuplicated}
@@ -70,6 +78,7 @@ export function SupplierProductDataList({ items, autoFocusVariantForId, onChange
               key={`group:${item.supplierId ?? "none"}:${item.parentName}`}
               parentName={item.parentName}
               members={item.members}
+              resolveCategory={resolveCategory}
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
               onDuplicated={onDuplicated}
