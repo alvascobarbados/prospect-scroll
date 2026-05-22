@@ -177,25 +177,42 @@ export function useCalcPageData() {
           const tiers = tierRows
             .filter((t: any) => t.route_id === r.id)
             .map((t: any) => ({
-              from: Number(t.band_from) || 0,
-              to: t.band_to == null ? null : Number(t.band_to),
-              rateUsd: Number(t.rate) || 0,
+              from: parseRequiredNumber(t.band_from) ?? 0,
+              to: t.band_to == null ? null : parseRequiredNumber(t.band_to),
+              // Required: a NULL/unparseable rate must NOT collapse to 0.
+              // The engine treats null as "invalid data" and refuses to bill.
+              rateUsd: parseRequiredNumber(t.rate),
             }));
-          // Imperial-system methods use lbs; rest CBM. Heuristic: DHL/courier=lbs, Ocean=CBM.
-          // Use method code: any "OCEAN" → CBM, everything else → lbs.
-          const rateUnit: "lbs" | "CBM" = m.code.toUpperCase() === "OCEAN" ? "CBM" : "lbs";
+          // Chargeable basis comes from shipping_methods.chargeable_metric +
+          // chargeable_unit — NEVER from the method code string.
+          const chargeableMetric =
+            (m.chargeable_metric as "ACTUAL_WEIGHT" | "VOLUMETRIC_WEIGHT" | "CHARGEABLE_WEIGHT" | "VOLUME") ?? "CHARGEABLE_WEIGHT";
+          const chargeableUnit = (m.chargeable_unit as string) ?? "lbs";
+          const baseFee = parseRequiredNumber(r.fixed_cost);
+          const lacFixed = parseNullableNumber(r.lac_fixed_bbd);
+          const lacPerCbm = parseNullableNumber(r.lac_per_cbm_bbd);
+          if (lacFixed == null) {
+            // eslint-disable-next-line no-console
+            console.warn(`[calc routes] route ${code} has NULL lac_fixed_bbd — treating as 0; fix in DB.`);
+          }
+          if (lacPerCbm == null) {
+            // eslint-disable-next-line no-console
+            console.warn(`[calc routes] route ${code} has NULL lac_per_cbm_bbd — treating as 0; fix in DB.`);
+          }
           return {
             id: r.id,
             code,
             methodCode: m.code,
-            rateUnit,
+            chargeableMetric,
+            chargeableUnit,
             origin: o.code,
             destination: d.code,
-            baseFeeUsd: Number(r.fixed_cost) || 0,
-            fuelPct: (Number(m.fuel_surcharge_pct) || 0) / 100,
-            bufferPct: (Number(m.buffer_pct) || 0) / 100,
-            lacFixedBbd: Number(r.lac_fixed_bbd) || 0,
-            lacPerCbmBbd: Number(r.lac_per_cbm_bbd) || 0,
+            // baseFeeUsd can be null → engine flags route as "invalid data".
+            baseFeeUsd: baseFee,
+            fuelPct: (parseRequiredNumber(m.fuel_surcharge_pct) ?? 0) / 100,
+            bufferPct: (parseRequiredNumber(m.buffer_pct) ?? 0) / 100,
+            lacFixedBbd: lacFixed ?? 0,
+            lacPerCbmBbd: lacPerCbm ?? 0,
             includeInlandFreight: r.include_inland_freight === true,
             tiers,
             sortOrder: methodSortRank(m.code) * 1000,
