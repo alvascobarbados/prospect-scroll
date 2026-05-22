@@ -575,9 +575,11 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   }
                   const selected = selectedByRow[i] === route.id;
                   return (
-                    <Bubble key={route.id} selected={selected}>
-                      <div style={{ fontSize: 10, color: "#6B7280", lineHeight: 1.3 }}>
-                        {formatMoney(t.cifUsd)} × {formatNumber(settings.customsMultiplier, 1)} × {formatNumber(productInput!.dutyRate * 100, 0)}%
+                    <Bubble key={route.id} selected={selected} amber={dutyUnset}>
+                      <div style={{ fontSize: 10, color: dutyUnset ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
+                        {dutyUnset
+                          ? "duty rate not set"
+                          : `${formatMoney(t.cifUsd)} × ${formatNumber(settings.customsMultiplier, 1)} × ${formatNumber(productInput!.dutyRate * 100, 0)}%`}
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 600 }}>{formatMoney(c.dutyBbd)}</div>
                     </Bubble>
