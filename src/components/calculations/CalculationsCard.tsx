@@ -464,13 +464,18 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                 const surchargeMul = (1 + route.fuelPct) * (1 + route.bufferPct);
                 const surchargeStr = surchargeMul === 1 ? "" : ` × ${formatNumber(surchargeMul, 2)}`;
                 const selected = selectedByRow[i] === route.id;
+                const itcStr = c.itcUsd > 0
+                  ? ` + ${formatMoney({ amount: c.itcUsd, currency: "USD" })} ground`
+                  : "";
                 return (
-                  <Bubble key={route.id} selected={selected}>
-                    <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.3 }}>
-                      {formatNumber(c.applied, 2)} {route.rateUnit} · {tierLabel} @ {formatMoney({ amount: c.tier!.rateUsd, currency: "USD" })}
+                  <Bubble key={route.id} selected={selected} amber={c.itcMissing}>
+                    <div style={{ fontSize: 12, color: c.itcMissing ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
+                      {c.itcMissing
+                        ? "⚠ inland freight not set"
+                        : `${formatNumber(c.applied, 2)} ${route.rateUnit} · ${tierLabel} @ ${formatMoney({ amount: c.tier!.rateUsd, currency: "USD" })}`}
                     </div>
                     <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.3 }}>
-                      ({formatMoney({ amount: route.baseFeeUsd, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })})
+                      ({formatMoney({ amount: route.baseFeeUsd, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })}{itcStr})
                       {surchargeStr} = <strong>{formatMoney(c.transportUsd)}</strong>
                     </div>
                   </Bubble>
@@ -478,6 +483,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
               }}
               ROW_H={86}
             />
+
 
             {/* ─── CIF (amber output, USD) ─── */}
             <RouteColumnBlock
