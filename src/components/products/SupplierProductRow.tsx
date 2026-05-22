@@ -65,7 +65,7 @@ async function updateProduct(id: string, patch: Record<string, unknown>) {
   if (error) throw new Error(error.message);
 }
 
-export function SupplierProductRow({ product, categoryName, showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
+export function SupplierProductRow({ product, categoryName, allCategories = [], suppliers = [], origins = [], showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
   const [hovered, setHovered] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
