@@ -3,10 +3,12 @@ import { SupplierProductRow } from "./SupplierProductRow";
 
 interface SupplierProductCardProps {
   product: Product;
+  autoFocusVariantForId?: string | null;
   onChanged?: () => void;
+  onDuplicated?: (newId: string) => void;
 }
 
-export function SupplierProductCard({ product, onChanged }: SupplierProductCardProps) {
+export function SupplierProductCard({ product, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductCardProps) {
   return (
     <div
       style={{
@@ -17,7 +19,12 @@ export function SupplierProductCard({ product, onChanged }: SupplierProductCardP
         overflow: "hidden",
       }}
     >
-      <SupplierProductRow product={product} onChanged={onChanged} />
+      <SupplierProductRow
+        product={product}
+        autoFocusVariantForId={autoFocusVariantForId}
+        onChanged={onChanged}
+        onDuplicated={onDuplicated}
+      />
     </div>
   );
 }

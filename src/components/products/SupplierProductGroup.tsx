@@ -5,10 +5,12 @@ import { SupplierProductRow } from "./SupplierProductRow";
 interface SupplierProductGroupProps {
   parentName: string;
   members: Product[];
+  autoFocusVariantForId?: string | null;
   onChanged?: () => void;
+  onDuplicated?: (newId: string) => void;
 }
 
-export function SupplierProductGroup({ parentName, members, onChanged }: SupplierProductGroupProps) {
+export function SupplierProductGroup({ parentName, members, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductGroupProps) {
   const count = members.length;
 
   return (
@@ -58,7 +60,13 @@ export function SupplierProductGroup({ parentName, members, onChanged }: Supplie
         {members.map((m, i) => (
           <div key={m.id}>
             {i > 0 && <div style={{ height: "0.5px", background: "#F1F2F4" }} />}
-            <SupplierProductRow product={m} showVariantInline onChanged={onChanged} />
+            <SupplierProductRow
+              product={m}
+              showVariantInline
+              autoFocusVariantForId={autoFocusVariantForId}
+              onChanged={onChanged}
+              onDuplicated={onDuplicated}
+            />
           </div>
         ))}
       </div>
