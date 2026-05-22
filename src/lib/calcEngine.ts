@@ -9,7 +9,14 @@
  *
  * Two USD→BBD paths that MUST NEVER MIX:
  *   - Cash/landed (CIF→LDF): uses effectiveFx = base × (1 + feePct/100)
- *   - Customs valuation (Duty): uses customsMultiplier (2.0) ONLY
+ *   - Customs valuation (Duty): uses customsMultiplier × DVF ONLY
+ *
+ * Silent-zero safety:
+ *   - dutyRate=null → engine emits dutyMissing=true, NOT a 0 duty.
+ *   - baseFeeUsd=null or matched tier.rateUsd=null → TransportCell is
+ *     active:false with reason "invalid data", NOT a $0 transport.
+ *   These guarantees live in the engine so any caller (card, pricelist)
+ *   inherits the safety automatically.
  *
  * All percent inputs are decimals (0.36 == 36%). The data-loading layer
  * converts DB-stored percent points by /100 before calling the engine.
@@ -28,7 +35,7 @@ export type Settings = {
   customsMultiplier: number;      // 2.0
   /** Declared Value Factor — multiplies the customs valuation INSIDE
    *  the duty path only (never on the cash/LDF path). */
-  dvf: number;                    // e.g. 0.5
+  dvf: number;                    // e.g. 0.5 or 1.0
   kgToLbs: number;                // 2.20462
   cbmDivisor: number;             // 1_000_000
   volumetricDivisor: number;      // 200
@@ -48,18 +55,20 @@ export type ProductInput = {
   id: string;
   origin: string;                 // origin.code (CHINA, USA_MIAMI, ...)
   pcsPerCtn: number;
-  /** Raw carton dimensions in supplier's native unit (cm OR in). Field name
-   *  preserved as `*Cm` for backwards compatibility — the canonical conversion
-   *  happens inside computeProductCalc using `dimensionUnit`. */
-  ctnLengthCm: number;
-  ctnWidthCm: number;
-  ctnHeightCm: number;
+  /** Raw carton dimensions in supplier's native unit (cm OR in). Normalized
+   *  to cm inside computeProductCalc via `dimensionUnit`. */
+  ctnLengthRaw: number;
+  ctnWidthRaw: number;
+  ctnHeightRaw: number;
   /** Raw carton weight in supplier's native unit (kg OR lb). */
-  wtPerCtnKg: number;
+  wtPerCtnRaw: number;
   /** Supplier-native units for the raw values above. Defaults to metric. */
   dimensionUnit?: "cm" | "in";
   weightUnit?: "kg" | "lb";
-  dutyRate: number;               // decimal: 0.20 for 20%
+  /** Duty rate as decimal (0.20 = 20%). NULL = not set; engine will flag
+   *  dutyMissing=true rather than silently computing $0 duty. A legitimate
+   *  0% (set explicitly) DOES compute a real 0. */
+  dutyRate: number | null;
   pricingTiers: PricingTier[];
   /** Optional FOB extras (FC/ITC/ED). Defaults all zero. v1 unused. */
   fobExtras?: { fcUsd?: number; itcUsd?: number; edUsd?: number };
@@ -68,17 +77,35 @@ export type ProductInput = {
 export type RouteTier = {
   from: number;
   to: number | null;              // null = unbounded
-  rateUsd: number;
+  /** USD rate per chargeable unit. NULL = data error; engine flags
+   *  the row as "invalid data" rather than billing $0. */
+  rateUsd: number | null;
 };
+
+/**
+ * Which physical parameter the carrier bills on.
+ * Drives the applied-quantity calculation; together with chargeableUnit
+ * it determines the units in which `applied` is expressed.
+ */
+export type ChargeableMetric =
+  | "ACTUAL_WEIGHT"
+  | "VOLUMETRIC_WEIGHT"
+  | "CHARGEABLE_WEIGHT"
+  | "VOLUME";
 
 export type RouteInput = {
   id: string;
   code: string;                   // 'DHL-CHINA-BB'
   methodCode: string;             // 'DHL' | 'OCEAN'
-  rateUnit: "lbs" | "CBM";
+  /** Billing parameter (chargeable metric). Selects which quantity gets
+   *  multiplied by the tier rate. */
+  chargeableMetric: ChargeableMetric;
+  /** Display + unit-of-measure for `applied` ('lbs' | 'kg' | 'CBM' | …). */
+  chargeableUnit: string;
   origin: string;
   destination: "BB" | "CBN" | string;
-  baseFeeUsd: number;             // route.fixed_cost
+  /** Route fixed cost. NULL = data error → route is flagged invalid. */
+  baseFeeUsd: number | null;
   fuelPct: number;                // decimal: 0.36 for 36%
   bufferPct: number;              // decimal
   lacFixedBbd: number;
@@ -104,26 +131,30 @@ export type RowSpec = {
   fobUnitUsd: Money;
 };
 
+export type TransportInactiveReason =
+  | "origin mismatch"
+  | "no tier"
+  | "invalid data";
+
 export type TransportCell =
   | {
       active: true;
       routeId: string;
-      applied: number;             // lbs OR CBM
+      applied: number;             // in chargeableUnit
       tier: RouteTier | null;
       tierCostUsd: number;
       /** Inland (ground) freight USD added to transportPre. 0 when route
        *  switch is off OR tier has no value set (see itcMissing). */
       itcUsd: number;
       /** TRUE when the route's includeInlandFreight=true but the tier has
-       *  no inlandFreightUsd set — surfaces a visible warning so a
-       *  configured ground leg can't silently under-cost a quote. */
+       *  no inlandFreightUsd set. */
       itcMissing: boolean;
       transportPreUsd: number;     // base + tier + itc
       transportUsd: Money;         // after fuel + buffer
       cifUsd: Money;
       cifUnitUsd: Money;
     }
-  | { active: false; routeId: string; reason: "origin mismatch" | "no tier" };
+  | { active: false; routeId: string; reason: TransportInactiveReason };
 
 export type BBRouteCell =
   | {
@@ -132,11 +163,15 @@ export type BBRouteCell =
       lacBbd: Money;
       ldfBbd: Money;
       ldfUnitBbd: Money;
-      dutyBbd: Money;
-      ldpBbd: Money;
-      ldpUnitBbd: Money;
+      /** Duty cell. When dutyMissing=true, dutyBbd / ldpBbd / ldpUnitBbd
+       *  are NULL — callers must render an explicit "not set" state,
+       *  never treat as a final number. */
+      dutyMissing: boolean;
+      dutyBbd: Money | null;
+      ldpBbd: Money | null;
+      ldpUnitBbd: Money | null;
     }
-  | { active: false; routeId: string; reason: "origin mismatch" | "no transport" };
+  | { active: false; routeId: string; reason: "origin mismatch" | "no transport" | "invalid data" };
 
 export type CalcRow = {
   spec: RowSpec;
@@ -162,8 +197,6 @@ function pickTier(tiers: RouteTier[], applied: number): RouteTier | null {
     const hi = t.to ?? Infinity;
     if (applied >= lo && applied < hi) return t;
   }
-  // Allow inclusive upper bound on the very last band if a tier ends with null+inclusive intent
-  // (defensive — current data uses [from, to) which the loop already covers).
   return null;
 }
 
@@ -175,6 +208,26 @@ export function sortRoutes(routes: RouteInput[]): RouteInput[] {
   return [...routes].sort(
     (a, b) => a.sortOrder - b.sortOrder || a.code.localeCompare(b.code),
   );
+}
+
+/** Resolve the applied quantity for a chargeable metric, in the route's
+ *  chargeable unit. Weight metrics convert from canonical kg. */
+function resolveApplied(
+  metric: ChargeableMetric,
+  unit: string,
+  totalCbm: number,
+  totalWeightKg: number,
+  volumetricKg: number,
+  kgToLbs: number,
+): number {
+  const toUnit = (kg: number) =>
+    unit === "lbs" || unit === "lb" ? kg * kgToLbs : kg;
+  switch (metric) {
+    case "ACTUAL_WEIGHT":     return toUnit(totalWeightKg);
+    case "VOLUMETRIC_WEIGHT": return toUnit(volumetricKg);
+    case "CHARGEABLE_WEIGHT": return toUnit(Math.max(totalWeightKg, volumetricKg));
+    case "VOLUME":            return totalCbm;
+  }
 }
 
 export function computeProductCalc(
@@ -192,15 +245,13 @@ export function computeProductCalc(
     (product.fobExtras?.itcUsd ?? 0) +
     (product.fobExtras?.edUsd ?? 0);
 
-  // Normalize supplier-native carton dimensions/weight to canonical cm/kg ONCE,
-  // up-front. Every downstream formula then runs on canonical units regardless
-  // of whether the supplier ships in metric or imperial.
+  // Normalize supplier-native carton dimensions/weight to canonical cm/kg ONCE.
   const inToCm = settings.inToCm;
   const kgToLbs = settings.kgToLbs;
-  const lenCm = product.dimensionUnit === "in" ? product.ctnLengthCm * inToCm : product.ctnLengthCm;
-  const widCm = product.dimensionUnit === "in" ? product.ctnWidthCm * inToCm : product.ctnWidthCm;
-  const hgtCm = product.dimensionUnit === "in" ? product.ctnHeightCm * inToCm : product.ctnHeightCm;
-  const wtKg = product.weightUnit === "lb" ? product.wtPerCtnKg / kgToLbs : product.wtPerCtnKg;
+  const lenCm = product.dimensionUnit === "in" ? product.ctnLengthRaw * inToCm : product.ctnLengthRaw;
+  const widCm = product.dimensionUnit === "in" ? product.ctnWidthRaw  * inToCm : product.ctnWidthRaw;
+  const hgtCm = product.dimensionUnit === "in" ? product.ctnHeightRaw * inToCm : product.ctnHeightRaw;
+  const wtKg  = product.weightUnit    === "lb" ? product.wtPerCtnRaw  / kgToLbs : product.wtPerCtnRaw;
 
   const rows: CalcRow[] = product.pricingTiers.map((tier) => {
     const cartons = tier.qty / product.pcsPerCtn;
@@ -227,34 +278,44 @@ export function computeProductCalc(
 
     for (const route of ordered) {
       if (route.origin !== product.origin) {
-        transports[route.id] = {
-          active: false,
-          routeId: route.id,
-          reason: "origin mismatch",
-        };
+        transports[route.id] = { active: false, routeId: route.id, reason: "origin mismatch" };
         if (route.destination === "BB") {
-          bbOutputs[route.id] = {
-            active: false,
-            routeId: route.id,
-            reason: "no transport",
-          };
+          bbOutputs[route.id] = { active: false, routeId: route.id, reason: "no transport" };
         }
         continue;
       }
 
-      const applied =
-        route.rateUnit === "lbs"
-          ? chargeableKg * settings.kgToLbs
-          : totalCbm;
+      // Invalid-data guard: missing base fee can never produce a real cost.
+      if (route.baseFeeUsd == null || !Number.isFinite(route.baseFeeUsd)) {
+        transports[route.id] = { active: false, routeId: route.id, reason: "invalid data" };
+        if (route.destination === "BB") {
+          bbOutputs[route.id] = { active: false, routeId: route.id, reason: "invalid data" };
+        }
+        continue;
+      }
+
+      const applied = resolveApplied(
+        route.chargeableMetric,
+        route.chargeableUnit,
+        totalCbm,
+        totalWeightKg,
+        volumetricKg,
+        settings.kgToLbs,
+      );
       const matched = pickTier(route.tiers, applied);
       if (!matched) {
         transports[route.id] = { active: false, routeId: route.id, reason: "no tier" };
         if (route.destination === "BB") {
-          bbOutputs[route.id] = {
-            active: false,
-            routeId: route.id,
-            reason: "no transport",
-          };
+          bbOutputs[route.id] = { active: false, routeId: route.id, reason: "no transport" };
+        }
+        continue;
+      }
+
+      // Invalid tier rate → don't silently bill $0.
+      if (matched.rateUsd == null || !Number.isFinite(matched.rateUsd)) {
+        transports[route.id] = { active: false, routeId: route.id, reason: "invalid data" };
+        if (route.destination === "BB") {
+          bbOutputs[route.id] = { active: false, routeId: route.id, reason: "invalid data" };
         }
         continue;
       }
@@ -287,17 +348,21 @@ export function computeProductCalc(
         // CASH path — uses effectiveFx (includes FX fee)
         const ldfAmt = cifAmt * effectiveFx + lacAmt;
         // CUSTOMS path — uses customsMultiplier × DVF ONLY (never FX, never fee)
-        const dutyAmt = cifAmt * settings.customsMultiplier * settings.dvf * product.dutyRate;
-        const ldpAmt = ldfAmt + dutyAmt;
+        const dutyMissing = product.dutyRate == null;
+        const dutyAmt = dutyMissing
+          ? null
+          : cifAmt * settings.customsMultiplier * settings.dvf * (product.dutyRate as number);
+        const ldpAmt = dutyAmt == null ? null : ldfAmt + dutyAmt;
         bbOutputs[route.id] = {
           active: true,
           routeId: route.id,
           lacBbd: bbd(lacAmt),
           ldfBbd: bbd(ldfAmt),
           ldfUnitBbd: bbd(ldfAmt / tier.qty),
-          dutyBbd: bbd(dutyAmt),
-          ldpBbd: bbd(ldpAmt),
-          ldpUnitBbd: bbd(ldpAmt / tier.qty),
+          dutyMissing,
+          dutyBbd: dutyAmt == null ? null : bbd(dutyAmt),
+          ldpBbd: ldpAmt == null ? null : bbd(ldpAmt),
+          ldpUnitBbd: ldpAmt == null ? null : bbd(ldpAmt / tier.qty),
         };
       }
     }
@@ -308,12 +373,14 @@ export function computeProductCalc(
   return { productId: product.id, effectiveFx, rows, routeOrder, bbRouteOrder };
 }
 
-/** Find the cheapest active BB-destination route for a row, by LDP. */
+/** Find the cheapest active BB-destination route for a row, by LDP.
+ *  Rows where LDP is null (dutyMissing) are skipped. */
 export function cheapestBbRouteForRow(row: CalcRow, bbRouteOrder: string[]): string | null {
   let best: { id: string; amt: number } | null = null;
   for (const id of bbRouteOrder) {
     const cell = row.bbOutputs[id];
     if (!cell || !cell.active) continue;
+    if (cell.ldpBbd == null) continue;
     if (best == null || cell.ldpBbd.amount < best.amt) {
       best = { id, amt: cell.ldpBbd.amount };
     }

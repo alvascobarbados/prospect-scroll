@@ -64,11 +64,46 @@ const SETTINGS_KEYS = {
   inToCm: "conversions_in_to_cm",
 } as const;
 
+/** Strict numeric parser for required DB fields. null/""/non-finite → null
+ *  (NEVER 0). The engine treats null as "data error" so callers can never
+ *  silently bill $0 from a missing rate or fee. */
+function parseRequiredNumber(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    if (value.trim() === "") return null;
+    const n = parseFloat(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/** Parser for fields where 0 is a legitimate value (e.g. LAC components).
+ *  Distinguishes 0 from null/unparseable — both 0 and null are returned
+ *  faithfully; the caller decides whether null should warn or pass through. */
+function parseNullableNumber(value: unknown): number | null {
+  return parseRequiredNumber(value);
+}
+
 function numFromSetting(rows: SettingsRow[], key: string, fallback: number): number {
   const row = rows.find((r) => r.key === key);
-  if (!row || row.value == null) return fallback;
+  if (!row) {
+    // eslint-disable-next-line no-console
+    console.warn(`[calc settings] missing app_settings key "${key}" — falling back to ${fallback}`);
+    return fallback;
+  }
+  if (row.value == null) {
+    // eslint-disable-next-line no-console
+    console.warn(`[calc settings] app_settings key "${key}" is NULL — falling back to ${fallback}`);
+    return fallback;
+  }
   const n = parseFloat(row.value);
-  return Number.isFinite(n) ? n : fallback;
+  if (!Number.isFinite(n)) {
+    // eslint-disable-next-line no-console
+    console.warn(`[calc settings] app_settings key "${key}" non-numeric (${row.value}) — falling back to ${fallback}`);
+    return fallback;
+  }
+  return n;
 }
 
 export function useCalcPageData() {
@@ -100,7 +135,7 @@ export function useCalcPageData() {
             product_decoration_bands(id, qty, unit_cost, setup_cost, inland_freight_usd)
           )
         `).order("name", { ascending: true }),
-        supabase.from("shipping_methods").select("id, code, name, fuel_surcharge_pct, buffer_pct"),
+        supabase.from("shipping_methods").select("id, code, name, fuel_surcharge_pct, buffer_pct, chargeable_metric, chargeable_unit"),
         supabase.from("shipping_method_routes").select("id, shipping_method_id, origin_id, destination_id, fixed_cost, lac_fixed_bbd, lac_per_cbm_bbd, include_inland_freight"),
         supabase.from("shipping_method_tiers").select("id, route_id, band_from, band_to, rate").order("band_from"),
         supabase.from("origins").select("id, code, name"),
@@ -142,25 +177,42 @@ export function useCalcPageData() {
           const tiers = tierRows
             .filter((t: any) => t.route_id === r.id)
             .map((t: any) => ({
-              from: Number(t.band_from) || 0,
-              to: t.band_to == null ? null : Number(t.band_to),
-              rateUsd: Number(t.rate) || 0,
+              from: parseRequiredNumber(t.band_from) ?? 0,
+              to: t.band_to == null ? null : parseRequiredNumber(t.band_to),
+              // Required: a NULL/unparseable rate must NOT collapse to 0.
+              // The engine treats null as "invalid data" and refuses to bill.
+              rateUsd: parseRequiredNumber(t.rate),
             }));
-          // Imperial-system methods use lbs; rest CBM. Heuristic: DHL/courier=lbs, Ocean=CBM.
-          // Use method code: any "OCEAN" → CBM, everything else → lbs.
-          const rateUnit: "lbs" | "CBM" = m.code.toUpperCase() === "OCEAN" ? "CBM" : "lbs";
+          // Chargeable basis comes from shipping_methods.chargeable_metric +
+          // chargeable_unit — NEVER from the method code string.
+          const chargeableMetric =
+            (m.chargeable_metric as "ACTUAL_WEIGHT" | "VOLUMETRIC_WEIGHT" | "CHARGEABLE_WEIGHT" | "VOLUME") ?? "CHARGEABLE_WEIGHT";
+          const chargeableUnit = (m.chargeable_unit as string) ?? "lbs";
+          const baseFee = parseRequiredNumber(r.fixed_cost);
+          const lacFixed = parseNullableNumber(r.lac_fixed_bbd);
+          const lacPerCbm = parseNullableNumber(r.lac_per_cbm_bbd);
+          if (lacFixed == null) {
+            // eslint-disable-next-line no-console
+            console.warn(`[calc routes] route ${code} has NULL lac_fixed_bbd — treating as 0; fix in DB.`);
+          }
+          if (lacPerCbm == null) {
+            // eslint-disable-next-line no-console
+            console.warn(`[calc routes] route ${code} has NULL lac_per_cbm_bbd — treating as 0; fix in DB.`);
+          }
           return {
             id: r.id,
             code,
             methodCode: m.code,
-            rateUnit,
+            chargeableMetric,
+            chargeableUnit,
             origin: o.code,
             destination: d.code,
-            baseFeeUsd: Number(r.fixed_cost) || 0,
-            fuelPct: (Number(m.fuel_surcharge_pct) || 0) / 100,
-            bufferPct: (Number(m.buffer_pct) || 0) / 100,
-            lacFixedBbd: Number(r.lac_fixed_bbd) || 0,
-            lacPerCbmBbd: Number(r.lac_per_cbm_bbd) || 0,
+            // baseFeeUsd can be null → engine flags route as "invalid data".
+            baseFeeUsd: baseFee,
+            fuelPct: (parseRequiredNumber(m.fuel_surcharge_pct) ?? 0) / 100,
+            bufferPct: (parseRequiredNumber(m.buffer_pct) ?? 0) / 100,
+            lacFixedBbd: lacFixed ?? 0,
+            lacPerCbmBbd: lacPerCbm ?? 0,
             includeInlandFreight: r.include_inland_freight === true,
             tiers,
             sortOrder: methodSortRank(m.code) * 1000,

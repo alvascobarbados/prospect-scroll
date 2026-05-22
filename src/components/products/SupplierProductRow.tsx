@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Product, ProductDetailRow } from "./helpers/buildSupplierProductDataList";
 import { formatUpdated } from "./helpers/formatUpdated";
-import { weightUnit as weightUnitFor, linearUnit as linearUnitFor } from "@/lib/units";
+import { weightUnitLabel as weightUnitFor, linearUnit as linearUnitFor } from "@/lib/units";
 import { DecorationBlock } from "./DecorationBlock";
 import { AddAttributePopover } from "./AddAttributePopover";
 import { InlineText } from "@/components/inline/InlineText";

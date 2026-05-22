@@ -1,13 +1,12 @@
 /**
- * Acceptance test for the cost engine — reproduces the SFG-AGU
- * (golf umbrella) table from the Calculations spec.
+ * Acceptance + safety tests for the cost engine.
  *
- * Tier rates back-solved from the spec's expected outputs:
- *   DHL-CHINA-BB: baseFee=$36.35, tiers 0–61lb @ $4.17, 61+ @ $4.22, fuel 36%
- *   OCEAN-CHINA-BB: baseFee=$50, single tier @ $160/CBM, fuel 0%
- *
- * Settings: base FX 2.02768, fee 2% → effective 2.0682336.
- * Customs multiplier 2.0. Duty 20%.
+ *  - SFG-AGU (China, metric): regression-guards the validated numbers.
+ *    DVF=1.0, ocean fuel=0 buffer=0, DHL fuel=36% buffer=0.
+ *  - Aria (USA, imperial):   pins the unit-normalization path
+ *    (carton inches → cm, lb → kg).
+ *  - Duty/route safety tests: assert the engine surfaces
+ *    dutyMissing / "invalid data" instead of silent zeros.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -33,10 +32,10 @@ const product: ProductInput = {
   id: "SFG-AGU",
   origin: "CHINA",
   pcsPerCtn: 25,
-  ctnLengthCm: 105,
-  ctnWidthCm: 22,
-  ctnHeightCm: 18,
-  wtPerCtnKg: 15,
+  ctnLengthRaw: 105,
+  ctnWidthRaw: 22,
+  ctnHeightRaw: 18,
+  wtPerCtnRaw: 15,
   dutyRate: 0.2,
   pricingTiers: [
     { qty: 25, unitUsd: 6.2, setupUsd: 0 },
@@ -50,7 +49,8 @@ const dhl: RouteInput = {
   id: "dhl-china-bb",
   code: "DHL-CHINA-BB",
   methodCode: "DHL",
-  rateUnit: "lbs",
+  chargeableMetric: "CHARGEABLE_WEIGHT",
+  chargeableUnit: "lbs",
   origin: "CHINA",
   destination: "BB",
   baseFeeUsd: 36.35,
@@ -70,7 +70,8 @@ const ocean: RouteInput = {
   id: "ocean-china-bb",
   code: "OCEAN-CHINA-BB",
   methodCode: "OCEAN",
-  rateUnit: "CBM",
+  chargeableMetric: "VOLUME",
+  chargeableUnit: "CBM",
   origin: "CHINA",
   destination: "BB",
   baseFeeUsd: 50,
@@ -84,7 +85,6 @@ const ocean: RouteInput = {
 };
 
 const mismatched: RouteInput = {
-  // USA_MIAMI origin → should gray out for a CHINA product
   ...dhl,
   id: "dhl-usamia-bb",
   code: "DHL-USAMIA-BB",
@@ -92,9 +92,8 @@ const mismatched: RouteInput = {
   sortOrder: 0,
 };
 
-describe("calcEngine — SFG-AGU acceptance", () => {
+describe("calcEngine — SFG-AGU regression guard (numbers MUST NOT move)", () => {
   const result = computeProductCalc(product, [dhl, ocean, mismatched], settings);
-
   const tol = 0.01;
   const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThanOrEqual(tol);
 
@@ -137,8 +136,9 @@ describe("calcEngine — SFG-AGU acceptance", () => {
       expect(c.active).toBe(true);
       if (c.active) {
         near(c.ldfBbd.amount, ldf[i]);
-        near(c.dutyBbd.amount, duty[i]);
-        near(c.ldpBbd.amount, ldp[i]);
+        expect(c.dutyMissing).toBe(false);
+        near(c.dutyBbd!.amount, duty[i]);
+        near(c.ldpBbd!.amount, ldp[i]);
       }
     });
   });
@@ -163,8 +163,8 @@ describe("calcEngine — SFG-AGU acceptance", () => {
       if (b.active) {
         near(b.lacBbd.amount, lac[i]);
         near(b.ldfBbd.amount, ldf[i]);
-        near(b.dutyBbd.amount, duty[i]);
-        near(b.ldpBbd.amount, ldp[i]);
+        near(b.dutyBbd!.amount, duty[i]);
+        near(b.ldpBbd!.amount, ldp[i]);
       }
     });
   });
@@ -176,20 +176,117 @@ describe("calcEngine — SFG-AGU acceptance", () => {
     });
   });
 
-  it("cheapest BB route per row defaults to Ocean (lower LDP than DHL)", () => {
+  it("cheapest BB route per row defaults to Ocean", () => {
     result.rows.forEach((r) => {
       expect(cheapestBbRouteForRow(r, result.bbRouteOrder)).toBe(ocean.id);
     });
   });
 
-  it("route column order is stable and includes mismatched route", () => {
+  it("route column order is stable", () => {
     expect(result.routeOrder).toEqual([mismatched.id, dhl.id, ocean.id]);
     expect(result.bbRouteOrder).toEqual([mismatched.id, dhl.id, ocean.id]);
   });
 
   it("fuel/buffer multiplication runs unconditionally (Ocean 0% → x1)", () => {
-    // Ocean qty=25: pre = 50 + 0.04158*160 = 56.6528; with fuel=0 buffer=0 → 56.6528
     const t = result.rows[0].transports[ocean.id];
-    if (t.active) near(t.transportUsd.amount, t.transportPreUsd);
+    if (t.active) expect(Math.abs(t.transportUsd.amount - t.transportPreUsd)).toBeLessThanOrEqual(0.01);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// Imperial-product fixture — pins the unit-normalization path.
+// Aria-style 12oz wine cup profile: 19×11×19 in, 23 lb per carton.
+// ──────────────────────────────────────────────────────────────────────
+describe("calcEngine — imperial product normalizes inches→cm and lb→kg", () => {
+  const aria: ProductInput = {
+    id: "ARIA-12OZ",
+    origin: "USA_NON_MIAMI",
+    pcsPerCtn: 50,
+    ctnLengthRaw: 19,
+    ctnWidthRaw: 11,
+    ctnHeightRaw: 19,
+    wtPerCtnRaw: 23,
+    dimensionUnit: "in",
+    weightUnit: "lb",
+    dutyRate: 0.2,
+    pricingTiers: [
+      { qty: 50,  unitUsd: 8.27, setupUsd: 50 },
+      { qty: 100, unitUsd: 8.27, setupUsd: 50 },
+      { qty: 250, unitUsd: 8.27, setupUsd: 50 },
+      { qty: 500, unitUsd: 8.27, setupUsd: 50 },
+    ],
+  };
+
+  const result = computeProductCalc(aria, [], settings);
+
+  it("converts 19×11×19 in → ~0.06508 CBM per carton", () => {
+    // 1 carton = qty 50 (the smallest tier).
+    const cbm = result.rows[0].spec.totalCbm;
+    expect(Math.abs(cbm - 0.06508)).toBeLessThanOrEqual(0.001);
+  });
+
+  it("converts 23 lb → ~10.43 kg per carton", () => {
+    const kg = result.rows[0].spec.totalWeightKg;
+    expect(Math.abs(kg - 10.43)).toBeLessThanOrEqual(0.01);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// Silent-zero safety: missing duty rate must NEVER produce $0 duty.
+// ──────────────────────────────────────────────────────────────────────
+describe("calcEngine — duty safety", () => {
+  it("dutyRate=null → dutyMissing=true, dutyBbd/ldpBbd null (no silent 0)", () => {
+    const p: ProductInput = { ...product, dutyRate: null };
+    const r = computeProductCalc(p, [ocean], settings);
+    const bb = r.rows[0].bbOutputs[ocean.id];
+    expect(bb.active).toBe(true);
+    if (bb.active) {
+      expect(bb.dutyMissing).toBe(true);
+      expect(bb.dutyBbd).toBeNull();
+      expect(bb.ldpBbd).toBeNull();
+      expect(bb.ldpUnitBbd).toBeNull();
+    }
+  });
+
+  it("dutyRate=0 → real 0 duty, dutyMissing=false (NOT the same as null)", () => {
+    const p: ProductInput = { ...product, dutyRate: 0 };
+    const r = computeProductCalc(p, [ocean], settings);
+    const bb = r.rows[0].bbOutputs[ocean.id];
+    expect(bb.active).toBe(true);
+    if (bb.active) {
+      expect(bb.dutyMissing).toBe(false);
+      expect(bb.dutyBbd).not.toBeNull();
+      expect(bb.dutyBbd!.amount).toBe(0);
+      // LDP must equal LDF when duty is a real 0.
+      expect(Math.abs(bb.ldpBbd!.amount - bb.ldfBbd.amount)).toBeLessThanOrEqual(0.001);
+    }
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// Silent-zero safety: invalid route data must surface as "invalid data",
+// distinct from "origin mismatch" / "no tier".
+// ──────────────────────────────────────────────────────────────────────
+describe("calcEngine — invalid-data routing", () => {
+  it("baseFeeUsd=null → reason 'invalid data' (not 'origin mismatch'/'no tier')", () => {
+    const bad: RouteInput = { ...ocean, baseFeeUsd: null };
+    const r = computeProductCalc(product, [bad], settings);
+    const t = r.rows[0].transports[bad.id];
+    expect(t.active).toBe(false);
+    if ("reason" in t) expect(t.reason).toBe("invalid data");
+    const bb = r.rows[0].bbOutputs[bad.id];
+    expect(bb.active).toBe(false);
+    if ("reason" in bb) expect(bb.reason).toBe("invalid data");
+  });
+
+  it("matched tier.rateUsd=null → reason 'invalid data'", () => {
+    const bad: RouteInput = {
+      ...ocean,
+      tiers: [{ from: 0, to: null, rateUsd: null }],
+    };
+    const r = computeProductCalc(product, [bad], settings);
+    const t = r.rows[0].transports[bad.id];
+    expect(t.active).toBe(false);
+    if ("reason" in t) expect(t.reason).toBe("invalid data");
   });
 });

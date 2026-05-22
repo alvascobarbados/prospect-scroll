@@ -40,23 +40,16 @@ const NUM_FONT: React.CSSProperties = { fontVariantNumeric: "tabular-nums" };
 
 // ───────── Helpers ─────────
 
-function dutyDecimal(p: CalcPageProduct): number {
+/** Decode subcategory.duty_rate_pct → engine decimal or null.
+ *  null  = rate not set (engine flags dutyMissing).
+ *  0     = legitimate 0% duty (real 0).
+ *  20    = 20% → 0.20. */
+function dutyDecimal(p: CalcPageProduct): number | null {
   const raw = p.subcategory?.duty_rate_pct;
-  if (raw == null || raw === "") return 0;
+  if (raw == null || raw === "") return null;
   const n = typeof raw === "string" ? parseFloat(raw) : raw;
-  if (!Number.isFinite(n)) return 0;
-  // Stored as percent points (20 = 20%) → convert to decimal.
+  if (!Number.isFinite(n)) return null;
   return n / 100;
-}
-
-/** True when the subcategory has no duty rate set at all (NULL / empty / non-numeric).
- *  A legitimate 0% is NOT considered unset. Used to surface a visible warning so a
- *  missing rate can't silently under-cost a quote. */
-function isDutyUnset(p: CalcPageProduct): boolean {
-  const raw = p.subcategory?.duty_rate_pct;
-  if (raw == null || raw === "") return true;
-  const n = typeof raw === "string" ? parseFloat(raw) : raw;
-  return !Number.isFinite(n);
 }
 
 function toProductInput(p: CalcPageProduct): ProductInput | null {
@@ -97,10 +90,10 @@ function toProductInput(p: CalcPageProduct): ProductInput | null {
     id: p.id,
     origin: p.origin.code,
     pcsPerCtn: Number(p.carton_pack),
-    ctnLengthCm: Number(p.carton_length),
-    ctnWidthCm: Number(p.carton_width),
-    ctnHeightCm: Number(p.carton_height),
-    wtPerCtnKg: Number(p.carton_weight),
+    ctnLengthRaw: Number(p.carton_length),
+    ctnWidthRaw: Number(p.carton_width),
+    ctnHeightRaw: Number(p.carton_height),
+    wtPerCtnRaw: Number(p.carton_weight),
     dimensionUnit: (p.supplier?.dimension_unit ?? "cm") as "cm" | "in",
     weightUnit: (p.supplier?.weight_unit_v2 ?? "kg") as "kg" | "lb",
     dutyRate: dutyDecimal(p),
@@ -346,7 +339,18 @@ export function CalculationsCard({ product, routes, settings }: Props) {
     return out;
   }, [calc]);
 
-  const dutyUnset = isDutyUnset(product);
+  // Engine is the single source of truth for "duty rate missing" — the
+  // flag is set on every active BB-route cell. We just observe it here.
+  const dutyUnset = useMemo(() => {
+    if (!calc) return false;
+    for (const row of calc.rows) {
+      for (const id of calc.bbRouteOrder) {
+        const c = row.bbOutputs[id];
+        if (c && c.active && c.dutyMissing) return true;
+      }
+    }
+    return false;
+  }, [calc]);
 
   return (
     <div
@@ -451,10 +455,24 @@ export function CalculationsCard({ product, routes, settings }: Props) {
               renderCell={(row, route, i) => {
                 const c = row.transports[route.id];
                 if (!c.active) {
+                  const reason = "reason" in c ? c.reason : "";
+                  const isInvalid = reason === "invalid data";
                   return (
-                    <Bubble key={route.id} gray>
-                      <div style={{ textAlign: "center" }}>{EM}</div>
-                      <div style={{ fontSize: 11, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
+                    <Bubble key={route.id} gray={!isInvalid} amber={isInvalid}>
+                      <div style={{ textAlign: "center" }}>
+                        {isInvalid ? "⚠" : EM}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontStyle: isInvalid ? "normal" : "italic",
+                          textAlign: "center",
+                          color: isInvalid ? "#92400E" : undefined,
+                          fontWeight: isInvalid ? 600 : undefined,
+                        }}
+                      >
+                        {reason}
+                      </div>
                     </Bubble>
                   );
                 }
@@ -472,10 +490,10 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                     <div style={{ fontSize: 12, color: c.itcMissing ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
                       {c.itcMissing
                         ? "⚠ inland freight not set"
-                        : `${formatNumber(c.applied, 2)} ${route.rateUnit} · ${tierLabel} @ ${formatMoney({ amount: c.tier!.rateUsd, currency: "USD" })}`}
+                        : `${formatNumber(c.applied, 2)} ${route.chargeableUnit} · ${tierLabel} @ ${formatMoney({ amount: c.tier!.rateUsd ?? 0, currency: "USD" })}`}
                     </div>
                     <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.3 }}>
-                      ({formatMoney({ amount: route.baseFeeUsd, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })}{itcStr})
+                      ({formatMoney({ amount: route.baseFeeUsd ?? 0, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })}{itcStr})
                       {surchargeStr} = <strong>{formatMoney(c.transportUsd)}</strong>
                     </div>
                   </Bubble>
