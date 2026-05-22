@@ -260,7 +260,10 @@ export function computeProductCalc(
       }
 
       const tierCost = applied * matched.rateUsd;
-      const transportPre = route.baseFeeUsd + tierCost;
+      const tierItc = tier.inlandFreightUsd;
+      const itcMissing = route.includeInlandFreight && (tierItc == null);
+      const itcUsd = route.includeInlandFreight ? (tierItc ?? 0) : 0;
+      const transportPre = route.baseFeeUsd + tierCost + itcUsd;
       // Fuel AND buffer applied UNCONDITIONALLY for every route — a 0 is a ×1 no-op.
       const transportAmt = transportPre * (1 + route.fuelPct) * (1 + route.bufferPct);
       const cifAmt = productTotalAmt + transportAmt;
@@ -271,6 +274,8 @@ export function computeProductCalc(
         applied,
         tier: matched,
         tierCostUsd: tierCost,
+        itcUsd,
+        itcMissing,
         transportPreUsd: transportPre,
         transportUsd: usd(transportAmt),
         cifUsd: usd(cifAmt),
