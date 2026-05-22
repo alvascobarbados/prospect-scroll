@@ -178,6 +178,7 @@ export function useCalcPageData() {
         kgToLbs: numFromSetting(s, SETTINGS_KEYS.kgToLbs, 2.20462),
         cbmDivisor: numFromSetting(s, SETTINGS_KEYS.cbm, 1_000_000),
         volumetricDivisor: numFromSetting(s, SETTINGS_KEYS.vol, 200),
+        inToCm: numFromSetting(s, SETTINGS_KEYS.inToCm, 2.54),
       });
     })();
     return () => {
