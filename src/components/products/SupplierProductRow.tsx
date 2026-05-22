@@ -197,6 +197,7 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
           productId={product.id}
           productName={product.name}
           legacyImageUrl={product.image_url}
+          updatedAt={product.updated_at}
           onChanged={onChanged}
         />
         <Divider />
@@ -475,54 +476,98 @@ function IdentityCell({
 
         <KvLabel>Origin</KvLabel>
         <KvValue>
-          <InlinePicker
-            display={<span>{product.origin?.name ?? "—"}</span>}
-            options={originOptions.map((o) => ({ id: o.id, label: o.name }))}
-            onSelect={async (opt) => {
-              if (opt.id === product.origin?.id) return;
-              await updateProduct(product.id, { origin_id: opt.id });
-              onChanged?.();
-            }}
-            placeholder="Search origin…"
-          />
+          <span style={{ color: "#0E2849" }}>{product.origin?.name ?? "—"}</span>
         </KvValue>
 
-        <KvLabel>Category</KvLabel>
-        <KvValue>
-          <InlinePicker
-            display={<span>{categoryName ?? "—"}</span>}
-            options={parentCategories.map((c) => ({ id: c.id, label: c.name, hint: c.code ?? undefined }))}
-            onSelect={async (opt) => {
-              if (opt.id === currentCategoryId) return;
-              // Changing CATEGORY clears subcategory — old subcategory belongs to the old parent.
-              await updateProduct(product.id, { subcategory_id: null });
-              toast.message("Category changed — pick a subcategory under it");
-              onChanged?.();
-            }}
-            placeholder="Search category…"
-          />
-        </KvValue>
-
-        <KvLabel>Subcategory</KvLabel>
-        <KvValue>
-          <InlinePicker
-            display={<span>{product.subcategory?.name ?? "—"}</span>}
-            options={subcategoryOptionsScoped.map((c) => ({ id: c.id, label: c.name, hint: c.code ?? undefined }))}
-            onSelect={async (opt) => {
-              if (opt.id === product.subcategory?.id) return;
-              await updateProduct(product.id, { subcategory_id: opt.id });
-              onChanged?.();
-            }}
-            placeholder="Search subcategory…"
-          />
-        </KvValue>
-      </div>
-
-      {/* Updated timestamp under subcategory */}
-      <div style={{ marginTop: 8, fontSize: 11, fontStyle: "italic", color: "#9CA3AF" }}>
-        {formatUpdated(product.updated_at)}
+        <CategorySubcategoryPickers
+          productId={product.id}
+          currentCategoryId={currentCategoryId}
+          currentSubcategoryId={product.subcategory?.id ?? null}
+          currentSubcategoryName={product.subcategory?.name ?? null}
+          categoryName={categoryName ?? null}
+          parentCategories={parentCategories}
+          subcategoryOptionsAll={subcategoryOptionsAll}
+          onChanged={onChanged}
+        />
       </div>
     </div>
+  );
+}
+
+function CategorySubcategoryPickers({
+  productId,
+  currentCategoryId,
+  currentSubcategoryId,
+  currentSubcategoryName,
+  categoryName,
+  parentCategories,
+  subcategoryOptionsAll,
+  onChanged,
+}: {
+  productId: string;
+  currentCategoryId: string | null;
+  currentSubcategoryId: string | null;
+  currentSubcategoryName: string | null;
+  categoryName: string | null;
+  parentCategories: CategoryRowLite[];
+  subcategoryOptionsAll: CategoryRowLite[];
+  onChanged?: () => void;
+}) {
+  // Transient: a chosen Category that doesn't match the persisted subcategory's parent.
+  // Cleared when the user picks a subcategory (which is the only persisted write).
+  const [pendingCategoryId, setPendingCategoryId] = useState<string | null>(null);
+
+  // Effective category for display + scoping = pending (if set) else currentCategoryId.
+  const effectiveCategoryId = pendingCategoryId ?? currentCategoryId;
+  const effectiveCategoryName =
+    (pendingCategoryId
+      ? parentCategories.find((c) => c.id === pendingCategoryId)?.name
+      : categoryName) ?? null;
+
+  const needsSubcategorySelection =
+    pendingCategoryId !== null && pendingCategoryId !== currentCategoryId;
+
+  const subcategoryOptionsScoped = effectiveCategoryId
+    ? subcategoryOptionsAll.filter((c) => c.parent_id === effectiveCategoryId)
+    : subcategoryOptionsAll;
+
+  return (
+    <>
+      <KvLabel>Category</KvLabel>
+      <KvValue>
+        <InlinePicker
+          display={<span>{effectiveCategoryName ?? "—"}</span>}
+          options={parentCategories.map((c) => ({ id: c.id, label: c.name, hint: c.code ?? undefined }))}
+          onSelect={async (opt) => {
+            if (opt.id === effectiveCategoryId) return;
+            setPendingCategoryId(opt.id);
+            toast.message("Category chosen — pick a subcategory to save");
+          }}
+          placeholder="Search category…"
+        />
+      </KvValue>
+
+      <KvLabel>Subcategory</KvLabel>
+      <KvValue>
+        <InlinePicker
+          display={
+            needsSubcategorySelection ? (
+              <span style={{ color: "#9CA3AF", fontStyle: "italic" }}>select subcategory</span>
+            ) : (
+              <span>{currentSubcategoryName ?? "—"}</span>
+            )
+          }
+          options={subcategoryOptionsScoped.map((c) => ({ id: c.id, label: c.name, hint: c.code ?? undefined }))}
+          onSelect={async (opt) => {
+            if (opt.id === currentSubcategoryId && !needsSubcategorySelection) return;
+            await updateProduct(productId, { subcategory_id: opt.id });
+            setPendingCategoryId(null);
+            onChanged?.();
+          }}
+          placeholder="Search subcategory…"
+        />
+      </KvValue>
+    </>
   );
 }
 
