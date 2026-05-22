@@ -49,6 +49,16 @@ function dutyDecimal(p: CalcPageProduct): number {
   return n / 100;
 }
 
+/** True when the subcategory has no duty rate set at all (NULL / empty / non-numeric).
+ *  A legitimate 0% is NOT considered unset. Used to surface a visible warning so a
+ *  missing rate can't silently under-cost a quote. */
+function isDutyUnset(p: CalcPageProduct): boolean {
+  const raw = p.subcategory?.duty_rate_pct;
+  if (raw == null || raw === "") return true;
+  const n = typeof raw === "string" ? parseFloat(raw) : raw;
+  return !Number.isFinite(n);
+}
+
 function toProductInput(p: CalcPageProduct): ProductInput | null {
   if (!p.origin?.code) return null;
   const tiers: { qty: number; unitUsd: number; setupUsd: number }[] = [];
@@ -323,6 +333,8 @@ export function CalculationsCard({ product, routes, settings }: Props) {
     return out;
   }, [calc]);
 
+  const dutyUnset = isDutyUnset(product);
+
   return (
     <div
       style={{
@@ -334,6 +346,26 @@ export function CalculationsCard({ product, routes, settings }: Props) {
       }}
     >
       <SupplierSpine supplierName={supplierName} />
+      {dutyUnset && (
+        <div
+          role="alert"
+          style={{
+            marginLeft: 26,
+            padding: "6px 12px",
+            background: "#FEF3C7",
+            borderBottom: "0.5px solid #F2D9B2",
+            color: "#92400E",
+            fontSize: 11,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span style={{ fontSize: 13 }}>⚠</span>
+          Duty rate not set for "{product.subcategory?.name ?? "subcategory"}" — landed cost is computed with 0% duty and may be understated.
+        </div>
+      )}
       <div
         style={{
           display: "flex",
@@ -543,9 +575,11 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   }
                   const selected = selectedByRow[i] === route.id;
                   return (
-                    <Bubble key={route.id} selected={selected}>
-                      <div style={{ fontSize: 10, color: "#6B7280", lineHeight: 1.3 }}>
-                        {formatMoney(t.cifUsd)} × {formatNumber(settings.customsMultiplier, 1)} × {formatNumber(productInput!.dutyRate * 100, 0)}%
+                    <Bubble key={route.id} selected={selected} amber={dutyUnset}>
+                      <div style={{ fontSize: 10, color: dutyUnset ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
+                        {dutyUnset
+                          ? "duty rate not set"
+                          : `${formatMoney(t.cifUsd)} × ${formatNumber(settings.customsMultiplier, 1)} × ${formatNumber(productInput!.dutyRate * 100, 0)}%`}
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 600 }}>{formatMoney(c.dutyBbd)}</div>
                     </Bubble>
