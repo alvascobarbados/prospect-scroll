@@ -265,9 +265,12 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
       {/* ── BLOCK 5..N: Pricing — one block per decoration + Add slot ── */}
       {allDecos.map((d, i) => {
-        const isLast = i === allDecos.length - 1 && allDecos.length > 0 && false; // Add slot follows
+        const hasGround = d.product_decoration_bands.some(
+          (b) => b.inland_freight_usd != null && b.inland_freight_usd !== "",
+        );
+        const blockWidth = hasGround ? 400 : 320;
         return (
-          <div key={d.id} style={{ ...blockStyle(isLast), width: 320 }}>
+          <div key={d.id} style={{ ...blockStyle(false), width: blockWidth }}>
             {i === 0 && <BlockHeader>Pricing</BlockHeader>}
             <DecorationBlock
               decoration={d}
