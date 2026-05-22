@@ -3,9 +3,16 @@ import { SupplierProductCard } from "./SupplierProductCard";
 import { SupplierProductGroup } from "./SupplierProductGroup";
 import { SHEET_GRID_TEMPLATE, SHEET_COL_GAP, SHEET_ROW_PADDING } from "./helpers/sheetGrid";
 
+export interface CategoryRowLite { id: string; name: string; code: string | null; parent_id: string | null }
+export interface SupplierLite { id: string; name: string; code: string | null; unit_system: "metric" | "imperial" | null }
+export interface OriginLite { id: string; name: string }
+
 interface SupplierProductDataListProps {
   items: ListItem[];
-  categoryById?: Map<string, { name: string; parentId: string | null }>;
+  categoryById?: Map<string, { name: string; code: string | null; parentId: string | null }>;
+  allCategories?: CategoryRowLite[];
+  suppliers?: SupplierLite[];
+  origins?: OriginLite[];
   autoFocusVariantForId?: string | null;
   onChanged?: () => void;
   onDuplicated?: (newId: string) => void;
@@ -41,11 +48,21 @@ function SheetHeader() {
       <div style={HEADER_LABEL_STYLE}>Product Details</div>
       <div style={HEADER_LABEL_STYLE}>Packing &amp; Production</div>
       <div style={HEADER_LABEL_STYLE}>Pricing</div>
+      <div aria-hidden />
     </div>
   );
 }
 
-export function SupplierProductDataList({ items, categoryById, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductDataListProps) {
+export function SupplierProductDataList({
+  items,
+  categoryById,
+  allCategories = [],
+  suppliers = [],
+  origins = [],
+  autoFocusVariantForId,
+  onChanged,
+  onDuplicated,
+}: SupplierProductDataListProps) {
   if (items.length === 0) {
     return (
       <div style={{ padding: "48px 0", color: "#9CA3AF", fontSize: 13 }}>
@@ -69,6 +86,9 @@ export function SupplierProductDataList({ items, categoryById, autoFocusVariantF
               key={item.product.id}
               product={item.product}
               categoryName={resolveCategory(item.product.subcategory?.id)}
+              allCategories={allCategories}
+              suppliers={suppliers}
+              origins={origins}
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
               onDuplicated={onDuplicated}
@@ -79,6 +99,9 @@ export function SupplierProductDataList({ items, categoryById, autoFocusVariantF
               parentName={item.parentName}
               members={item.members}
               resolveCategory={resolveCategory}
+              allCategories={allCategories}
+              suppliers={suppliers}
+              origins={origins}
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
               onDuplicated={onDuplicated}
