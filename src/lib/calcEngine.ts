@@ -39,6 +39,9 @@ export type PricingTier = {
   qty: number;
   unitUsd: number;
   setupUsd: number;
+  /** Optional inland (ground) freight USD for this tier, supplier → forwarder.
+   *  NULL = not entered. Only applied when the route's includeInlandFreight=true. */
+  inlandFreightUsd?: number | null;
 };
 
 export type ProductInput = {
@@ -80,6 +83,9 @@ export type RouteInput = {
   bufferPct: number;              // decimal
   lacFixedBbd: number;
   lacPerCbmBbd: number;
+  /** When TRUE, this route adds the tier's inlandFreightUsd to transportPre
+   *  (and propagates through fuel + buffer). FALSE = no ground leg. */
+  includeInlandFreight: boolean;
   tiers: RouteTier[];
   sortOrder: number;
 };
@@ -105,7 +111,14 @@ export type TransportCell =
       applied: number;             // lbs OR CBM
       tier: RouteTier | null;
       tierCostUsd: number;
-      transportPreUsd: number;     // base + tier
+      /** Inland (ground) freight USD added to transportPre. 0 when route
+       *  switch is off OR tier has no value set (see itcMissing). */
+      itcUsd: number;
+      /** TRUE when the route's includeInlandFreight=true but the tier has
+       *  no inlandFreightUsd set — surfaces a visible warning so a
+       *  configured ground leg can't silently under-cost a quote. */
+      itcMissing: boolean;
+      transportPreUsd: number;     // base + tier + itc
       transportUsd: Money;         // after fuel + buffer
       cifUsd: Money;
       cifUnitUsd: Money;
@@ -247,7 +260,10 @@ export function computeProductCalc(
       }
 
       const tierCost = applied * matched.rateUsd;
-      const transportPre = route.baseFeeUsd + tierCost;
+      const tierItc = tier.inlandFreightUsd;
+      const itcMissing = route.includeInlandFreight && (tierItc == null);
+      const itcUsd = route.includeInlandFreight ? (tierItc ?? 0) : 0;
+      const transportPre = route.baseFeeUsd + tierCost + itcUsd;
       // Fuel AND buffer applied UNCONDITIONALLY for every route — a 0 is a ×1 no-op.
       const transportAmt = transportPre * (1 + route.fuelPct) * (1 + route.bufferPct);
       const cifAmt = productTotalAmt + transportAmt;
@@ -258,6 +274,8 @@ export function computeProductCalc(
         applied,
         tier: matched,
         tierCostUsd: tierCost,
+        itcUsd,
+        itcMissing,
         transportPreUsd: transportPre,
         transportUsd: usd(transportAmt),
         cifUsd: usd(cifAmt),

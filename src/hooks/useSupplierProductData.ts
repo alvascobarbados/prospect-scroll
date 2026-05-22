@@ -32,7 +32,7 @@ export function useSupplierProductData() {
               id, detail,
               method:decoration_methods(id, name)
             ),
-            product_decoration_bands(id, qty, unit_cost, setup_cost)
+            product_decoration_bands(id, qty, unit_cost, setup_cost, inland_freight_usd)
           )
         `)
         .order("display_order", { ascending: true, nullsFirst: false })

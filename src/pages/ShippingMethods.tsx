@@ -47,6 +47,7 @@ interface SRoute {
   origin_id: string; destination_id: string;
   fixed_cost: number; notes: string | null;
   lac_fixed_bbd: number; lac_per_cbm_bbd: number;
+  include_inland_freight: boolean;
 }
 interface STier {
   id: string; route_id: string;
@@ -175,6 +176,8 @@ export default function ShippingMethodsPage() {
       const n = numOrZero(raw);
       if (n < 0) { toast.error("Must be ≥ 0"); return false; }
       value = n;
+    } else if (key === "include_inland_freight") {
+      value = raw === "true";
     } else if (key === "origin_id" || key === "destination_id") {
       if (!value) return false;
     } else if (!value) value = null;
@@ -570,6 +573,14 @@ const RouteAndTiers = ({
         <EditableCell value={route.lac_per_cbm_bbd ? String(route.lac_per_cbm_bbd) : ""} onSave={(v) => onUpdateRoute(route, "lac_per_cbm_bbd", v)} />
       </td>
       <td className="px-3 py-2 align-top">
+        <label className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer mb-1">
+          <input
+            type="checkbox"
+            checked={!!route.include_inland_freight}
+            onChange={async (e) => { await onUpdateRoute(route, "include_inland_freight", e.target.checked ? "true" : "false"); }}
+          />
+          <span>Include Ground Freight (ITC)</span>
+        </label>
         <EditableCell value={route.notes ?? ""} onSave={(v) => onUpdateRoute(route, "notes", v)} />
       </td>
       <td className="px-2 py-2 align-top">

@@ -61,16 +61,24 @@ function isDutyUnset(p: CalcPageProduct): boolean {
 
 function toProductInput(p: CalcPageProduct): ProductInput | null {
   if (!p.origin?.code) return null;
-  const tiers: { qty: number; unitUsd: number; setupUsd: number }[] = [];
+  const tiers: { qty: number; unitUsd: number; setupUsd: number; inlandFreightUsd: number | null }[] = [];
   const seen = new Set<number>();
   for (const d of p.product_decorations ?? []) {
     for (const b of d.product_decoration_bands ?? []) {
       if (seen.has(b.qty)) continue;
       seen.add(b.qty);
+      const rawItc = (b as { inland_freight_usd?: number | string | null }).inland_freight_usd;
+      const itc =
+        rawItc == null || rawItc === ""
+          ? null
+          : typeof rawItc === "string"
+            ? parseFloat(rawItc)
+            : Number(rawItc);
       tiers.push({
         qty: Number(b.qty),
         unitUsd: typeof b.unit_cost === "string" ? parseFloat(b.unit_cost) : Number(b.unit_cost),
         setupUsd: typeof b.setup_cost === "string" ? parseFloat(b.setup_cost) : Number(b.setup_cost),
+        inlandFreightUsd: Number.isFinite(itc as number) ? (itc as number) : null,
       });
     }
   }
@@ -456,13 +464,18 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                 const surchargeMul = (1 + route.fuelPct) * (1 + route.bufferPct);
                 const surchargeStr = surchargeMul === 1 ? "" : ` × ${formatNumber(surchargeMul, 2)}`;
                 const selected = selectedByRow[i] === route.id;
+                const itcStr = c.itcUsd > 0
+                  ? ` + ${formatMoney({ amount: c.itcUsd, currency: "USD" })} ground`
+                  : "";
                 return (
-                  <Bubble key={route.id} selected={selected}>
-                    <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.3 }}>
-                      {formatNumber(c.applied, 2)} {route.rateUnit} · {tierLabel} @ {formatMoney({ amount: c.tier!.rateUsd, currency: "USD" })}
+                  <Bubble key={route.id} selected={selected} amber={c.itcMissing}>
+                    <div style={{ fontSize: 12, color: c.itcMissing ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
+                      {c.itcMissing
+                        ? "⚠ inland freight not set"
+                        : `${formatNumber(c.applied, 2)} ${route.rateUnit} · ${tierLabel} @ ${formatMoney({ amount: c.tier!.rateUsd, currency: "USD" })}`}
                     </div>
                     <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.3 }}>
-                      ({formatMoney({ amount: route.baseFeeUsd, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })})
+                      ({formatMoney({ amount: route.baseFeeUsd, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })}{itcStr})
                       {surchargeStr} = <strong>{formatMoney(c.transportUsd)}</strong>
                     </div>
                   </Bubble>
@@ -470,6 +483,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
               }}
               ROW_H={86}
             />
+
 
             {/* ─── CIF (amber output, USD) ─── */}
             <RouteColumnBlock

@@ -43,6 +43,7 @@ export interface CalcPageProduct {
       qty: number;
       unit_cost: number | string;
       setup_cost: number | string;
+      inland_freight_usd: number | string | null;
     }>;
   }>;
 }
@@ -96,11 +97,11 @@ export function useCalcPageData() {
               id, detail,
               method:decoration_methods(id, name)
             ),
-            product_decoration_bands(id, qty, unit_cost, setup_cost)
+            product_decoration_bands(id, qty, unit_cost, setup_cost, inland_freight_usd)
           )
         `).order("name", { ascending: true }),
         supabase.from("shipping_methods").select("id, code, name, fuel_surcharge_pct, buffer_pct"),
-        supabase.from("shipping_method_routes").select("id, shipping_method_id, origin_id, destination_id, fixed_cost, lac_fixed_bbd, lac_per_cbm_bbd"),
+        supabase.from("shipping_method_routes").select("id, shipping_method_id, origin_id, destination_id, fixed_cost, lac_fixed_bbd, lac_per_cbm_bbd, include_inland_freight"),
         supabase.from("shipping_method_tiers").select("id, route_id, band_from, band_to, rate").order("band_from"),
         supabase.from("origins").select("id, code, name"),
         supabase.from("destinations").select("id, code"),
@@ -160,6 +161,7 @@ export function useCalcPageData() {
             bufferPct: (Number(m.buffer_pct) || 0) / 100,
             lacFixedBbd: Number(r.lac_fixed_bbd) || 0,
             lacPerCbmBbd: Number(r.lac_per_cbm_bbd) || 0,
+            includeInlandFreight: r.include_inland_freight === true,
             tiers,
             sortOrder: methodSortRank(m.code) * 1000,
           } as RouteInput;
