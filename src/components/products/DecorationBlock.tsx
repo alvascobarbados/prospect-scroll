@@ -222,49 +222,50 @@ export function DecorationBlock({
             <th style={headerCellStyle("left")}>Qty</th>
             <th style={headerCellStyle("right")}>Unit $</th>
             <th style={headerCellStyle("right")}>Setup $</th>
+            {groundOn && <th style={headerCellStyle("right")}>Ground $</th>}
             <th style={{ ...headerCellStyle("right"), width: 18 }} aria-hidden />
           </tr>
         </thead>
         <tbody>
           {bands.map((b) => (
-            <BandRow key={b.id} band={b} onChanged={onChanged} />
+            <BandRow key={b.id} band={b} showGround={groundOn} onChanged={onChanged} />
           ))}
         </tbody>
       </table>
 
-      <button
-        type="button"
-        onClick={addTier}
-        style={{
-          marginTop: 6,
-          background: "transparent",
-          border: "none",
-          padding: 0,
-          color: "#E97817",
-          fontSize: 12,
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-        }}
-      >
-        <Plus size={12} /> Add tier
-      </button>
+      <div style={{ display: "flex", gap: 14, marginTop: 6, alignItems: "center" }}>
+        <button
+          type="button"
+          onClick={addTier}
+          style={{ background: "transparent", border: "none", padding: 0, color: "#E97817", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}
+        >
+          <Plus size={12} /> Add tier
+        </button>
+        <button
+          type="button"
+          onClick={toggleGround}
+          style={{ background: "transparent", border: "none", padding: 0, color: "#E97817", fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}
+        >
+          {groundOn ? "− Remove ground freight" : "+ Add ground freight"}
+        </button>
+      </div>
     </div>
   );
 }
 
-function BandRow({ band, onChanged }: { band: ProductBand; onChanged?: () => void }) {
+function BandRow({ band, showGround, onChanged }: { band: ProductBand; showGround?: boolean; onChanged?: () => void }) {
   const [hover, setHover] = useState(false);
 
   const qty = typeof band.qty === "string" ? Number(band.qty) : band.qty;
   const unit = typeof band.unit_cost === "string" ? Number(band.unit_cost) : band.unit_cost;
   const setup = typeof band.setup_cost === "string" ? Number(band.setup_cost) : band.setup_cost;
+  const rawItc = band.inland_freight_usd;
+  const itc = rawItc == null || rawItc === "" ? null : typeof rawItc === "string" ? Number(rawItc) : rawItc;
 
-  const save = async (patch: Partial<{ qty: number; unit_cost: number; setup_cost: number }>) => {
+  const save = async (patch: Partial<{ qty: number; unit_cost: number; setup_cost: number; inland_freight_usd: number | null }>) => {
     const { error } = await supabase
       .from("product_decoration_bands")
-      .update(patch)
+      .update(patch as any)
       .eq("id", band.id);
     if (error) throw new Error(error.message);
     onChanged?.();
