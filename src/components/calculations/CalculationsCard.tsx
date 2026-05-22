@@ -170,7 +170,7 @@ const BlockHeader = ({
   tag: "built" | "new" | "output";
 }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, whiteSpace: "nowrap" }}>
-    <span style={{ fontSize: 11, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+    <span style={{ fontSize: 14, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em" }}>
       {title}
     </span>
     <Tag kind={tag}>{tag}</Tag>
@@ -196,8 +196,8 @@ const RouteColumnHeader = ({ label }: { label: string }) => (
   </div>
 );
 
-const BUBBLE_W = 168;
-const ROW_H = 56;
+const BUBBLE_W = 196;
+const ROW_H = 64;
 const BUBBLE_GAP = 6;
 
 interface BubbleProps {
@@ -233,7 +233,7 @@ const Bubble = ({ children, amber, gray, selected, height = ROW_H }: BubbleProps
         borderRadius: 6,
         padding: "6px 8px",
         color,
-        fontSize: 11,
+        fontSize: 14,
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -261,11 +261,11 @@ const SpecsBlock = ({ p }: { p: CalcPageProduct }) => {
       ? `${p.carton_length}×${p.carton_width}×${p.carton_height} cm`
       : EM;
   return (
-    <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 180, whiteSpace: "nowrap" }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+    <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 200, whiteSpace: "nowrap", flexShrink: 0 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
         Specs
       </div>
-      <div style={{ fontSize: 11, color: "#374151", display: "grid", gap: 4 }}>
+      <div style={{ fontSize: 13, color: "#374151", display: "grid", gap: 4 }}>
         <div><span style={{ color: "#9CA3AF" }}>Pcs/Ctn </span>{p.carton_pack ?? EM}</div>
         <div><span style={{ color: "#9CA3AF" }}>Ctn </span>{dims}</div>
         <div><span style={{ color: "#9CA3AF" }}>Wt </span>{p.carton_weight != null ? `${p.carton_weight} kg` : EM}</div>
@@ -276,14 +276,14 @@ const SpecsBlock = ({ p }: { p: CalcPageProduct }) => {
 };
 
 const IdentityBlock = ({ p }: { p: CalcPageProduct }) => (
-  <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 220, maxWidth: 280 }}>
-    <div style={{ fontSize: 9, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>
+  <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 240, maxWidth: 300, flexShrink: 0 }}>
+    <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>
       {p.supplier?.code ?? EM}
     </div>
-    <div style={{ fontSize: 13, fontWeight: 600, color: "#18181B", lineHeight: 1.25 }}>{p.name}</div>
-    {p.variant_name && <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{p.variant_name}</div>}
+    <div style={{ fontSize: 15, fontWeight: 600, color: "#18181B", lineHeight: 1.25 }}>{p.name}</div>
+    {p.variant_name && <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>{p.variant_name}</div>}
     {p.supplier_item_number && (
-      <div style={{ display: "inline-block", marginTop: 6, fontSize: 10, fontFamily: "monospace", color: "#6B7280", background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>
+      <div style={{ display: "inline-block", marginTop: 6, fontSize: 11, fontFamily: "monospace", color: "#6B7280", background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>
         {p.supplier_item_number}
       </div>
     )}
@@ -291,7 +291,7 @@ const IdentityBlock = ({ p }: { p: CalcPageProduct }) => (
 );
 
 const ImageBlock = ({ p }: { p: CalcPageProduct }) => (
-  <div style={{ width: 90, padding: 8, borderRight: BLOCK_BORDER, display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFBFC" }}>
+  <div style={{ width: 90, padding: 8, borderRight: BLOCK_BORDER, display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFBFC", flexShrink: 0 }}>
     {p.image_url ? (
       <img src={p.image_url} alt={p.name} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6 }} />
     ) : (
@@ -342,7 +342,8 @@ export function CalculationsCard({ product, routes, settings }: Props) {
         border: "0.5px solid #E5E7EB",
         borderRadius: 12,
         position: "relative",
-        overflow: "hidden",
+        width: "max-content",
+        minWidth: "100%",
       }}
     >
       <SupplierSpine supplierName={supplierName} />
@@ -369,6 +370,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
       <div
         style={{
           display: "flex",
+          flexWrap: "nowrap",
           alignItems: "stretch",
           marginLeft: 26,
           width: "max-content",
@@ -387,11 +389,11 @@ export function CalculationsCard({ product, routes, settings }: Props) {
         {calc && (
           <>
             {/* ─── Product Costs (white, USD, Built) ─── */}
-            <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, background: "#fff" }}>
+            <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, background: "#fff", flexShrink: 0 }}>
               <BlockHeader title="Product Costs" currency="USD" tag="built" />
-              <table style={{ borderCollapse: "collapse", fontSize: 11, ...NUM_FONT }}>
+              <table style={{ borderCollapse: "collapse", fontSize: 14, ...NUM_FONT }}>
                 <thead>
-                  <tr style={{ color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 9 }}>
+                  <tr style={{ color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 11 }}>
                     <Th>Qty</Th>
                     <Th align="right">Unit</Th>
                     <Th align="right">Setup</Th>
@@ -421,7 +423,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
               {calc.rows.map((row, i) => (
                 <Bubble key={i} amber>
                   <div style={{ fontWeight: 600 }}>{formatMoney(row.spec.productTotalUsd)}</div>
-                  <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(row.spec.fobUnitUsd)} /u</div>
+                  <div style={{ fontSize: 12, opacity: 0.75 }}>{formatMoney(row.spec.fobUnitUsd)} /u</div>
                 </Bubble>
               ))}
             </OutputColumn>
@@ -439,7 +441,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   return (
                     <Bubble key={route.id} gray>
                       <div style={{ textAlign: "center" }}>{EM}</div>
-                      <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
+                      <div style={{ fontSize: 11, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
                     </Bubble>
                   );
                 }
@@ -451,10 +453,10 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                 const selected = selectedByRow[i] === route.id;
                 return (
                   <Bubble key={route.id} selected={selected}>
-                    <div style={{ fontSize: 10, color: "#6B7280", lineHeight: 1.3 }}>
+                    <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.3 }}>
                       {formatNumber(c.applied, 2)} {route.rateUnit} · {tierLabel} @ {formatMoney({ amount: c.tier!.rateUsd, currency: "USD" })}
                     </div>
-                    <div style={{ fontSize: 10, color: "#374151", lineHeight: 1.3 }}>
+                    <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.3 }}>
                       ({formatMoney({ amount: route.baseFeeUsd, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })})
                       {surchargeStr} = <strong>{formatMoney(c.transportUsd)}</strong>
                     </div>
@@ -485,7 +487,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                 return (
                   <Bubble key={route.id} amber selected={selected}>
                     <div style={{ fontWeight: 600 }}>{formatMoney(c.cifUsd)}</div>
-                    <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(c.cifUnitUsd)} /u</div>
+                    <div style={{ fontSize: 12, opacity: 0.75 }}>{formatMoney(c.cifUnitUsd)} /u</div>
                   </Bubble>
                 );
               }}
@@ -506,17 +508,17 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                     return (
                       <Bubble key={route.id} gray>
                         <div style={{ textAlign: "center" }}>{EM}</div>
-                        <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
+                        <div style={{ fontSize: 11, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
                       </Bubble>
                     );
                   }
                   const selected = selectedByRow[i] === route.id;
                   return (
                     <Bubble key={route.id} selected={selected}>
-                      <div style={{ fontSize: 10, color: "#6B7280", lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.3 }}>
                         {formatMoney({ amount: route.lacFixedBbd, currency: "BBD" })} + {formatNumber(row.spec.totalCbm, 5)} × {formatMoney({ amount: route.lacPerCbmBbd, currency: "BBD" })}
                       </div>
-                      <div style={{ fontSize: 11, fontWeight: 600 }}>{formatMoney(c.lacBbd)}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{formatMoney(c.lacBbd)}</div>
                     </Bubble>
                   );
                 }}
@@ -547,7 +549,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   return (
                     <Bubble key={route.id} amber selected={selected}>
                       <div style={{ fontWeight: 600 }}>{formatMoney(c.ldfBbd)}</div>
-                      <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(c.ldfUnitBbd)} /u</div>
+                      <div style={{ fontSize: 12, opacity: 0.75 }}>{formatMoney(c.ldfUnitBbd)} /u</div>
                     </Bubble>
                   );
                 }}
@@ -576,12 +578,12 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   const selected = selectedByRow[i] === route.id;
                   return (
                     <Bubble key={route.id} selected={selected} amber={dutyUnset}>
-                      <div style={{ fontSize: 10, color: dutyUnset ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 12, color: dutyUnset ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
                         {dutyUnset
                           ? "duty rate not set"
                           : `${formatMoney(t.cifUsd)} × ${formatNumber(settings.customsMultiplier, 1)} × ${formatNumber(productInput!.dutyRate * 100, 0)}%`}
                       </div>
-                      <div style={{ fontSize: 11, fontWeight: 600 }}>{formatMoney(c.dutyBbd)}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{formatMoney(c.dutyBbd)}</div>
                     </Bubble>
                   );
                 }}
@@ -612,7 +614,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                   return (
                     <Bubble key={route.id} amber selected={selected}>
                       <div style={{ fontWeight: 700 }}>{formatMoney(c.ldpBbd)}</div>
-                      <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(c.ldpUnitBbd)} /u</div>
+                      <div style={{ fontSize: 12, opacity: 0.75 }}>{formatMoney(c.ldpUnitBbd)} /u</div>
                     </Bubble>
                   );
                 }}
@@ -664,7 +666,7 @@ const OutputColumn = ({
   columns: { id: string; label: string }[];
   children: React.ReactNode;
 }) => (
-  <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, background: AMBER_BG }}>
+  <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, background: AMBER_BG, flexShrink: 0 }}>
     <BlockHeader title={label} currency="USD" tag="output" />
     <div style={{ display: "flex", gap: BUBBLE_GAP, marginBottom: 4 }}>
       {columns.map((c) => (
@@ -705,6 +707,7 @@ const RouteColumnBlock = ({
       padding: "12px 14px",
       borderRight: BLOCK_BORDER,
       background: isOutput ? AMBER_BG : "#FFFFFF",
+      flexShrink: 0,
     }}
   >
     <BlockHeader title={title} currency={currency} tag={tag} scopeBB={scopeBB} />
