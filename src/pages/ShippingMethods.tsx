@@ -404,6 +404,8 @@ const MethodGroup = ({
         </td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top">
           <EditableCell value={method.notes ?? ""} onSave={(v) => onUpdateMethod(method, "notes", v)} />
         </td>
@@ -487,6 +489,12 @@ const RouteAndTiers = ({
       <td className="px-3 py-2 align-top">
         <EditableCell value={String(route.fixed_cost)} onSave={(v) => onUpdateRoute(route, "fixed_cost", v)} />
       </td>
+      <td className="px-3 py-2 align-top">
+        <EditableCell value={String(route.lac_fixed_bbd)} onSave={(v) => onUpdateRoute(route, "lac_fixed_bbd", v)} />
+      </td>
+      <td className="px-3 py-2 align-top">
+        <EditableCell value={String(route.lac_per_cbm_bbd)} onSave={(v) => onUpdateRoute(route, "lac_per_cbm_bbd", v)} />
+      </td>
       <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
       <td className="px-3 py-2 align-top">
         <EditableCell value={route.notes ?? ""} onSave={(v) => onUpdateRoute(route, "notes", v)} />
@@ -525,6 +533,7 @@ const RouteAndTiers = ({
             <div className="w-20"><EditableCell value={t.band_to == null ? "" : String(t.band_to)} onSave={(v) => onUpdateTier(t, "band_to", v)} placeholder="∞" /></div>
           </div>
         </td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
