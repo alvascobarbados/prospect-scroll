@@ -276,14 +276,14 @@ const SpecsBlock = ({ p }: { p: CalcPageProduct }) => {
 };
 
 const IdentityBlock = ({ p }: { p: CalcPageProduct }) => (
-  <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 220, maxWidth: 280 }}>
-    <div style={{ fontSize: 9, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>
+  <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 240, maxWidth: 300, flexShrink: 0 }}>
+    <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>
       {p.supplier?.code ?? EM}
     </div>
-    <div style={{ fontSize: 13, fontWeight: 600, color: "#18181B", lineHeight: 1.25 }}>{p.name}</div>
-    {p.variant_name && <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{p.variant_name}</div>}
+    <div style={{ fontSize: 15, fontWeight: 600, color: "#18181B", lineHeight: 1.25 }}>{p.name}</div>
+    {p.variant_name && <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>{p.variant_name}</div>}
     {p.supplier_item_number && (
-      <div style={{ display: "inline-block", marginTop: 6, fontSize: 10, fontFamily: "monospace", color: "#6B7280", background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>
+      <div style={{ display: "inline-block", marginTop: 6, fontSize: 11, fontFamily: "monospace", color: "#6B7280", background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>
         {p.supplier_item_number}
       </div>
     )}
