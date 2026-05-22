@@ -457,15 +457,17 @@ function DetailsGrid({ product, onChanged }: { product: Product; onChanged?: () 
   const includes = product.product_includes ?? [];
 
   return (
-    <div style={{ marginTop: 10 }}>
+    <div>
       {(rows.length > 0 || virtualDefaults.length > 0) && (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "auto 1fr auto",
-            gap: "4px 16px",
+            gridTemplateColumns: "88px 1fr 16px",
+            rowGap: 6,
+            columnGap: 12,
             fontSize: 12,
             lineHeight: 1.4,
+            alignItems: "baseline",
           }}
         >
           {rows.map((d) => (
@@ -488,6 +490,7 @@ function DetailsGrid({ product, onChanged }: { product: Product; onChanged?: () 
           ))}
         </div>
       )}
+
       <div style={{ marginTop: rows.length > 0 || virtualDefaults.length > 0 ? 4 : 0 }}>
         <AddAttributePopover
           productId={product.id}
