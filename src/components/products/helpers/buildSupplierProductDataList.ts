@@ -37,6 +37,13 @@ export interface ProductDetailRow {
   detail_label: { id: string; label: string } | null;
 }
 
+export interface ProductIncludeRow {
+  id: string;
+  quantity: number;
+  description: string;
+  sort_order: number;
+}
+
 export interface ProductSupplier {
   id: string;
   name: string;
