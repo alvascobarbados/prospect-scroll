@@ -455,9 +455,8 @@ export function CalculationsCard({ product, routes, settings }: Props) {
               renderCell={(row, route, i) => {
                 const c = row.transports[route.id];
                 if (!c.active) {
-                  // "invalid data" → amber warning (visibly distinct from
-                  // the neutral gray "origin mismatch" / "no tier").
-                  const isInvalid = c.reason === "invalid data";
+                  const reason = "reason" in c ? c.reason : "";
+                  const isInvalid = reason === "invalid data";
                   return (
                     <Bubble key={route.id} gray={!isInvalid} amber={isInvalid}>
                       <div style={{ textAlign: "center" }}>
@@ -472,7 +471,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                           fontWeight: isInvalid ? 600 : undefined,
                         }}
                       >
-                        {c.reason}
+                        {reason}
                       </div>
                     </Bubble>
                   );
