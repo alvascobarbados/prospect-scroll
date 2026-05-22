@@ -370,6 +370,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
       <div
         style={{
           display: "flex",
+          flexWrap: "nowrap",
           alignItems: "stretch",
           marginLeft: 26,
           width: "max-content",
