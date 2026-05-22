@@ -61,16 +61,24 @@ function isDutyUnset(p: CalcPageProduct): boolean {
 
 function toProductInput(p: CalcPageProduct): ProductInput | null {
   if (!p.origin?.code) return null;
-  const tiers: { qty: number; unitUsd: number; setupUsd: number }[] = [];
+  const tiers: { qty: number; unitUsd: number; setupUsd: number; inlandFreightUsd: number | null }[] = [];
   const seen = new Set<number>();
   for (const d of p.product_decorations ?? []) {
     for (const b of d.product_decoration_bands ?? []) {
       if (seen.has(b.qty)) continue;
       seen.add(b.qty);
+      const rawItc = (b as { inland_freight_usd?: number | string | null }).inland_freight_usd;
+      const itc =
+        rawItc == null || rawItc === ""
+          ? null
+          : typeof rawItc === "string"
+            ? parseFloat(rawItc)
+            : Number(rawItc);
       tiers.push({
         qty: Number(b.qty),
         unitUsd: typeof b.unit_cost === "string" ? parseFloat(b.unit_cost) : Number(b.unit_cost),
         setupUsd: typeof b.setup_cost === "string" ? parseFloat(b.setup_cost) : Number(b.setup_cost),
+        inlandFreightUsd: Number.isFinite(itc as number) ? (itc as number) : null,
       });
     }
   }
