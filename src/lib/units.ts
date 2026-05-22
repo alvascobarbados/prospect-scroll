@@ -6,7 +6,15 @@
  */
 export type UnitSystem = "metric" | "imperial";
 
-export function weightUnit(system: UnitSystem | null | undefined): "kg" | "lbs" {
+/** Canonical engine token: "kg" | "lb". Use everywhere that touches the
+ *  cost engine. For UI display where "lbs" reads better, use
+ *  `weightUnitLabel()`. */
+export function weightUnit(system: UnitSystem | null | undefined): "kg" | "lb" {
+  return system === "imperial" ? "lb" : "kg";
+}
+
+/** Display-only label. Always returns "kg" or "lbs" (note the trailing s). */
+export function weightUnitLabel(system: UnitSystem | null | undefined): "kg" | "lbs" {
   return system === "imperial" ? "lbs" : "kg";
 }
 
