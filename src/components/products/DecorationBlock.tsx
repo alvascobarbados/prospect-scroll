@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,7 +89,16 @@ export function DecorationBlock({
 
   const bands = [...decoration.product_decoration_bands].sort((a, b) => a.qty - b.qty);
   const nextBandQty = (bands.at(-1)?.qty ?? 0) + 1;
-  const groundOn = bands.some((b) => b.inland_freight_usd != null && b.inland_freight_usd !== "");
+  const hasGroundData = bands.some(
+    (b) => b.inland_freight_usd != null && b.inland_freight_usd !== "",
+  );
+  // Local UI state: visible if user clicked Add, OR if any band already has a value.
+  const [expanded, setExpanded] = useState<boolean>(hasGroundData);
+  // Auto-expand whenever upstream data introduces a value (e.g. after a save).
+  useEffect(() => {
+    if (hasGroundData) setExpanded(true);
+  }, [hasGroundData]);
+  const groundOn = expanded || hasGroundData;
 
   const removeDecoration = async () => {
     if (!window.confirm("Remove this decoration and all its pricing tiers?")) return;
@@ -119,14 +128,22 @@ export function DecorationBlock({
   };
 
   const toggleGround = async () => {
-    const next = groundOn ? null : 0;
-    const ids = bands.map((b) => b.id);
-    const { error } = await supabase
-      .from("product_decoration_bands")
-      .update({ inland_freight_usd: next } as any)
-      .in("id", ids);
-    if (error) { toast.error(`Failed: ${error.message}`); return; }
-    onChanged?.();
+    if (groundOn) {
+      // Collapse: clear any saved values AND hide the column.
+      setExpanded(false);
+      if (hasGroundData) {
+        const ids = bands.map((b) => b.id);
+        const { error } = await supabase
+          .from("product_decoration_bands")
+          .update({ inland_freight_usd: null } as any)
+          .in("id", ids);
+        if (error) { toast.error(`Failed: ${error.message}`); return; }
+        onChanged?.();
+      }
+    } else {
+      // Expand immediately — no DB write needed; editing a field will persist.
+      setExpanded(true);
+    }
   };
 
   return (
