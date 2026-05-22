@@ -11,6 +11,7 @@ export interface ProductBand {
   qty: number;
   unit_cost: number | string;
   setup_cost: number | string;
+  inland_freight_usd?: number | string | null;
 }
 
 export interface ProductDecoration {
