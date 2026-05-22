@@ -229,18 +229,28 @@ export function DecorationBlock({
       <table
         style={{
           width: "100%",
+          tableLayout: "fixed",
           borderCollapse: "collapse",
           fontSize: 13,
           fontVariantNumeric: "tabular-nums",
         }}
       >
+        <colgroup>
+          <col style={{ width: 56 }} />
+          <col style={{ width: 72 }} />
+          <col style={{ width: 72 }} />
+          <col style={{ width: 72 }} />
+          <col style={{ width: 18 }} />
+        </colgroup>
         <thead>
           <tr>
             <th style={headerCellStyle("left")}>Qty</th>
             <th style={headerCellStyle("right")}>Unit $</th>
             <th style={headerCellStyle("right")}>Setup $</th>
-            {groundOn && <th style={headerCellStyle("right")}>Ground $</th>}
-            <th style={{ ...headerCellStyle("right"), width: 18 }} aria-hidden />
+            <th style={headerCellStyle("right")} aria-hidden={!groundOn}>
+              {groundOn ? "Ground $" : "\u00A0"}
+            </th>
+            <th style={headerCellStyle("right")} aria-hidden />
           </tr>
         </thead>
         <tbody>
@@ -249,6 +259,7 @@ export function DecorationBlock({
           ))}
         </tbody>
       </table>
+
 
       <div style={{ display: "flex", gap: 14, marginTop: 6, alignItems: "center" }}>
         <button
