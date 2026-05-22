@@ -77,23 +77,40 @@ export function SupplierProductDataPage() {
     };
   }, [reloadKey]);
 
-  // Cache category id → { name, parentId } so we can resolve a subcategory's
+  // Cache category id → { name, code, parentId } so we can resolve a subcategory's
   // parent category name without nesting an FK select on the products query.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("product_categories")
-        .select("id, name, parent_id");
+        .select("id, name, code, parent_id");
       if (cancelled) return;
+      const rows = (data ?? []) as CategoryRow[];
       const map = new Map<string, CategoryMeta>();
-      for (const row of (data ?? []) as CategoryRow[]) {
-        map.set(row.id, { name: row.name, parentId: row.parent_id });
+      for (const row of rows) {
+        map.set(row.id, { name: row.name, code: row.code, parentId: row.parent_id });
       }
       setCategoryById(map);
+      setAllCategories(rows);
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [reloadKey]);
+
+  // Suppliers + origins for inline pickers in the identity cell.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [{ data: sup }, { data: ori }] = await Promise.all([
+        supabase.from("suppliers").select("id, name, code, unit_system").order("name"),
+        supabase.from("origins").select("id, name").order("name"),
+      ]);
+      if (cancelled) return;
+      setSuppliers((sup ?? []) as PickerSupplier[]);
+      setOrigins((ori ?? []) as PickerOrigin[]);
+    })();
+    return () => { cancelled = true; };
+  }, [reloadKey]);
 
   const categoryParentBySubId = useMemo(() => {
     const m = new Map<string, string>();
