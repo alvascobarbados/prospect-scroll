@@ -252,59 +252,38 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
 function IdentityCell({
   product,
-  showVariantInline,
+  showVariantInline: _showVariantInline,
   autoEditVariant,
   onChanged,
-  hideDetails,
 }: {
   product: Product;
   showVariantInline: boolean;
   autoEditVariant?: boolean;
   onChanged?: () => void;
-  hideDetails?: boolean;
 }) {
   const code = product.supplier?.code ?? null;
   const itemSuffix = stripCodePrefix(product.supplier_item_number, code);
   const variantText = product.variant_name ?? product.variant_label ?? "";
 
   return (
-    <div style={{ minWidth: 0, flex: 1 }}>
-      {/* Row 1: name + updated */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 8,
-        }}
-      >
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <InlineText
-            value={product.name}
-            onSave={async (next) => {
-              await updateProduct(product.id, { name: next.trim() });
-              onChanged?.();
-            }}
-            validate={(v) => (v.trim().length === 0 ? "Name required" : null)}
-            style={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2 }}
-            inputStyle={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2, minWidth: 120 }}
-          />
-        </div>
-        <span
-          style={{
-            fontSize: 11,
-            fontStyle: "italic",
-            color: "#9CA3AF",
-            whiteSpace: "nowrap",
+    <div style={{ minWidth: 0 }}>
+      {/* Name */}
+      <div style={{ minWidth: 0 }}>
+        <InlineText
+          value={product.name}
+          onSave={async (next) => {
+            await updateProduct(product.id, { name: next.trim() });
+            onChanged?.();
           }}
-        >
-          {formatUpdated(product.updated_at)}
-        </span>
+          validate={(v) => (v.trim().length === 0 ? "Name required" : null)}
+          style={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2 }}
+          inputStyle={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2, minWidth: 120 }}
+        />
       </div>
 
-      {/* Row 2: variant label as chip (only when present or being edited) */}
+      {/* Variant chip / placeholder */}
       {(variantText || autoEditVariant) ? (
-        <div style={{ marginTop: 4, marginBottom: 6 }}>
+        <div style={{ marginTop: 6, marginBottom: 8 }}>
           <span
             style={{
               display: "inline-block",
@@ -333,7 +312,7 @@ function IdentityCell({
           </span>
         </div>
       ) : (
-        <div style={{ marginTop: 2, marginBottom: 6 }}>
+        <div style={{ marginTop: 4, marginBottom: 8 }}>
           <InlineText
             value=""
             placeholder="add variant"
@@ -348,69 +327,68 @@ function IdentityCell({
         </div>
       )}
 
-      {/* Code pill + item suffix */}
-      <div style={{ display: "inline-flex", alignItems: "center", fontSize: 12, lineHeight: 1.5, marginTop: 2 }}>
-        {code ? (
-          <span style={codePillStyle()}>{code}</span>
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span style={codePillStyle("warn")}>?</span>
-            </TooltipTrigger>
-            <TooltipContent>Supplier code not set — edit supplier to fix</TooltipContent>
-          </Tooltip>
-        )}
-        <span
-          style={{
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            color: "#0E2849",
-            fontSize: 12,
-            display: "inline-flex",
-            alignItems: "center",
-          }}
-        >
-          {code ? "-" : ""}
-          <InlineText
-            value={itemSuffix}
-            placeholder="suffix"
-            onSave={async (next) => {
-              const v = next.trim().toUpperCase();
-              const assembled = code ? (v.length ? `${code}-${v}` : code) : v.length ? v : null;
-              await updateProduct(product.id, { supplier_item_number: assembled });
-              onChanged?.();
-            }}
-            validate={(v) => {
-              const t = v.trim();
-              if (t.length === 0) return null;
-              return /^[A-Za-z0-9-]+$/.test(t) ? null : "Use letters, numbers, hyphens";
-            }}
-            style={{ fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", color: "#0E2849" }}
-            inputStyle={{ fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", minWidth: 60 }}
-          />
-        </span>
-      </div>
-
-      {/* Supplier / Category / Subcategory / Origin */}
+      {/* Supplier / Item Number / Origin / Subcategory */}
       <div
         style={{
-          marginTop: 10,
           display: "grid",
           gridTemplateColumns: "auto 1fr",
-          gap: "3px 12px",
+          gap: "4px 12px",
           fontSize: 12,
           lineHeight: 1.4,
+          alignItems: "baseline",
         }}
       >
         <KvLabel>Supplier</KvLabel>
         <KvValue>{product.supplier?.name ?? "—"}</KvValue>
-        <KvLabel>Subcategory</KvLabel>
-        <KvValue>{product.subcategory?.name ?? "—"}</KvValue>
+
+        <KvLabel>Supplier Item Number</KvLabel>
+        <span style={{ display: "inline-flex", alignItems: "center", fontSize: 12, lineHeight: 1.4 }}>
+          {code ? (
+            <span style={codePillStyle()}>{code}</span>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span style={codePillStyle("warn")}>?</span>
+              </TooltipTrigger>
+              <TooltipContent>Supplier code not set — edit supplier to fix</TooltipContent>
+            </Tooltip>
+          )}
+          <span
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              color: "#0E2849",
+              fontSize: 12,
+              display: "inline-flex",
+              alignItems: "center",
+            }}
+          >
+            {code ? "-" : ""}
+            <InlineText
+              value={itemSuffix}
+              placeholder="suffix"
+              onSave={async (next) => {
+                const v = next.trim().toUpperCase();
+                const assembled = code ? (v.length ? `${code}-${v}` : code) : v.length ? v : null;
+                await updateProduct(product.id, { supplier_item_number: assembled });
+                onChanged?.();
+              }}
+              validate={(v) => {
+                const t = v.trim();
+                if (t.length === 0) return null;
+                return /^[A-Za-z0-9-]+$/.test(t) ? null : "Use letters, numbers, hyphens";
+              }}
+              style={{ fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", color: "#0E2849" }}
+              inputStyle={{ fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", minWidth: 60 }}
+            />
+          </span>
+        </span>
+
         <KvLabel>Origin</KvLabel>
         <KvValue>{product.origin?.name ?? "—"}</KvValue>
-      </div>
 
-      {/* Details grid (rendered in column 3 when hideDetails) */}
-      {!hideDetails && <DetailsGrid product={product} onChanged={onChanged} />}
+        <KvLabel>Subcategory</KvLabel>
+        <KvValue>{product.subcategory?.name ?? "—"}</KvValue>
+      </div>
     </div>
   );
 }
