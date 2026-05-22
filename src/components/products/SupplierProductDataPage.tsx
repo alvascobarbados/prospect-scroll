@@ -1,18 +1,28 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DesktopAppShell } from "@/components/leads/DesktopAppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { buildSupplierProductDataList, type Product } from "./helpers/buildSupplierProductDataList";
 import { SupplierProductDataList } from "./SupplierProductDataList";
-import { AddProductDialog } from "./AddProductDialog";
+import { DraftProductCard } from "./DraftProductCard";
+import {
+  SupplierProductFilterBar,
+  EMPTY_PRODUCT_FILTER,
+  applyProductFilter,
+  type ProductFilterState,
+} from "./SupplierProductFilterBar";
+
+interface CategoryRow { id: string; parent_id: string | null }
 
 export function SupplierProductDataPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [addOpen, setAddOpen] = useState(false);
+  const [drafts, setDrafts] = useState<string[]>([]);
+  const [filter, setFilter] = useState<ProductFilterState>(EMPTY_PRODUCT_FILTER);
+  const [categoryParentBySubId, setCategoryParentBySubId] = useState<Map<string, string>>(new Map());
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -58,7 +68,39 @@ export function SupplierProductDataPage() {
     };
   }, [reloadKey]);
 
-  const items = products ? buildSupplierProductDataList(products) : [];
+  // Cache category parent_id per subcategory_id for filter resolution.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("product_categories")
+        .select("id, parent_id");
+      if (cancelled) return;
+      const map = new Map<string, string>();
+      for (const row of (data ?? []) as CategoryRow[]) {
+        if (row.parent_id) map.set(row.id, row.parent_id);
+      }
+      setCategoryParentBySubId(map);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!products) return null;
+    return applyProductFilter(products, filter, categoryParentBySubId);
+  }, [products, filter, categoryParentBySubId]);
+
+  const items = filtered ? buildSupplierProductDataList(filtered) : [];
+
+  const startDraft = () => {
+    setDrafts((d) => [...d, `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`]);
+  };
+
+  const discardDraft = (id: string) => setDrafts((d) => d.filter((x) => x !== id));
+  const commitDraft = (id: string) => {
+    discardDraft(id);
+    reload();
+  };
 
   return (
     <DesktopAppShell>
@@ -86,7 +128,7 @@ export function SupplierProductDataPage() {
             Supplier Product Data
           </h1>
           <button
-            onClick={() => setAddOpen(true)}
+            onClick={startDraft}
             style={{
               marginLeft: "auto",
               display: "inline-flex",
@@ -106,19 +148,31 @@ export function SupplierProductDataPage() {
           </button>
         </div>
 
-        <AddProductDialog open={addOpen} onClose={() => setAddOpen(false)} onCreated={reload} />
-
         {error && (
           <div style={{ color: "hsl(var(--destructive))", marginBottom: 16, fontSize: 13 }}>
             Failed to load supplier product data: {error}
           </div>
         )}
 
-        <div style={{ overflowX: "auto", paddingBottom: 16 }}>
+        {products && (
+          <SupplierProductFilterBar value={filter} onChange={setFilter} products={products} />
+        )}
+
+        <div style={{ paddingBottom: 16 }}>
           {products === null ? (
             <div style={{ color: "#9CA3AF", fontSize: 13 }}>Loading…</div>
           ) : (
-            <SupplierProductDataList items={items} onChanged={reload} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {drafts.map((id) => (
+                <DraftProductCard
+                  key={id}
+                  draftId={id}
+                  onCommitted={() => commitDraft(id)}
+                  onDiscard={() => discardDraft(id)}
+                />
+              ))}
+              <SupplierProductDataList items={items} onChanged={reload} />
+            </div>
           )}
         </div>
       </div>
