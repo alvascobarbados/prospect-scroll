@@ -717,7 +717,7 @@ function SpecsCell({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: 6,
         fontSize: 13,
         color: "#0E2849",
         lineHeight: 1.3,
