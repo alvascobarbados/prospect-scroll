@@ -151,7 +151,8 @@ export default function ShippingMethodsPage() {
     const code = `NEW${Math.floor(Math.random() * 999)}`;
     const { data, error } = await supabase.from("shipping_methods").insert({
       code, name: "New shipping method", fuel_surcharge_pct: 0, buffer_pct: 0,
-    }).select().single();
+      chargeable_metric: "CHARGEABLE_WEIGHT", chargeable_unit: "lbs",
+    } as any).select().single();
     if (error) { toast.error(`Add failed: ${error.message}`); return; }
     if (data) setMethods((ms) => [...ms.filter((m) => m.id !== (data as any).id), data as SMethod]);
   };
