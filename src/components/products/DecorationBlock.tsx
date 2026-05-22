@@ -389,6 +389,7 @@ function headerCellStyle(align: "left" | "right"): React.CSSProperties {
     textTransform: "uppercase",
     padding: "4px 8px 6px",
     textAlign: align,
+    whiteSpace: "nowrap",
     borderBottom: "0.5px solid #E5E7EB",
   };
 }
