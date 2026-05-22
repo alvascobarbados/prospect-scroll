@@ -527,6 +527,36 @@ export type Database = {
           },
         ]
       }
+      product_images: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          product_id: string
+          role: string
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          product_id: string
+          role?: string
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          product_id?: string
+          role?: string
+          sort_order?: number
+          url?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           carton_height: number | null
