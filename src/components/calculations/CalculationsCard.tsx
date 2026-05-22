@@ -93,6 +93,8 @@ function toProductInput(p: CalcPageProduct): ProductInput | null {
     ctnWidthCm: Number(p.carton_width),
     ctnHeightCm: Number(p.carton_height),
     wtPerCtnKg: Number(p.carton_weight),
+    dimensionUnit: (p.supplier?.dimension_unit ?? "cm") as "cm" | "in",
+    weightUnit: (p.supplier?.weight_unit_v2 ?? "kg") as "kg" | "lb",
     dutyRate: dutyDecimal(p),
     pricingTiers: tiers,
   };
