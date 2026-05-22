@@ -389,11 +389,11 @@ export function CalculationsCard({ product, routes, settings }: Props) {
         {calc && (
           <>
             {/* ─── Product Costs (white, USD, Built) ─── */}
-            <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, background: "#fff" }}>
+            <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, background: "#fff", flexShrink: 0 }}>
               <BlockHeader title="Product Costs" currency="USD" tag="built" />
-              <table style={{ borderCollapse: "collapse", fontSize: 11, ...NUM_FONT }}>
+              <table style={{ borderCollapse: "collapse", fontSize: 14, ...NUM_FONT }}>
                 <thead>
-                  <tr style={{ color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 9 }}>
+                  <tr style={{ color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 11 }}>
                     <Th>Qty</Th>
                     <Th align="right">Unit</Th>
                     <Th align="right">Setup</Th>
