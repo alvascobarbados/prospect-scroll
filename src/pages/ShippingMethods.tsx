@@ -448,6 +448,24 @@ const MethodGroup = ({
         </td>
         <td className="px-3 py-2 align-top font-semibold">
           <EditableCell value={method.name} onSave={(v) => onUpdateMethod(method, "name", v)} />
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] font-normal text-muted-foreground">
+            <span>charges on</span>
+            <select
+              value={method.chargeable_metric}
+              onChange={async (e) => { await onUpdateMethod(method, "chargeable_metric", e.target.value); }}
+              className="rounded border border-transparent hover:border-[hsl(var(--brand-navy)/0.25)] focus:border-[hsl(var(--brand-navy)/0.4)] bg-transparent px-1 py-0.5 text-[11px] focus:outline-none"
+              style={{ color: "hsl(var(--brand-navy))" }}
+            >
+              {(Object.keys(METRIC_LABEL) as ChargeableMetric[]).map((k) => (
+                <option key={k} value={k}>{METRIC_LABEL[k]}</option>
+              ))}
+            </select>
+            <span>(</span>
+            <div className="w-12">
+              <EditableCell value={method.chargeable_unit} onSave={(v) => onUpdateMethod(method, "chargeable_unit", v)} />
+            </div>
+            <span>)</span>
+          </div>
         </td>
         <td className="px-3 py-2 align-top">
           <EditableCell value={String(method.fuel_surcharge_pct)} onSave={(v) => onUpdateMethod(method, "fuel_surcharge_pct", v)} />
