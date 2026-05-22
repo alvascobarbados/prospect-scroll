@@ -26,6 +26,7 @@ interface SRoute {
   id: string; shipping_method_id: string;
   origin_id: string; destination_id: string;
   fixed_cost: number; notes: string | null;
+  lac_fixed_bbd: number; lac_per_cbm_bbd: number;
 }
 interface STier {
   id: string; route_id: string;
@@ -144,8 +145,11 @@ export default function ShippingMethodsPage() {
   // ─── Routes ───────────────────────────────────────────────────────────
   const updateRoute = async (row: SRoute, key: keyof SRoute, raw: string) => {
     let value: any = raw.trim();
-    if (key === "fixed_cost") value = numOrZero(raw);
-    else if (key === "origin_id" || key === "destination_id") {
+    if (key === "fixed_cost" || key === "lac_fixed_bbd" || key === "lac_per_cbm_bbd") {
+      const n = numOrZero(raw);
+      if (n < 0) { toast.error("Must be ≥ 0"); return false; }
+      value = n;
+    } else if (key === "origin_id" || key === "destination_id") {
       if (!value) return false;
     } else if (!value) value = null;
     const prev = routes;
@@ -272,6 +276,8 @@ export default function ShippingMethodsPage() {
                   <Th>Fuel %</Th>
                   <Th>Buffer %</Th>
                   <Th>Fixed cost</Th>
+                  <Th>LAC fixed (BBD)</Th>
+                  <Th>LAC/CBM (BBD)</Th>
                   <Th>Rate</Th>
                   <Th>Notes</Th>
                   <Th className="w-8" />
@@ -297,7 +303,7 @@ export default function ShippingMethodsPage() {
                   />
                 ))}
                 {groups.length === 0 && (
-                  <tr><td colSpan={8} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
+                  <tr><td colSpan={10} className="text-sm text-muted-foreground italic px-4 py-12 text-center">
                     {q ? "No matches." : "No methods yet."}
                   </td></tr>
                 )}
@@ -398,6 +404,8 @@ const MethodGroup = ({
         </td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top">
           <EditableCell value={method.notes ?? ""} onSave={(v) => onUpdateMethod(method, "notes", v)} />
         </td>
@@ -481,6 +489,12 @@ const RouteAndTiers = ({
       <td className="px-3 py-2 align-top">
         <EditableCell value={String(route.fixed_cost)} onSave={(v) => onUpdateRoute(route, "fixed_cost", v)} />
       </td>
+      <td className="px-3 py-2 align-top">
+        <EditableCell value={String(route.lac_fixed_bbd)} onSave={(v) => onUpdateRoute(route, "lac_fixed_bbd", v)} />
+      </td>
+      <td className="px-3 py-2 align-top">
+        <EditableCell value={String(route.lac_per_cbm_bbd)} onSave={(v) => onUpdateRoute(route, "lac_per_cbm_bbd", v)} />
+      </td>
       <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
       <td className="px-3 py-2 align-top">
         <EditableCell value={route.notes ?? ""} onSave={(v) => onUpdateRoute(route, "notes", v)} />
@@ -519,6 +533,7 @@ const RouteAndTiers = ({
             <div className="w-20"><EditableCell value={t.band_to == null ? "" : String(t.band_to)} onSave={(v) => onUpdateTier(t, "band_to", v)} placeholder="∞" /></div>
           </div>
         </td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>

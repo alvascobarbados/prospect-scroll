@@ -998,6 +998,8 @@ export type Database = {
           destination_id: string
           fixed_cost: number
           id: string
+          lac_fixed_bbd: number
+          lac_per_cbm_bbd: number
           notes: string | null
           origin_id: string
           shipping_method_id: string
@@ -1008,6 +1010,8 @@ export type Database = {
           destination_id: string
           fixed_cost?: number
           id?: string
+          lac_fixed_bbd?: number
+          lac_per_cbm_bbd?: number
           notes?: string | null
           origin_id: string
           shipping_method_id: string
@@ -1018,6 +1022,8 @@ export type Database = {
           destination_id?: string
           fixed_cost?: number
           id?: string
+          lac_fixed_bbd?: number
+          lac_per_cbm_bbd?: number
           notes?: string | null
           origin_id?: string
           shipping_method_id?: string

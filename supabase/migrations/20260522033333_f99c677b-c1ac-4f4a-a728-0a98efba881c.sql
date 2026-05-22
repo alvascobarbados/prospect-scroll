@@ -1,0 +1,3 @@
+ALTER TABLE shipping_method_routes
+  ADD COLUMN IF NOT EXISTS lac_fixed_bbd   NUMERIC NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS lac_per_cbm_bbd NUMERIC NOT NULL DEFAULT 0;
