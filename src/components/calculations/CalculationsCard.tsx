@@ -291,7 +291,7 @@ const IdentityBlock = ({ p }: { p: CalcPageProduct }) => (
 );
 
 const ImageBlock = ({ p }: { p: CalcPageProduct }) => (
-  <div style={{ width: 90, padding: 8, borderRight: BLOCK_BORDER, display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFBFC" }}>
+  <div style={{ width: 90, padding: 8, borderRight: BLOCK_BORDER, display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFBFC", flexShrink: 0 }}>
     {p.image_url ? (
       <img src={p.image_url} alt={p.name} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6 }} />
     ) : (
