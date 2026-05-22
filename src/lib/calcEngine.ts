@@ -26,6 +26,9 @@ export type Settings = {
   fxBbdPerUsdBase: number;        // e.g. 2.02768
   fxFeePct: number;               // decimal: 0.02 for 2%
   customsMultiplier: number;      // 2.0
+  /** Declared Value Factor — multiplies the customs valuation INSIDE
+   *  the duty path only (never on the cash/LDF path). */
+  dvf: number;                    // e.g. 0.5
   kgToLbs: number;                // 2.20462
   cbmDivisor: number;             // 1_000_000
   volumetricDivisor: number;      // 200
@@ -265,8 +268,8 @@ export function computeProductCalc(
         const lacAmt = route.lacFixedBbd + totalCbm * route.lacPerCbmBbd;
         // CASH path — uses effectiveFx (includes FX fee)
         const ldfAmt = cifAmt * effectiveFx + lacAmt;
-        // CUSTOMS path — uses customsMultiplier ONLY (never FX, never fee)
-        const dutyAmt = cifAmt * settings.customsMultiplier * product.dutyRate;
+        // CUSTOMS path — uses customsMultiplier × DVF ONLY (never FX, never fee)
+        const dutyAmt = cifAmt * settings.customsMultiplier * settings.dvf * product.dutyRate;
         const ldpAmt = ldfAmt + dutyAmt;
         bbOutputs[route.id] = {
           active: true,

@@ -586,7 +586,7 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                       <div style={{ fontSize: 12, color: dutyUnset ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
                         {dutyUnset
                           ? "duty rate not set"
-                          : `${formatMoney(t.cifUsd)} × ${formatNumber(settings.customsMultiplier, 1)} × ${formatNumber(productInput!.dutyRate * 100, 0)}%`}
+                          : `${formatMoney(t.cifUsd)} × ${formatNumber(settings.customsMultiplier, 1)} × ${formatNumber(settings.dvf, 2)} × ${formatNumber(productInput!.dutyRate * 100, 0)}%`}
                       </div>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{formatMoney(c.dutyBbd)}</div>
                     </Bubble>
