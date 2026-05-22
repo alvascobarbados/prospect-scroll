@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Star, Trash2, Upload, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Package, Star, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteImage,
@@ -264,8 +264,7 @@ function SlotCell({
       <div
         onClick={url ? onClick : onUpload}
         style={{
-          background: url ? "#F3F4F6" : "transparent",
-          border: url ? "none" : "1.5px dashed #C8CFD7",
+          background: "#F3F4F6",
           borderRadius: 6,
           width: 144,
           height: 144,
@@ -275,21 +274,8 @@ function SlotCell({
           overflow: "hidden",
           position: "relative",
           cursor: loading ? "wait" : "pointer",
-          transition: "border-color 120ms, background 120ms",
         }}
-        title={url ? "Click to view" : `Add ${label.toLowerCase()}`}
-        onMouseEnter={(e) => {
-          if (!url) {
-            (e.currentTarget as HTMLDivElement).style.borderColor = "#0E2849";
-            (e.currentTarget as HTMLDivElement).style.background = "#F8FAFC";
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!url) {
-            (e.currentTarget as HTMLDivElement).style.borderColor = "#C8CFD7";
-            (e.currentTarget as HTMLDivElement).style.background = "transparent";
-          }
-        }}
+        title={url ? "Click to view" : `Upload ${label.toLowerCase()}`}
       >
         {url ? (
           <img
@@ -304,26 +290,12 @@ function SlotCell({
               flexDirection: "column",
               alignItems: "center",
               gap: 4,
-              color: "#6B7280",
+              color: "#9CA3AF",
               fontSize: 11,
             }}
           >
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                background: "#0E2849",
-                color: "#FFFFFF",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              aria-hidden
-            >
-              <Plus size={18} strokeWidth={2.25} />
-            </div>
-            <span>add {label.toLowerCase()}</span>
+            <Package size={28} strokeWidth={1.5} />
+            <span>no image</span>
           </div>
         )}
       </div>

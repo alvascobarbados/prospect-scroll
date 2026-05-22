@@ -78,7 +78,7 @@ export function InlineNumber({
             startEdit();
           }
         }}
-        className="cursor-text rounded px-0.5 hover:bg-[#F3F4F6] transition-colors"
+        className="cursor-text rounded px-0.5 hover:bg-[#F3F4F6] hover:underline decoration-dashed decoration-[#9CA3AF] underline-offset-2 transition-colors"
         style={style}
       >
         {isEmpty ? (

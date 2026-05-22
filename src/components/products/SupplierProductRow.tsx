@@ -218,13 +218,13 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       </div>
 
       {/* ── BLOCK 3: Product Details (Attributes + Includes) ──────── */}
-      <div style={{ ...cellStyle(false), paddingTop: 6 }}>
+      <div style={{ ...cellStyle(false), paddingTop: 14 }}>
         <DetailsGrid product={product} onChanged={onChanged} />
         <Divider />
       </div>
 
       {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
-      <div style={{ ...cellStyle(false), paddingTop: 6 }}>
+      <div style={{ ...cellStyle(false), paddingTop: 14 }}>
         {specsIncomplete && (
           <div
             style={{
@@ -255,7 +255,7 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       </div>
 
       {/* ── BLOCK 5: Pricing — all decorations stack vertically ──── */}
-      <div style={cellStyle(true)}>
+      <div style={{ ...cellStyle(true), paddingTop: 14 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {allDecos.map((d, i) => (
             <DecorationBlock
