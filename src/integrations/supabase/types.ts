@@ -1097,6 +1097,8 @@ export type Database = {
       shipping_methods: {
         Row: {
           buffer_pct: number
+          chargeable_metric: string
+          chargeable_unit: string
           code: string
           created_at: string
           fuel_surcharge_pct: number
@@ -1107,6 +1109,8 @@ export type Database = {
         }
         Insert: {
           buffer_pct?: number
+          chargeable_metric?: string
+          chargeable_unit?: string
           code: string
           created_at?: string
           fuel_surcharge_pct?: number
@@ -1117,6 +1121,8 @@ export type Database = {
         }
         Update: {
           buffer_pct?: number
+          chargeable_metric?: string
+          chargeable_unit?: string
           code?: string
           created_at?: string
           fuel_surcharge_pct?: number

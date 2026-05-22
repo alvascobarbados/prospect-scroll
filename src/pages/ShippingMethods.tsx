@@ -17,10 +17,30 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { EditableCell } from "@/components/leads/SimpleMasterPage";
 import { supabase } from "@/integrations/supabase/client";
 
+type ChargeableMetric = "ACTUAL_WEIGHT" | "VOLUMETRIC_WEIGHT" | "CHARGEABLE_WEIGHT" | "VOLUME";
+
+const METRIC_LABEL: Record<ChargeableMetric, string> = {
+  ACTUAL_WEIGHT: "Actual Weight",
+  VOLUMETRIC_WEIGHT: "Volumetric Weight",
+  CHARGEABLE_WEIGHT: "Chargeable Weight",
+  VOLUME: "Volume",
+};
+
+/** Singular form of a unit for "per <unit>" labels (e.g. lbs → lb, CBM → CBM). */
+const unitSingular = (u: string) => {
+  const t = u.trim();
+  if (!t) return t;
+  if (t.toLowerCase() === "lbs") return "lb";
+  if (t.toLowerCase() === "kgs") return "kg";
+  return t;
+};
+
 interface SMethod {
   id: string; code: string; name: string;
   fuel_surcharge_pct: number; buffer_pct: number;
   notes: string | null;
+  chargeable_metric: ChargeableMetric;
+  chargeable_unit: string;
 }
 interface SRoute {
   id: string; shipping_method_id: string;
@@ -114,6 +134,11 @@ export default function ShippingMethodsPage() {
       if (!value) { toast.error("Name is required"); return false; }
     } else if (key === "fuel_surcharge_pct" || key === "buffer_pct") {
       value = numOrZero(raw);
+    } else if (key === "chargeable_metric") {
+      const allowed = ["ACTUAL_WEIGHT","VOLUMETRIC_WEIGHT","CHARGEABLE_WEIGHT","VOLUME"];
+      if (!allowed.includes(value)) { toast.error("Invalid chargeable metric"); return false; }
+    } else if (key === "chargeable_unit") {
+      if (!value) { toast.error("Unit is required"); return false; }
     } else if (!value) value = null;
     const prev = methods;
     setMethods((ms) => ms.map((m) => (m.id === row.id ? { ...m, [key]: value } as SMethod : m)));
@@ -126,7 +151,8 @@ export default function ShippingMethodsPage() {
     const code = `NEW${Math.floor(Math.random() * 999)}`;
     const { data, error } = await supabase.from("shipping_methods").insert({
       code, name: "New shipping method", fuel_surcharge_pct: 0, buffer_pct: 0,
-    }).select().single();
+      chargeable_metric: "CHARGEABLE_WEIGHT", chargeable_unit: "lbs",
+    } as any).select().single();
     if (error) { toast.error(`Add failed: ${error.message}`); return; }
     if (data) setMethods((ms) => [...ms.filter((m) => m.id !== (data as any).id), data as SMethod]);
   };
@@ -422,6 +448,24 @@ const MethodGroup = ({
         </td>
         <td className="px-3 py-2 align-top font-semibold">
           <EditableCell value={method.name} onSave={(v) => onUpdateMethod(method, "name", v)} />
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] font-normal text-muted-foreground">
+            <span>charges on</span>
+            <select
+              value={method.chargeable_metric}
+              onChange={async (e) => { await onUpdateMethod(method, "chargeable_metric", e.target.value); }}
+              className="rounded border border-transparent hover:border-[hsl(var(--brand-navy)/0.25)] focus:border-[hsl(var(--brand-navy)/0.4)] bg-transparent px-1 py-0.5 text-[11px] focus:outline-none"
+              style={{ color: "hsl(var(--brand-navy))" }}
+            >
+              {(Object.keys(METRIC_LABEL) as ChargeableMetric[]).map((k) => (
+                <option key={k} value={k}>{METRIC_LABEL[k]}</option>
+              ))}
+            </select>
+            <span>(</span>
+            <div className="w-12">
+              <EditableCell value={method.chargeable_unit} onSave={(v) => onUpdateMethod(method, "chargeable_unit", v)} />
+            </div>
+            <span>)</span>
+          </div>
         </td>
         <td className="px-3 py-2 align-top">
           <EditableCell value={String(method.fuel_surcharge_pct)} onSave={(v) => onUpdateMethod(method, "fuel_surcharge_pct", v)} />
@@ -474,6 +518,7 @@ const MethodGroup = ({
             destinations={destinations}
             oCode={oCode}
             dCode={dCode}
+            chargeableUnit={method.chargeable_unit}
             onUpdateRoute={onUpdateRoute}
             onUpdateTier={onUpdateTier}
             onAddTier={() => onAddTier(r.id)}
@@ -487,12 +532,13 @@ const MethodGroup = ({
 };
 
 const RouteAndTiers = ({
-  route, tiers, origins, destinations, oCode, dCode,
+  route, tiers, origins, destinations, oCode, dCode, chargeableUnit,
   onUpdateRoute, onUpdateTier, onAddTier, onDeleteRoute, onDeleteTier,
 }: {
   route: SRoute; tiers: STier[];
   origins: OriginRow[]; destinations: DestRow[];
   oCode: string; dCode: string;
+  chargeableUnit: string;
   onUpdateRoute: (row: SRoute, key: keyof SRoute, raw: string) => Promise<boolean>;
   onUpdateTier: (row: STier, key: keyof STier, raw: string) => Promise<boolean>;
   onAddTier: () => void;
@@ -555,16 +601,20 @@ const RouteAndTiers = ({
         <td className="px-3 py-2 align-top">
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground text-[12px]">From</span>
-            <div className="w-20"><EditableCell value={String(t.band_from)} onSave={(v) => onUpdateTier(t, "band_from", v)} /></div>
+            <div className="w-16"><EditableCell value={String(t.band_from)} onSave={(v) => onUpdateTier(t, "band_from", v)} /></div>
             <span className="text-muted-foreground text-[12px]">to</span>
-            <div className="w-20"><EditableCell value={t.band_to == null ? "" : String(t.band_to)} onSave={(v) => onUpdateTier(t, "band_to", v)} placeholder="∞" /></div>
+            <div className="w-16"><EditableCell value={t.band_to == null ? "" : String(t.band_to)} onSave={(v) => onUpdateTier(t, "band_to", v)} placeholder="∞" /></div>
+            <span className="text-muted-foreground text-[11px] font-medium">{chargeableUnit}</span>
           </div>
         </td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic" style={DIVIDER_L}>—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top" style={DIVIDER_L}>
-          <EditableCell value={String(t.rate)} onSave={(v) => onUpdateTier(t, "rate", v)} />
+          <div className="flex items-baseline gap-1">
+            <div className="flex-1"><EditableCell value={String(t.rate)} onSave={(v) => onUpdateTier(t, "rate", v)} /></div>
+            <span className="text-muted-foreground text-[11px] whitespace-nowrap">/ {unitSingular(chargeableUnit)}</span>
+          </div>
         </td>
         <td className="px-3 py-2 align-top" style={LAC_TINT} aria-hidden />
         <td className="px-3 py-2 align-top" style={LAC_TINT_R} aria-hidden />
