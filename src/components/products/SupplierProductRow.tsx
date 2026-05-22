@@ -81,18 +81,26 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
     }
   };
 
+  const BLOCK_GAP = 32;
+  const blockStyle = (isLast: boolean): React.CSSProperties => ({
+    flex: "0 0 auto",
+    minWidth: 0,
+    paddingRight: isLast ? 0 : BLOCK_GAP,
+    borderRight: isLast ? "none" : "1px solid #E5E7EB",
+  });
+
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        display: "grid",
-        gridTemplateColumns:
-          "minmax(280px, 320px) minmax(280px, 1.1fr) minmax(280px, 1.1fr) minmax(420px, 2fr)",
-        gap: 24,
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "stretch",
+        gap: BLOCK_GAP,
         padding: "20px 22px",
         position: "relative",
-        alignItems: "start",
+        overflowX: "auto",
       }}
     >
       <div
@@ -153,8 +161,8 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         onCancel={() => !deleting && setConfirmDelete(false)}
       />
 
-      {/* ── COLUMN 1: Images ───────────────────────────────────────── */}
-      <div style={{ minWidth: 0 }}>
+      {/* ── BLOCK 1: Images ────────────────────────────────────────── */}
+      <div style={{ ...blockStyle(false), width: 280 }}>
         <ProductImageGallery
           productId={product.id}
           productName={product.name}
@@ -163,19 +171,33 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         />
       </div>
 
-      {/* ── COLUMN 2: Identity ─────────────────────────────────────── */}
-      <div style={{ minWidth: 0 }}>
+      {/* ── BLOCK 2: Identity ──────────────────────────────────────── */}
+      <div style={{ ...blockStyle(false), width: 280 }}>
         <IdentityCell
           product={product}
           showVariantInline={showVariantInline}
           autoEditVariant={autoFocusVariantForId === product.id}
           onChanged={onChanged}
-          hideDetails
         />
       </div>
 
-      {/* ── COLUMN 3: Specs + Attributes + Includes ───────────────── */}
-      <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* ── BLOCK 3: Attributes + Includes (with Updated) ─────────── */}
+      <div style={{ ...blockStyle(false), width: 260, display: "flex", flexDirection: "column", gap: 8 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontStyle: "italic",
+            color: "#9CA3AF",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {formatUpdated(product.updated_at)}
+        </span>
+        <DetailsGrid product={product} onChanged={onChanged} />
+      </div>
+
+      {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
+      <div style={{ ...blockStyle(false), width: 240, display: "flex", flexDirection: "column", gap: 10 }}>
         {specsIncomplete && (
           <div
             style={{
@@ -201,53 +223,26 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           volumeUnit={lUnit}
           onChanged={onChanged}
         />
-        <DetailsGrid product={product} onChanged={onChanged} />
       </div>
 
-      {/* ── COLUMN 4: Pricing ──────────────────────────────────────── */}
-      <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          {primary.map((slot, i) => (
-            <DecorationBlock
-              key={slot?.id ?? `empty-${i}`}
-              decoration={slot}
-              productId={product.id}
-              nextSortOrder={nextDecoSortOrder + i}
-              onChanged={onChanged}
-            />
-          ))}
+      {/* ── BLOCK 5..N: Pricing — one block per decoration + Add slot ── */}
+      {allDecos.map((d, i) => (
+        <div key={d.id} style={{ ...blockStyle(false), width: 320 }}>
+          <DecorationBlock
+            decoration={d}
+            productId={product.id}
+            nextSortOrder={nextDecoSortOrder + i}
+            onChanged={onChanged}
+          />
         </div>
-        {hasOverflow && (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            style={{
-              alignSelf: "flex-start",
-              background: "transparent",
-              border: "none",
-              padding: 0,
-              color: "#E97817",
-              fontSize: 11,
-              cursor: "pointer",
-            }}
-          >
-            {expanded
-              ? "− hide extra decorations"
-              : `+ ${overflow.length} more decoration${overflow.length === 1 ? "" : "s"}`}
-          </button>
-        )}
-        {expanded && hasOverflow && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {overflow.map((d) => (
-              <DecorationBlock
-                key={d.id}
-                decoration={d}
-                productId={product.id}
-                onChanged={onChanged}
-              />
-            ))}
-          </div>
-        )}
+      ))}
+      <div style={{ ...blockStyle(true), width: 320 }}>
+        <DecorationBlock
+          decoration={null}
+          productId={product.id}
+          nextSortOrder={nextDecoSortOrder + allDecos.length}
+          onChanged={onChanged}
+        />
       </div>
     </div>
   );
@@ -257,59 +252,38 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
 function IdentityCell({
   product,
-  showVariantInline,
+  showVariantInline: _showVariantInline,
   autoEditVariant,
   onChanged,
-  hideDetails,
 }: {
   product: Product;
   showVariantInline: boolean;
   autoEditVariant?: boolean;
   onChanged?: () => void;
-  hideDetails?: boolean;
 }) {
   const code = product.supplier?.code ?? null;
   const itemSuffix = stripCodePrefix(product.supplier_item_number, code);
   const variantText = product.variant_name ?? product.variant_label ?? "";
 
   return (
-    <div style={{ minWidth: 0, flex: 1 }}>
-      {/* Row 1: name + updated */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 8,
-        }}
-      >
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <InlineText
-            value={product.name}
-            onSave={async (next) => {
-              await updateProduct(product.id, { name: next.trim() });
-              onChanged?.();
-            }}
-            validate={(v) => (v.trim().length === 0 ? "Name required" : null)}
-            style={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2 }}
-            inputStyle={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2, minWidth: 120 }}
-          />
-        </div>
-        <span
-          style={{
-            fontSize: 11,
-            fontStyle: "italic",
-            color: "#9CA3AF",
-            whiteSpace: "nowrap",
+    <div style={{ minWidth: 0 }}>
+      {/* Name */}
+      <div style={{ minWidth: 0 }}>
+        <InlineText
+          value={product.name}
+          onSave={async (next) => {
+            await updateProduct(product.id, { name: next.trim() });
+            onChanged?.();
           }}
-        >
-          {formatUpdated(product.updated_at)}
-        </span>
+          validate={(v) => (v.trim().length === 0 ? "Name required" : null)}
+          style={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2 }}
+          inputStyle={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2, minWidth: 120 }}
+        />
       </div>
 
-      {/* Row 2: variant label as chip (only when present or being edited) */}
+      {/* Variant chip / placeholder */}
       {(variantText || autoEditVariant) ? (
-        <div style={{ marginTop: 4, marginBottom: 6 }}>
+        <div style={{ marginTop: 6, marginBottom: 8 }}>
           <span
             style={{
               display: "inline-block",
@@ -338,7 +312,7 @@ function IdentityCell({
           </span>
         </div>
       ) : (
-        <div style={{ marginTop: 2, marginBottom: 6 }}>
+        <div style={{ marginTop: 4, marginBottom: 8 }}>
           <InlineText
             value=""
             placeholder="add variant"
@@ -353,69 +327,68 @@ function IdentityCell({
         </div>
       )}
 
-      {/* Code pill + item suffix */}
-      <div style={{ display: "inline-flex", alignItems: "center", fontSize: 12, lineHeight: 1.5, marginTop: 2 }}>
-        {code ? (
-          <span style={codePillStyle()}>{code}</span>
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span style={codePillStyle("warn")}>?</span>
-            </TooltipTrigger>
-            <TooltipContent>Supplier code not set — edit supplier to fix</TooltipContent>
-          </Tooltip>
-        )}
-        <span
-          style={{
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            color: "#0E2849",
-            fontSize: 12,
-            display: "inline-flex",
-            alignItems: "center",
-          }}
-        >
-          {code ? "-" : ""}
-          <InlineText
-            value={itemSuffix}
-            placeholder="suffix"
-            onSave={async (next) => {
-              const v = next.trim().toUpperCase();
-              const assembled = code ? (v.length ? `${code}-${v}` : code) : v.length ? v : null;
-              await updateProduct(product.id, { supplier_item_number: assembled });
-              onChanged?.();
-            }}
-            validate={(v) => {
-              const t = v.trim();
-              if (t.length === 0) return null;
-              return /^[A-Za-z0-9-]+$/.test(t) ? null : "Use letters, numbers, hyphens";
-            }}
-            style={{ fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", color: "#0E2849" }}
-            inputStyle={{ fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", minWidth: 60 }}
-          />
-        </span>
-      </div>
-
-      {/* Supplier / Category / Subcategory / Origin */}
+      {/* Supplier / Item Number / Origin / Subcategory */}
       <div
         style={{
-          marginTop: 10,
           display: "grid",
           gridTemplateColumns: "auto 1fr",
-          gap: "3px 12px",
+          gap: "4px 12px",
           fontSize: 12,
           lineHeight: 1.4,
+          alignItems: "baseline",
         }}
       >
         <KvLabel>Supplier</KvLabel>
         <KvValue>{product.supplier?.name ?? "—"}</KvValue>
-        <KvLabel>Subcategory</KvLabel>
-        <KvValue>{product.subcategory?.name ?? "—"}</KvValue>
+
+        <KvLabel>Supplier Item Number</KvLabel>
+        <span style={{ display: "inline-flex", alignItems: "center", fontSize: 12, lineHeight: 1.4 }}>
+          {code ? (
+            <span style={codePillStyle()}>{code}</span>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span style={codePillStyle("warn")}>?</span>
+              </TooltipTrigger>
+              <TooltipContent>Supplier code not set — edit supplier to fix</TooltipContent>
+            </Tooltip>
+          )}
+          <span
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              color: "#0E2849",
+              fontSize: 12,
+              display: "inline-flex",
+              alignItems: "center",
+            }}
+          >
+            {code ? "-" : ""}
+            <InlineText
+              value={itemSuffix}
+              placeholder="suffix"
+              onSave={async (next) => {
+                const v = next.trim().toUpperCase();
+                const assembled = code ? (v.length ? `${code}-${v}` : code) : v.length ? v : null;
+                await updateProduct(product.id, { supplier_item_number: assembled });
+                onChanged?.();
+              }}
+              validate={(v) => {
+                const t = v.trim();
+                if (t.length === 0) return null;
+                return /^[A-Za-z0-9-]+$/.test(t) ? null : "Use letters, numbers, hyphens";
+              }}
+              style={{ fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", color: "#0E2849" }}
+              inputStyle={{ fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", minWidth: 60 }}
+            />
+          </span>
+        </span>
+
         <KvLabel>Origin</KvLabel>
         <KvValue>{product.origin?.name ?? "—"}</KvValue>
-      </div>
 
-      {/* Details grid (rendered in column 3 when hideDetails) */}
-      {!hideDetails && <DetailsGrid product={product} onChanged={onChanged} />}
+        <KvLabel>Subcategory</KvLabel>
+        <KvValue>{product.subcategory?.name ?? "—"}</KvValue>
+      </div>
     </div>
   );
 }
