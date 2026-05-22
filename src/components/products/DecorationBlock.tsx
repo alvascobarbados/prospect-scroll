@@ -344,8 +344,8 @@ function BandRow({ band, showGround, onChanged }: { band: ProductBand; showGroun
           onSave={async (v) => save({ setup_cost: v ?? 0 })}
         />
       </td>
-      {showGround && (
-        <td style={bodyCellStyle("right")}>
+      <td style={bodyCellStyle("right")} aria-hidden={!showGround}>
+        {showGround ? (
           <InlineNumber
             value={itc}
             min={0}
@@ -354,8 +354,11 @@ function BandRow({ band, showGround, onChanged }: { band: ProductBand; showGroun
             format={(v) => (v == null ? "—" : formatPrice(v))}
             onSave={async (v) => save({ inland_freight_usd: v ?? null })}
           />
-        </td>
-      )}
+        ) : (
+          "\u00A0"
+        )}
+      </td>
+
       <td style={{ ...bodyCellStyle("right"), width: 18, padding: "6px 0" }}>
         <button
           type="button"
