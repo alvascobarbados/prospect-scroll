@@ -87,7 +87,7 @@ export function useCalcPageData() {
           carton_pack, carton_length, carton_width, carton_height, carton_weight,
           production_days_min, production_days_max,
           subcategory:product_categories!products_subcategory_id_fkey(id, name, duty_rate_pct),
-          supplier:suppliers(id, code, name, unit_system),
+          supplier:suppliers(id, code, name, unit_system, dimension_unit, weight_unit_v2),
           origin:origins(id, code, name),
           product_decorations(
             id, sort_order,
