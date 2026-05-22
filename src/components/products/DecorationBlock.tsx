@@ -224,7 +224,7 @@ export function DecorationBlock({
 
       <table
         style={{
-          width: "100%",
+          width: "auto",
           tableLayout: "fixed",
           borderCollapse: "collapse",
           fontSize: 13,

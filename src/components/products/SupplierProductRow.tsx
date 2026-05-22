@@ -20,6 +20,7 @@ import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { ProductCardMenu } from "./ProductCardMenu";
 import { duplicateProductAsVariant } from "./helpers/duplicateProductAsVariant";
 import { SHEET_GRID_TEMPLATE, SHEET_COL_GAP, SHEET_ROW_PADDING } from "./helpers/sheetGrid";
+import type { CategoryRowLite, SupplierLite, OriginLite } from "./SupplierProductDataList";
 
 
 const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
@@ -42,6 +43,12 @@ interface SupplierProductRowProps {
   product: Product;
   /** Resolved parent-category name (from in-memory category map). */
   categoryName?: string | null;
+  /** All categories (parents + subcategories) — used to populate inline pickers. */
+  allCategories?: CategoryRowLite[];
+  /** All suppliers — used by the supplier inline picker. */
+  suppliers?: SupplierLite[];
+  /** All origins — used by the origin inline picker. */
+  origins?: OriginLite[];
   /** Inside a variant group, show the variant label more prominently. */
   showVariantInline?: boolean;
   /** When this matches product.id, the variant-label inline editor opens automatically. */
@@ -58,7 +65,7 @@ async function updateProduct(id: string, patch: Record<string, unknown>) {
   if (error) throw new Error(error.message);
 }
 
-export function SupplierProductRow({ product, categoryName, showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
+export function SupplierProductRow({ product, categoryName, allCategories = [], suppliers = [], origins = [], showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
   const [hovered, setHovered] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -200,6 +207,9 @@ export function SupplierProductRow({ product, categoryName, showVariantInline = 
         <IdentityCell
           product={product}
           categoryName={categoryName ?? null}
+          allCategories={allCategories}
+          suppliers={suppliers}
+          origins={origins}
           showVariantInline={showVariantInline}
           autoEditVariant={autoFocusVariantForId === product.id}
           onChanged={onChanged}
@@ -208,13 +218,13 @@ export function SupplierProductRow({ product, categoryName, showVariantInline = 
       </div>
 
       {/* ── BLOCK 3: Product Details (Attributes + Includes) ──────── */}
-      <div style={cellStyle(false)}>
+      <div style={{ ...cellStyle(false), paddingTop: 6 }}>
         <DetailsGrid product={product} onChanged={onChanged} />
         <Divider />
       </div>
 
       {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
-      <div style={cellStyle(false)}>
+      <div style={{ ...cellStyle(false), paddingTop: 6 }}>
         {specsIncomplete && (
           <div
             style={{
@@ -275,12 +285,18 @@ export function SupplierProductRow({ product, categoryName, showVariantInline = 
 function IdentityCell({
   product,
   categoryName,
+  allCategories = [],
+  suppliers = [],
+  origins = [],
   showVariantInline: _showVariantInline,
   autoEditVariant,
   onChanged,
 }: {
   product: Product;
   categoryName: string | null;
+  allCategories?: CategoryRowLite[];
+  suppliers?: SupplierLite[];
+  origins?: OriginLite[];
   showVariantInline: boolean;
   autoEditVariant?: boolean;
   onChanged?: () => void;
@@ -288,6 +304,41 @@ function IdentityCell({
   const code = product.supplier?.code ?? null;
   const itemSuffix = stripCodePrefix(product.supplier_item_number, code);
   const variantText = product.variant_name ?? product.variant_label ?? "";
+
+  // Resolve current category id from the product's subcategory's parent.
+  const currentSubcat = product.subcategory ?? null;
+  const currentCategoryId = (() => {
+    if (!currentSubcat) return null;
+    const sub = allCategories.find((c) => c.id === currentSubcat.id);
+    return sub?.parent_id ?? null;
+  })();
+
+  // Sort comparator: by category code (asc), nulls last; ties broken by name.
+  const byCategoryCode = (a: CategoryRowLite, b: CategoryRowLite) => {
+    const ac = a.code ?? "";
+    const bc = b.code ?? "";
+    if (ac && bc) {
+      const cmp = ac.localeCompare(bc);
+      if (cmp !== 0) return cmp;
+    } else if (ac && !bc) return -1;
+    else if (!ac && bc) return 1;
+    return a.name.localeCompare(b.name);
+  };
+
+  const parentCategories = allCategories
+    .filter((c) => c.parent_id == null)
+    .sort(byCategoryCode);
+
+  const subcategoryOptionsAll = allCategories
+    .filter((c) => c.parent_id != null)
+    .sort(byCategoryCode);
+  const subcategoryOptionsScoped = currentCategoryId
+    ? subcategoryOptionsAll.filter((c) => c.parent_id === currentCategoryId)
+    : subcategoryOptionsAll;
+
+  // Origins / suppliers — sorted by name.
+  const originOptions = [...origins].sort((a, b) => a.name.localeCompare(b.name));
+  const supplierOptions = [...suppliers].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div style={{ minWidth: 0 }}>
@@ -351,11 +402,34 @@ function IdentityCell({
         </div>
       )}
 
-      {/* Supplier / Item Number / Origin / Subcategory */}
+      {/* Supplier / Item Number / Origin / Category / Subcategory */}
       <div style={KV_GRID_STYLE}>
 
         <KvLabel>Supplier</KvLabel>
-        <KvValue>{product.supplier?.name ?? "—"}</KvValue>
+        <KvValue>
+          <InlinePicker
+            display={<span>{product.supplier?.name ?? "—"}</span>}
+            options={supplierOptions.map((s) => ({ id: s.id, label: s.name, hint: s.code ?? undefined }))}
+            onSelect={async (opt) => {
+              const next = supplierOptions.find((s) => s.id === opt.id);
+              if (!next || next.id === product.supplier?.id) return;
+              // Re-prefix item number using the new supplier's code (display label only;
+              // numeric packing values are preserved as-is).
+              const suffix = stripCodePrefix(product.supplier_item_number, code);
+              const newCode = next.code ?? null;
+              const assembled = newCode
+                ? (suffix ? `${newCode}-${suffix}` : newCode)
+                : (suffix ? suffix : null);
+              await updateProduct(product.id, {
+                supplier_id: next.id,
+                supplier_item_number: assembled,
+              });
+              toast.success("Supplier updated — item number re-prefixed");
+              onChanged?.();
+            }}
+            placeholder="Search supplier…"
+          />
+        </KvValue>
 
         <KvLabel>Supplier Item Number</KvLabel>
         <span style={{ display: "inline-flex", alignItems: "center", fontSize: 12, lineHeight: 1.4 }}>
@@ -400,13 +474,48 @@ function IdentityCell({
         </span>
 
         <KvLabel>Origin</KvLabel>
-        <KvValue>{product.origin?.name ?? "—"}</KvValue>
+        <KvValue>
+          <InlinePicker
+            display={<span>{product.origin?.name ?? "—"}</span>}
+            options={originOptions.map((o) => ({ id: o.id, label: o.name }))}
+            onSelect={async (opt) => {
+              if (opt.id === product.origin?.id) return;
+              await updateProduct(product.id, { origin_id: opt.id });
+              onChanged?.();
+            }}
+            placeholder="Search origin…"
+          />
+        </KvValue>
 
         <KvLabel>Category</KvLabel>
-        <KvValue>{categoryName ?? "—"}</KvValue>
+        <KvValue>
+          <InlinePicker
+            display={<span>{categoryName ?? "—"}</span>}
+            options={parentCategories.map((c) => ({ id: c.id, label: c.name, hint: c.code ?? undefined }))}
+            onSelect={async (opt) => {
+              if (opt.id === currentCategoryId) return;
+              // Changing CATEGORY clears subcategory — old subcategory belongs to the old parent.
+              await updateProduct(product.id, { subcategory_id: null });
+              toast.message("Category changed — pick a subcategory under it");
+              onChanged?.();
+            }}
+            placeholder="Search category…"
+          />
+        </KvValue>
 
         <KvLabel>Subcategory</KvLabel>
-        <KvValue>{product.subcategory?.name ?? "—"}</KvValue>
+        <KvValue>
+          <InlinePicker
+            display={<span>{product.subcategory?.name ?? "—"}</span>}
+            options={subcategoryOptionsScoped.map((c) => ({ id: c.id, label: c.name, hint: c.code ?? undefined }))}
+            onSelect={async (opt) => {
+              if (opt.id === product.subcategory?.id) return;
+              await updateProduct(product.id, { subcategory_id: opt.id });
+              onChanged?.();
+            }}
+            placeholder="Search subcategory…"
+          />
+        </KvValue>
       </div>
 
       {/* Updated timestamp under subcategory */}

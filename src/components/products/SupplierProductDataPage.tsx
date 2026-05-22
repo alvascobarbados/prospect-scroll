@@ -13,9 +13,12 @@ import {
   type ProductFilterState,
 } from "./SupplierProductFilterBar";
 
-interface CategoryRow { id: string; name: string; parent_id: string | null }
+interface CategoryRow { id: string; name: string; code: string | null; parent_id: string | null }
 
-export interface CategoryMeta { name: string; parentId: string | null }
+export interface CategoryMeta { name: string; code: string | null; parentId: string | null }
+
+export interface PickerSupplier { id: string; name: string; code: string | null; unit_system: "metric" | "imperial" | null }
+export interface PickerOrigin { id: string; name: string }
 
 export function SupplierProductDataPage() {
   const navigate = useNavigate();
@@ -25,6 +28,9 @@ export function SupplierProductDataPage() {
   const [drafts, setDrafts] = useState<string[]>([]);
   const [filter, setFilter] = useState<ProductFilterState>(EMPTY_PRODUCT_FILTER);
   const [categoryById, setCategoryById] = useState<Map<string, CategoryMeta>>(new Map());
+  const [allCategories, setAllCategories] = useState<CategoryRow[]>([]);
+  const [suppliers, setSuppliers] = useState<PickerSupplier[]>([]);
+  const [origins, setOrigins] = useState<PickerOrigin[]>([]);
   const [autoFocusVariantForId, setAutoFocusVariantForId] = useState<string | null>(null);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
@@ -71,23 +77,40 @@ export function SupplierProductDataPage() {
     };
   }, [reloadKey]);
 
-  // Cache category id → { name, parentId } so we can resolve a subcategory's
+  // Cache category id → { name, code, parentId } so we can resolve a subcategory's
   // parent category name without nesting an FK select on the products query.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("product_categories")
-        .select("id, name, parent_id");
+        .select("id, name, code, parent_id");
       if (cancelled) return;
+      const rows = (data ?? []) as CategoryRow[];
       const map = new Map<string, CategoryMeta>();
-      for (const row of (data ?? []) as CategoryRow[]) {
-        map.set(row.id, { name: row.name, parentId: row.parent_id });
+      for (const row of rows) {
+        map.set(row.id, { name: row.name, code: row.code, parentId: row.parent_id });
       }
       setCategoryById(map);
+      setAllCategories(rows);
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [reloadKey]);
+
+  // Suppliers + origins for inline pickers in the identity cell.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [{ data: sup }, { data: ori }] = await Promise.all([
+        supabase.from("suppliers").select("id, name, code, unit_system").order("name"),
+        supabase.from("origins").select("id, name").order("name"),
+      ]);
+      if (cancelled) return;
+      setSuppliers((sup ?? []) as PickerSupplier[]);
+      setOrigins((ori ?? []) as PickerOrigin[]);
+    })();
+    return () => { cancelled = true; };
+  }, [reloadKey]);
 
   const categoryParentBySubId = useMemo(() => {
     const m = new Map<string, string>();
@@ -186,6 +209,9 @@ export function SupplierProductDataPage() {
               <SupplierProductDataList
                 items={items}
                 categoryById={categoryById}
+                allCategories={allCategories}
+                suppliers={suppliers}
+                origins={origins}
                 autoFocusVariantForId={autoFocusVariantForId}
                 onChanged={reload}
                 onDuplicated={(newId) => setAutoFocusVariantForId(newId)}

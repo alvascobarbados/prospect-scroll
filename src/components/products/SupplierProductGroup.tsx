@@ -4,17 +4,21 @@ import type { Product } from "./helpers/buildSupplierProductDataList";
 import { SupplierProductRow } from "./SupplierProductRow";
 import { InlineText } from "@/components/inline/InlineText";
 import { supabase } from "@/integrations/supabase/client";
+import type { CategoryRowLite, SupplierLite, OriginLite } from "./SupplierProductDataList";
 
 interface SupplierProductGroupProps {
   parentName: string;
   members: Product[];
   resolveCategory?: (subId: string | null | undefined) => string | null;
+  allCategories?: CategoryRowLite[];
+  suppliers?: SupplierLite[];
+  origins?: OriginLite[];
   autoFocusVariantForId?: string | null;
   onChanged?: () => void;
   onDuplicated?: (newId: string) => void;
 }
 
-export function SupplierProductGroup({ parentName, members, resolveCategory, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductGroupProps) {
+export function SupplierProductGroup({ parentName, members, resolveCategory, allCategories, suppliers, origins, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductGroupProps) {
   const count = members.length;
 
   const renameAll = async (next: string) => {
@@ -87,6 +91,9 @@ export function SupplierProductGroup({ parentName, members, resolveCategory, aut
             <SupplierProductRow
               product={m}
               categoryName={resolveCategory ? resolveCategory(m.subcategory?.id) : null}
+              allCategories={allCategories}
+              suppliers={suppliers}
+              origins={origins}
               showVariantInline
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
