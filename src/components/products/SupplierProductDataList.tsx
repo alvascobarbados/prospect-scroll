@@ -30,7 +30,7 @@ export function SupplierProductDataList({ items, autoFocusVariantForId, onChange
           />
         ) : (
           <SupplierProductGroup
-            key={`group:${item.parentName}`}
+            key={`group:${item.supplierId ?? "none"}:${item.parentName}`}
             parentName={item.parentName}
             members={item.members}
             autoFocusVariantForId={autoFocusVariantForId}
