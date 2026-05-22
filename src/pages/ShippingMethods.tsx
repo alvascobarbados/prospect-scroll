@@ -367,6 +367,10 @@ export default function ShippingMethodsPage() {
   );
 }
 
+const DIVIDER_L: React.CSSProperties = { borderLeft: "1px solid hsl(var(--brand-navy) / 0.12)" };
+const LAC_TINT: React.CSSProperties = { background: "rgba(229, 234, 241, 0.4)" };
+const LAC_TINT_R: React.CSSProperties = { background: "rgba(229, 234, 241, 0.4)", borderRight: "1px solid hsl(var(--brand-navy) / 0.12)" };
+
 const Th = ({ children, className, rowSpan, divider }: { children?: React.ReactNode; className?: string; rowSpan?: number; divider?: boolean }) => (
   <th rowSpan={rowSpan} className={cn("text-left text-[10px] uppercase tracking-[0.18em] font-semibold px-3 py-2.5", className)}
     style={{ color: "hsl(var(--brand-navy) / 0.65)", borderLeft: divider ? "1px solid hsl(var(--brand-navy) / 0.12)" : undefined }}>{children}</th>
