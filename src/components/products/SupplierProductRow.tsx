@@ -288,23 +288,51 @@ function IdentityCell({
         </span>
       </div>
 
-      {/* Row 2: variant sub-name (always shown if present) */}
-      {(variantText || showVariantInline || autoEditVariant) && (
+      {/* Row 2: variant label as chip (only when present or being edited) */}
+      {(variantText || autoEditVariant) ? (
+        <div style={{ marginTop: 4, marginBottom: 6 }}>
+          <span
+            style={{
+              display: "inline-block",
+              padding: "2px 8px",
+              borderRadius: 4,
+              background: "#E5EAF1",
+              color: "#0E2849",
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+              lineHeight: 1.4,
+            }}
+          >
+            <InlineText
+              value={variantText}
+              placeholder="add variant"
+              autoEdit={autoEditVariant}
+              onSave={async (next) => {
+                const v = next.trim();
+                await updateProduct(product.id, { variant_name: v.length ? v : null });
+                onChanged?.();
+              }}
+              style={{ fontSize: 12, fontWeight: 600, color: "#0E2849" }}
+              inputStyle={{ fontSize: 12, fontWeight: 600, color: "#0E2849", minWidth: 100 }}
+            />
+          </span>
+        </div>
+      ) : showVariantInline ? (
         <div style={{ marginTop: 2, marginBottom: 6 }}>
           <InlineText
-            value={variantText}
+            value=""
             placeholder="add variant"
-            autoEdit={autoEditVariant}
             onSave={async (next) => {
               const v = next.trim();
               await updateProduct(product.id, { variant_name: v.length ? v : null });
               onChanged?.();
             }}
-            style={{ fontSize: 13, fontWeight: 400, color: "#6B7280", letterSpacing: "0.02em" }}
-            inputStyle={{ fontSize: 13, color: "#6B7280", minWidth: 100 }}
+            style={{ fontSize: 12, color: "#9CA3AF" }}
+            inputStyle={{ fontSize: 12, color: "#0E2849", minWidth: 100 }}
           />
         </div>
-      )}
+      ) : null}
 
       {/* Code pill + item suffix */}
       <div style={{ display: "inline-flex", alignItems: "center", fontSize: 12, lineHeight: 1.5, marginTop: 2 }}>
