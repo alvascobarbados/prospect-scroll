@@ -10,12 +10,17 @@ import { AddAttributePopover } from "./AddAttributePopover";
 import { InlineText } from "@/components/inline/InlineText";
 import { InlineNumber } from "@/components/inline/InlineNumber";
 import { InlineNumberGroup } from "@/components/inline/InlineNumberGroup";
+import { InlinePicker } from "@/components/inline/InlinePicker";
 import { ProductImageGallery } from "./ProductImageGallery";
+import { IncludesBlock } from "./IncludesBlock";
+import { useDetailLabels, ensureDetailLabel, type DetailLabel } from "./helpers/useDetailLabels";
 import { supabase } from "@/integrations/supabase/client";
 import { formatLeadTime } from "./helpers/formatLeadTime";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
 import { ProductCardMenu } from "./ProductCardMenu";
 import { duplicateProductAsVariant } from "./helpers/duplicateProductAsVariant";
+
+const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
 
 interface SupplierProductRowProps {
   product: Product;
@@ -412,14 +417,28 @@ function KvValue({ children }: { children: React.ReactNode }) {
 }
 
 function DetailsGrid({ product, onChanged }: { product: Product; onChanged?: () => void }) {
+  const allLabels = useDetailLabels();
   const rows = [...product.product_details].sort((a, b) => a.sort_order - b.sort_order);
   const existingLabelIds = new Set(
     rows.map((r) => r.detail_label?.id).filter((x): x is string => !!x),
   );
+  const existingLabelNamesLower = new Set(
+    rows
+      .map((r) => r.detail_label?.label?.trim().toLowerCase())
+      .filter((x): x is string => !!x),
+  );
+
+  // Default rows (Material / Size) shown as virtual placeholders when missing.
+  const virtualDefaults = DEFAULT_ATTRIBUTE_NAMES.filter(
+    (name) => !existingLabelNamesLower.has(name.toLowerCase()),
+  );
+
+  const nextSort = (rows.at(-1)?.sort_order ?? 0) + 1;
+  const includes = product.product_includes ?? [];
 
   return (
     <div style={{ marginTop: 10 }}>
-      {rows.length > 0 && (
+      {(rows.length > 0 || virtualDefaults.length > 0) && (
         <div
           style={{
             display: "grid",
@@ -430,23 +449,83 @@ function DetailsGrid({ product, onChanged }: { product: Product; onChanged?: () 
           }}
         >
           {rows.map((d) => (
-            <DetailRowItem key={d.id} row={d} onChanged={onChanged} />
+            <RealAttributeRow
+              key={d.id}
+              row={d}
+              allLabels={allLabels}
+              existingLabelIds={existingLabelIds}
+              onChanged={onChanged}
+            />
+          ))}
+          {virtualDefaults.map((name, i) => (
+            <VirtualAttributeRow
+              key={`virtual-${name}`}
+              labelName={name}
+              productId={product.id}
+              sortOrder={nextSort + i}
+              onChanged={onChanged}
+            />
           ))}
         </div>
       )}
-      <div style={{ marginTop: rows.length > 0 ? 4 : 0 }}>
+      <div style={{ marginTop: rows.length > 0 || virtualDefaults.length > 0 ? 4 : 0 }}>
         <AddAttributePopover
           productId={product.id}
           existingLabelIds={existingLabelIds}
-          nextSortOrder={(rows.at(-1)?.sort_order ?? 0) + 1}
+          nextSortOrder={nextSort + virtualDefaults.length}
           onAdded={onChanged}
         />
       </div>
+      <IncludesBlock productId={product.id} rows={includes} onChanged={onChanged} />
     </div>
   );
 }
 
-function DetailRowItem({ row, onChanged }: { row: ProductDetailRow; onChanged?: () => void }) {
+function AttributeLabelPicker({
+  currentId,
+  currentLabel,
+  allLabels,
+  existingLabelIds,
+  onPick,
+}: {
+  currentId: string | null;
+  currentLabel: string;
+  allLabels: DetailLabel[];
+  existingLabelIds: Set<string>;
+  onPick: (label: DetailLabel) => Promise<void>;
+}) {
+  const options = allLabels
+    .filter((l) => l.id === currentId || !existingLabelIds.has(l.id))
+    .map((l) => ({ id: l.id, label: l.label }));
+
+  return (
+    <InlinePicker
+      display={<span style={{ color: "#6B7280", fontSize: 12 }}>{currentLabel || "—"}</span>}
+      options={options}
+      onSelect={async (opt) => {
+        const label = allLabels.find((l) => l.id === opt.id);
+        if (label) await onPick(label);
+      }}
+      onCreate={async (typed) => {
+        const label = await ensureDetailLabel(typed);
+        await onPick(label);
+      }}
+      placeholder="Search or create…"
+    />
+  );
+}
+
+function RealAttributeRow({
+  row,
+  allLabels,
+  existingLabelIds,
+  onChanged,
+}: {
+  row: ProductDetailRow;
+  allLabels: DetailLabel[];
+  existingLabelIds: Set<string>;
+  onChanged?: () => void;
+}) {
   const [hover, setHover] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -469,10 +548,27 @@ function DetailRowItem({ row, onChanged }: { row: ProductDetailRow; onChanged?: 
       onMouseLeave={() => setHover(false)}
       style={{ display: "contents" }}
     >
-      <span style={{ color: "#6B7280" }}>{row.detail_label?.label ?? "—"}</span>
+      <AttributeLabelPicker
+        currentId={row.detail_label?.id ?? null}
+        currentLabel={row.detail_label?.label ?? "—"}
+        allLabels={allLabels}
+        existingLabelIds={existingLabelIds}
+        onPick={async (label) => {
+          const { error } = await supabase
+            .from("product_details")
+            .update({ detail_label_id: label.id })
+            .eq("id", row.id);
+          if (error) {
+            toast.error(`Failed to rename: ${error.message}`);
+            return;
+          }
+          onChanged?.();
+        }}
+      />
       <span style={{ color: "#0E2849" }}>
         <InlineText
           value={row.value}
+          placeholder="—"
           onSave={async (next) => {
             const v = next.trim();
             if (!v) throw new Error("Value required");
@@ -509,6 +605,46 @@ function DetailRowItem({ row, onChanged }: { row: ProductDetailRow; onChanged?: 
       >
         <X size={11} />
       </button>
+    </div>
+  );
+}
+
+function VirtualAttributeRow({
+  labelName,
+  productId,
+  sortOrder,
+  onChanged,
+}: {
+  labelName: string;
+  productId: string;
+  sortOrder: number;
+  onChanged?: () => void;
+}) {
+  return (
+    <div style={{ display: "contents" }}>
+      <span style={{ color: "#6B7280", fontSize: 12 }}>{labelName}</span>
+      <span style={{ color: "#0E2849" }}>
+        <InlineText
+          value=""
+          placeholder="—"
+          onSave={async (next) => {
+            const v = next.trim();
+            if (!v) return;
+            const label = await ensureDetailLabel(labelName);
+            const { error } = await supabase.from("product_details").insert({
+              product_id: productId,
+              detail_label_id: label.id,
+              value: v,
+              sort_order: sortOrder,
+            });
+            if (error) throw new Error(error.message);
+            onChanged?.();
+          }}
+          style={{ color: "#0E2849", fontSize: 12 }}
+          inputStyle={{ fontSize: 12, minWidth: 80 }}
+        />
+      </span>
+      <span />
     </div>
   );
 }

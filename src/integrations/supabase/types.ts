@@ -557,6 +557,36 @@ export type Database = {
         }
         Relationships: []
       }
+      product_includes: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          product_id: string
+          quantity: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          product_id: string
+          quantity?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           carton_height: number | null
