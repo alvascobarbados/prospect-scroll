@@ -601,16 +601,20 @@ const RouteAndTiers = ({
         <td className="px-3 py-2 align-top">
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground text-[12px]">From</span>
-            <div className="w-20"><EditableCell value={String(t.band_from)} onSave={(v) => onUpdateTier(t, "band_from", v)} /></div>
+            <div className="w-16"><EditableCell value={String(t.band_from)} onSave={(v) => onUpdateTier(t, "band_from", v)} /></div>
             <span className="text-muted-foreground text-[12px]">to</span>
-            <div className="w-20"><EditableCell value={t.band_to == null ? "" : String(t.band_to)} onSave={(v) => onUpdateTier(t, "band_to", v)} placeholder="∞" /></div>
+            <div className="w-16"><EditableCell value={t.band_to == null ? "" : String(t.band_to)} onSave={(v) => onUpdateTier(t, "band_to", v)} placeholder="∞" /></div>
+            <span className="text-muted-foreground text-[11px] font-medium">{chargeableUnit}</span>
           </div>
         </td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic" style={DIVIDER_L}>—</td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
         <td className="px-3 py-2 align-top" style={DIVIDER_L}>
-          <EditableCell value={String(t.rate)} onSave={(v) => onUpdateTier(t, "rate", v)} />
+          <div className="flex items-baseline gap-1">
+            <div className="flex-1"><EditableCell value={String(t.rate)} onSave={(v) => onUpdateTier(t, "rate", v)} /></div>
+            <span className="text-muted-foreground text-[11px] whitespace-nowrap">/ {unitSingular(chargeableUnit)}</span>
+          </div>
         </td>
         <td className="px-3 py-2 align-top" style={LAC_TINT} aria-hidden />
         <td className="px-3 py-2 align-top" style={LAC_TINT_R} aria-hidden />
