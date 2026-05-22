@@ -10,12 +10,15 @@ import {
   type ImageRole,
   type ProductImage,
 } from "./helpers/productImages";
+import { formatUpdated } from "./helpers/formatUpdated";
 
 interface ProductImageGalleryProps {
   productId: string;
   productName: string;
   /** Hero image URL from products row (legacy fallback when product_images is empty). */
   legacyImageUrl?: string | null;
+  /** Product updated_at — rendered as a small muted timestamp under the upload row. */
+  updatedAt?: string | Date | null;
   onChanged?: () => void;
 }
 
@@ -23,6 +26,7 @@ export function ProductImageGallery({
   productId,
   productName,
   legacyImageUrl,
+  updatedAt,
   onChanged,
 }: ProductImageGalleryProps) {
   const [images, setImages] = useState<ProductImage[]>([]);
@@ -214,6 +218,14 @@ export function ProductImageGallery({
           if (f) void handleFile(f);
         }}
       />
+
+      {updatedAt && (
+        <div style={{ fontSize: 11, fontStyle: "italic", color: "#9CA3AF", marginTop: 2 }}>
+          {formatUpdated(updatedAt)}
+        </div>
+      )}
+
+
 
       {lightboxIdx !== null && images[lightboxIdx] && (
         <Lightbox

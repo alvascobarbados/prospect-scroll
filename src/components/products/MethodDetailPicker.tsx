@@ -82,6 +82,30 @@ export function MethodDetailPicker({ trigger, align = "start", onPicked }: Metho
   );
   const canCreate = search.trim().length > 0 && !hasExact;
 
+  // Group method_details by their decoration_method (name). Items with no method
+  // fall into a synthetic "Other" group at the end.
+  const grouped = (() => {
+    const map = new Map<string, { methodName: string; items: MethodDetailOption[] }>();
+    for (const md of filtered) {
+      const key = md.method?.id ?? "__other__";
+      const methodName = md.method?.name?.trim() || "Other";
+      if (!map.has(key)) map.set(key, { methodName, items: [] });
+      map.get(key)!.items.push(md);
+    }
+    // Sort items inside each group by detail; sort groups by name (Other last).
+    const groups = Array.from(map.entries()).map(([key, g]) => ({
+      key,
+      methodName: g.methodName,
+      items: [...g.items].sort((a, b) => a.detail.localeCompare(b.detail)),
+    }));
+    groups.sort((a, b) => {
+      if (a.key === "__other__") return 1;
+      if (b.key === "__other__") return -1;
+      return a.methodName.localeCompare(b.methodName);
+    });
+    return groups;
+  })();
+
   const handlePick = async (md: MethodDetailOption) => {
     setOpen(false);
     await onPicked(md);
@@ -179,22 +203,26 @@ export function MethodDetailPicker({ trigger, align = "start", onPicked }: Metho
                   <span style={{ fontSize: 12, color: "#9CA3AF" }}>No matches.</span>
                 )}
               </CommandEmpty>
-              <CommandGroup>
-                {filtered.map((md) => (
-                  <CommandItem
-                    key={md.id}
-                    value={label(md)}
-                    onSelect={() => handlePick(md)}
-                  >
-                    {label(md)}
-                  </CommandItem>
-                ))}
-                {canCreate && filtered.length > 0 && (
+              {grouped.map((g) => (
+                <CommandGroup key={g.key} heading={g.methodName}>
+                  {g.items.map((md) => (
+                    <CommandItem
+                      key={md.id}
+                      value={`${g.methodName} ${md.detail}`}
+                      onSelect={() => handlePick(md)}
+                    >
+                      {md.detail}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))}
+              {canCreate && filtered.length > 0 && (
+                <CommandGroup>
                   <CommandItem value={`__create__${search}`} onSelect={startCreate}>
                     <Plus size={13} className="mr-2" /> Create "{search.trim()}"
                   </CommandItem>
-                )}
-              </CommandGroup>
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         )}
