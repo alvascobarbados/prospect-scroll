@@ -29,6 +29,7 @@ export type Settings = {
   kgToLbs: number;                // 2.20462
   cbmDivisor: number;             // 1_000_000
   volumetricDivisor: number;      // 200
+  inToCm: number;                 // 2.54
 };
 
 export type PricingTier = {
@@ -41,10 +42,17 @@ export type ProductInput = {
   id: string;
   origin: string;                 // origin.code (CHINA, USA_MIAMI, ...)
   pcsPerCtn: number;
+  /** Raw carton dimensions in supplier's native unit (cm OR in). Field name
+   *  preserved as `*Cm` for backwards compatibility — the canonical conversion
+   *  happens inside computeProductCalc using `dimensionUnit`. */
   ctnLengthCm: number;
   ctnWidthCm: number;
   ctnHeightCm: number;
+  /** Raw carton weight in supplier's native unit (kg OR lb). */
   wtPerCtnKg: number;
+  /** Supplier-native units for the raw values above. Defaults to metric. */
+  dimensionUnit?: "cm" | "in";
+  weightUnit?: "kg" | "lb";
   dutyRate: number;               // decimal: 0.20 for 20%
   pricingTiers: PricingTier[];
   /** Optional FOB extras (FC/ITC/ED). Defaults all zero. v1 unused. */
