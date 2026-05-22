@@ -59,6 +59,7 @@ const SETTINGS_KEYS = {
   kgToLbs: "conversions_kg_to_lbs",
   cbm: "conversions_cbm_divisor",
   vol: "conversions_volumetric_divisor",
+  inToCm: "conversions_in_to_cm",
 } as const;
 
 function numFromSetting(rows: SettingsRow[], key: string, fallback: number): number {
