@@ -88,32 +88,54 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
         position: "relative",
       }}
     >
-      <button
-        type="button"
-        onClick={() => setConfirmDelete(true)}
-        aria-label={`Delete ${product.name}`}
-        title="Delete product"
+      <div
         style={{
           position: "absolute",
           top: 8,
           right: 8,
-          width: 22,
-          height: 22,
-          borderRadius: 6,
-          border: "none",
-          background: "rgba(239, 68, 68, 0.1)",
-          color: "#ef4444",
-          cursor: "pointer",
           display: "inline-flex",
           alignItems: "center",
-          justifyContent: "center",
-          opacity: hovered ? 1 : 0,
-          transition: "opacity 120ms",
+          gap: 4,
           zIndex: 2,
         }}
       >
-        <X size={13} />
-      </button>
+        <div style={{ opacity: hovered ? 1 : 0.45, transition: "opacity 120ms" }}>
+          <ProductCardMenu
+            onDuplicateAsVariant={async () => {
+              try {
+                const newId = await duplicateProductAsVariant(product.id);
+                toast.success("Variant created");
+                onDuplicated?.(newId);
+                onChanged?.();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to duplicate");
+              }
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          aria-label={`Delete ${product.name}`}
+          title="Delete product"
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            border: "none",
+            background: "rgba(239, 68, 68, 0.1)",
+            color: "#ef4444",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: hovered ? 1 : 0,
+            transition: "opacity 120ms",
+          }}
+        >
+          <X size={13} />
+        </button>
+      </div>
       <ConfirmDialog
         open={confirmDelete}
         title="Delete product?"
