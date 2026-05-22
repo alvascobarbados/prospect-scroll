@@ -339,7 +339,18 @@ export function CalculationsCard({ product, routes, settings }: Props) {
     return out;
   }, [calc]);
 
-  const dutyUnset = isDutyUnset(product);
+  // Engine is the single source of truth for "duty rate missing" — the
+  // flag is set on every active BB-route cell. We just observe it here.
+  const dutyUnset = useMemo(() => {
+    if (!calc) return false;
+    for (const row of calc.rows) {
+      for (const id of calc.bbRouteOrder) {
+        const c = row.bbOutputs[id];
+        if (c && c.active && c.dutyMissing) return true;
+      }
+    }
+    return false;
+  }, [calc]);
 
   return (
     <div
