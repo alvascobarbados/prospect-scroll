@@ -8,12 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 interface SupplierProductGroupProps {
   parentName: string;
   members: Product[];
+  resolveCategory?: (subId: string | null | undefined) => string | null;
   autoFocusVariantForId?: string | null;
   onChanged?: () => void;
   onDuplicated?: (newId: string) => void;
 }
 
-export function SupplierProductGroup({ parentName, members, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductGroupProps) {
+export function SupplierProductGroup({ parentName, members, resolveCategory, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductGroupProps) {
   const count = members.length;
 
   const renameAll = async (next: string) => {
@@ -85,6 +86,7 @@ export function SupplierProductGroup({ parentName, members, autoFocusVariantForI
             {i > 0 && <div style={{ height: "0.5px", background: "#F1F2F4" }} />}
             <SupplierProductRow
               product={m}
+              categoryName={resolveCategory ? resolveCategory(m.subcategory?.id) : null}
               showVariantInline
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
