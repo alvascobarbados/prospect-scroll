@@ -1,17 +1,21 @@
 /**
- * Duplicate a product as a LINKED VARIANT.
+ * Duplicate a product as a sibling.
  *
- * - parent_product_id is anchored to the source's parent (or the source itself
- *   if it has no parent), so siblings always share one root — no nested chains.
- * - All identity that varies is regenerated: a new primary_item_number sequence
- *   inside the same subcategory/origin, and a new unique supplier_item_number
- *   suffix derived from the source.
- * - All shared fields are copied verbatim: supplier, subcategory, origin, name,
- *   carton specs, lead times, and every decoration + tier (incl. ground freight).
- * - The new product's variant_label/variant_name are left blank — that's the
- *   one field the user must fill in.
+ * Grouping is now pure name-based — two products with the same name + supplier
+ * automatically render together. So a "variant" is just a fully independent
+ * product that happens to share the source's name and supplier. This helper:
  *
- * Returns the new product's id.
+ * - Keeps the source's name + supplier + subcategory + origin (so name-based
+ *   grouping picks it up).
+ * - Mints a brand-new primary_item_number and a unique supplier_item_number
+ *   suffix (-V2, -V3, …).
+ * - Copies carton specs, lead times, decorations + tiers, and product_details
+ *   verbatim. They become INDEPENDENT copies — editing one does not affect the
+ *   other.
+ * - Leaves variant_label/variant_name blank so the user can distinguish it.
+ *
+ * `parent_product_id` is no longer used for grouping. It is left null on the
+ * new row.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { composePrimaryItemNumber, nextSequenceFor } from "@/lib/productItemNumber";
