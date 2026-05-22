@@ -367,9 +367,9 @@ export default function ShippingMethodsPage() {
   );
 }
 
-const Th = ({ children, className }: { children?: React.ReactNode; className?: string }) => (
-  <th className={cn("text-left text-[10px] uppercase tracking-[0.18em] font-semibold px-3 py-2.5", className)}
-    style={{ color: "hsl(var(--brand-navy) / 0.65)" }}>{children}</th>
+const Th = ({ children, className, rowSpan, divider }: { children?: React.ReactNode; className?: string; rowSpan?: number; divider?: boolean }) => (
+  <th rowSpan={rowSpan} className={cn("text-left text-[10px] uppercase tracking-[0.18em] font-semibold px-3 py-2.5", className)}
+    style={{ color: "hsl(var(--brand-navy) / 0.65)", borderLeft: divider ? "1px solid hsl(var(--brand-navy) / 0.12)" : undefined }}>{children}</th>
 );
 
 // ─── Inline select (origin / destination) ────────────────────────────────
