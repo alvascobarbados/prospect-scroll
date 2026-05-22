@@ -422,13 +422,13 @@ const MethodGroup = ({
         <td className="px-3 py-2 align-top">
           <EditableCell value={String(method.fuel_surcharge_pct)} onSave={(v) => onUpdateMethod(method, "fuel_surcharge_pct", v)} />
         </td>
-        <td className="px-3 py-2 align-top">
+        <td className="px-3 py-2 align-top" style={DIVIDER_L}>
           <EditableCell value={String(method.buffer_pct)} onSave={(v) => onUpdateMethod(method, "buffer_pct", v)} />
         </td>
         <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
-        <td className="px-3 py-2 align-top text-muted-foreground italic">—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic" style={DIVIDER_L}>—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic" style={LAC_TINT}>—</td>
+        <td className="px-3 py-2 align-top text-muted-foreground italic" style={LAC_TINT_R}>—</td>
         <td className="px-3 py-2 align-top">
           <EditableCell value={method.notes ?? ""} onSave={(v) => onUpdateMethod(method, "notes", v)} />
         </td>
