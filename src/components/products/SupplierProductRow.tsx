@@ -398,6 +398,9 @@ function IdentityCell({
         <KvLabel>Origin</KvLabel>
         <KvValue>{product.origin?.name ?? "—"}</KvValue>
 
+        <KvLabel>Category</KvLabel>
+        <KvValue>{product.subcategory?.parent?.name ?? "—"}</KvValue>
+
         <KvLabel>Subcategory</KvLabel>
         <KvValue>{product.subcategory?.name ?? "—"}</KvValue>
       </div>
