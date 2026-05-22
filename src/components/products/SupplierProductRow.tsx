@@ -148,11 +148,10 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
 
       {/* ── BLOCK 1: Identity ──────────────────────────────────────── */}
       <div style={{ display: "flex", gap: 14, minWidth: 0 }}>
-        <ImageUploadCell
+        <ProductImageGallery
           productId={product.id}
-          imageUrl={product.image_url}
           productName={product.name}
-          size={140}
+          legacyImageUrl={product.image_url}
           onChanged={onChanged}
         />
         <IdentityCell product={product} showVariantInline={showVariantInline} autoEditVariant={autoFocusVariantForId === product.id} onChanged={onChanged} />
