@@ -78,6 +78,7 @@ const ocean: RouteInput = {
   bufferPct: 0,
   lacFixedBbd: 150,
   lacPerCbmBbd: 90,
+  includeInlandFreight: false,
   tiers: [{ from: 0, to: null, rateUsd: 160 }],
   sortOrder: 2,
 };
