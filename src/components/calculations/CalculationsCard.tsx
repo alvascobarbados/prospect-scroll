@@ -1,0 +1,697 @@
+/**
+ * CalculationsCard — one wide horizontal card per product.
+ *
+ * Visually extends the Supplier Product Data card rightward through the
+ * full landed-cost chain:
+ *   Spine → Image → Identity → Specs → Product Costs → [FOB] →
+ *   Transport → [CIF] → LAC → [LDF] → Duty → [LDP]
+ *
+ * Blocks in [brackets] are amber outputs; the rest are white workings.
+ * Route bubbles render in a stable global order; mismatched-origin
+ * bubbles gray out (the table structure never shifts per product).
+ */
+import { useMemo } from "react";
+import { SupplierSpine } from "@/components/products/SupplierSpine";
+import { formatMoney, formatNumber } from "@/lib/formatMoney";
+import {
+  cheapestBbRouteForRow,
+  computeProductCalc,
+  type CalcRow,
+  type ProductInput,
+  type RouteInput,
+  type Settings,
+} from "@/lib/calcEngine";
+import type { CalcPageProduct } from "@/hooks/useCalcPageData";
+
+const EM = "\u2014";
+
+// ───────── Tokens ─────────
+const AMBER_BG = "#FFFAF0";
+const AMBER_BORDER = "#F2D9B2";
+const AMBER_TEXT = "#6B4F2A";
+const NAVY = "#0E2849";
+const GRAY_BG = "#F3F4F6";
+const SELECT_USD_BG = "#E5EAF1";
+const SELECT_AMBER_BG = "#FEF3E2";
+const BLOCK_BORDER = "0.5px solid #E5E7EB";
+const BUBBLE_BORDER = "0.5px solid #E5E7EB";
+
+const NUM_FONT: React.CSSProperties = { fontVariantNumeric: "tabular-nums" };
+
+// ───────── Helpers ─────────
+
+function dutyDecimal(p: CalcPageProduct): number {
+  const raw = p.subcategory?.duty_rate_pct;
+  if (raw == null || raw === "") return 0;
+  const n = typeof raw === "string" ? parseFloat(raw) : raw;
+  if (!Number.isFinite(n)) return 0;
+  // Stored as percent points (20 = 20%) → convert to decimal.
+  return n / 100;
+}
+
+function toProductInput(p: CalcPageProduct): ProductInput | null {
+  if (!p.origin?.code) return null;
+  const tiers: { qty: number; unitUsd: number; setupUsd: number }[] = [];
+  const seen = new Set<number>();
+  for (const d of p.product_decorations ?? []) {
+    for (const b of d.product_decoration_bands ?? []) {
+      if (seen.has(b.qty)) continue;
+      seen.add(b.qty);
+      tiers.push({
+        qty: Number(b.qty),
+        unitUsd: typeof b.unit_cost === "string" ? parseFloat(b.unit_cost) : Number(b.unit_cost),
+        setupUsd: typeof b.setup_cost === "string" ? parseFloat(b.setup_cost) : Number(b.setup_cost),
+      });
+    }
+  }
+  tiers.sort((a, b) => a.qty - b.qty);
+  if (
+    !tiers.length ||
+    p.carton_pack == null ||
+    p.carton_length == null ||
+    p.carton_width == null ||
+    p.carton_height == null ||
+    p.carton_weight == null
+  ) {
+    return null;
+  }
+  return {
+    id: p.id,
+    origin: p.origin.code,
+    pcsPerCtn: Number(p.carton_pack),
+    ctnLengthCm: Number(p.carton_length),
+    ctnWidthCm: Number(p.carton_width),
+    ctnHeightCm: Number(p.carton_height),
+    wtPerCtnKg: Number(p.carton_weight),
+    dutyRate: dutyDecimal(p),
+    pricingTiers: tiers,
+  };
+}
+
+// ───────── Reusable atoms ─────────
+
+const Tag = ({ children, kind }: { children: React.ReactNode; kind: "built" | "new" | "output" }) => {
+  const styles: Record<typeof kind, React.CSSProperties> =
+    kind === "built"
+      ? ({ built: { background: "#DCFCE7", color: "#166534" } } as any)
+      : kind === "new"
+        ? ({ new: { background: "#FEF3E2", color: "#C2410C" } } as any)
+        : ({ output: { background: "#FEF3E2", color: "#C2410C" } } as any);
+  const s = (styles as any)[kind] as React.CSSProperties;
+  return (
+    <span
+      style={{
+        ...s,
+        fontSize: 9,
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: "0.08em",
+        padding: "1px 6px",
+        borderRadius: 4,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </span>
+  );
+};
+
+const CurrencyBadge = ({ currency }: { currency: "USD" | "BBD" }) => (
+  <span
+    style={{
+      background: currency === "USD" ? "#E5EAF1" : "#DBEAFE",
+      color: currency === "USD" ? "#0E2849" : "#1E3A8A",
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: "0.05em",
+      padding: "1px 5px",
+      borderRadius: 4,
+    }}
+  >
+    {currency}
+  </span>
+);
+
+const ScopeBadge = () => (
+  <span
+    style={{
+      background: "#FEF3E2",
+      color: "#C2410C",
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: "0.05em",
+      padding: "1px 5px",
+      borderRadius: 4,
+    }}
+  >
+    → BB
+  </span>
+);
+
+const BlockHeader = ({
+  title,
+  currency,
+  scopeBB,
+  tag,
+}: {
+  title: string;
+  currency: "USD" | "BBD";
+  scopeBB?: boolean;
+  tag: "built" | "new" | "output";
+}) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, whiteSpace: "nowrap" }}>
+    <span style={{ fontSize: 11, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      {title}
+    </span>
+    <Tag kind={tag}>{tag}</Tag>
+    <CurrencyBadge currency={currency} />
+    {scopeBB && <ScopeBadge />}
+  </div>
+);
+
+const RouteColumnHeader = ({ label }: { label: string }) => (
+  <div
+    style={{
+      fontSize: 9,
+      fontWeight: 700,
+      color: "#6B7280",
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      textAlign: "center",
+      whiteSpace: "nowrap",
+      padding: "0 4px 4px",
+    }}
+  >
+    {label}
+  </div>
+);
+
+const BUBBLE_W = 168;
+const ROW_H = 56;
+const BUBBLE_GAP = 6;
+
+interface BubbleProps {
+  children: React.ReactNode;
+  amber?: boolean;
+  gray?: boolean;
+  selected?: boolean;
+  height?: number;
+}
+
+const Bubble = ({ children, amber, gray, selected, height = ROW_H }: BubbleProps) => {
+  let bg = "#FFFFFF";
+  let border = BUBBLE_BORDER;
+  let color: string | undefined;
+  if (gray) {
+    bg = GRAY_BG;
+    color = "#9CA3AF";
+  } else if (amber) {
+    bg = selected ? SELECT_AMBER_BG : AMBER_BG;
+    border = `0.5px solid ${selected ? AMBER_TEXT : AMBER_BORDER}`;
+    color = AMBER_TEXT;
+  } else if (selected) {
+    bg = SELECT_USD_BG;
+    border = `0.5px solid ${NAVY}`;
+  }
+  return (
+    <div
+      style={{
+        width: BUBBLE_W,
+        height,
+        background: bg,
+        border,
+        borderRadius: 6,
+        padding: "6px 8px",
+        color,
+        fontSize: 11,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        ...NUM_FONT,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+const RowGap = ({ height = 8 }: { height?: number }) => <div style={{ height }} />;
+
+// ───────── Block components ─────────
+
+const SpecsBlock = ({ p }: { p: CalcPageProduct }) => {
+  const leadTime =
+    p.production_days_min == null
+      ? EM
+      : p.production_days_max == null
+        ? `${p.production_days_min}d`
+        : `${p.production_days_min}–${p.production_days_max}d`;
+  const dims =
+    p.carton_length != null && p.carton_width != null && p.carton_height != null
+      ? `${p.carton_length}×${p.carton_width}×${p.carton_height} cm`
+      : EM;
+  return (
+    <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 180, whiteSpace: "nowrap" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+        Specs
+      </div>
+      <div style={{ fontSize: 11, color: "#374151", display: "grid", gap: 4 }}>
+        <div><span style={{ color: "#9CA3AF" }}>Pcs/Ctn </span>{p.carton_pack ?? EM}</div>
+        <div><span style={{ color: "#9CA3AF" }}>Ctn </span>{dims}</div>
+        <div><span style={{ color: "#9CA3AF" }}>Wt </span>{p.carton_weight != null ? `${p.carton_weight} kg` : EM}</div>
+        <div><span style={{ color: "#9CA3AF" }}>Lead </span>{leadTime}</div>
+      </div>
+    </div>
+  );
+};
+
+const IdentityBlock = ({ p }: { p: CalcPageProduct }) => (
+  <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 220, maxWidth: 280 }}>
+    <div style={{ fontSize: 9, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>
+      {p.supplier?.code ?? EM}
+    </div>
+    <div style={{ fontSize: 13, fontWeight: 600, color: "#18181B", lineHeight: 1.25 }}>{p.name}</div>
+    {p.variant_name && <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{p.variant_name}</div>}
+    {p.supplier_item_number && (
+      <div style={{ display: "inline-block", marginTop: 6, fontSize: 10, fontFamily: "monospace", color: "#6B7280", background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>
+        {p.supplier_item_number}
+      </div>
+    )}
+  </div>
+);
+
+const ImageBlock = ({ p }: { p: CalcPageProduct }) => (
+  <div style={{ width: 90, padding: 8, borderRight: BLOCK_BORDER, display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFBFC" }}>
+    {p.image_url ? (
+      <img src={p.image_url} alt={p.name} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6 }} />
+    ) : (
+      <div style={{ width: 72, height: 72, borderRadius: 6, background: "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", color: "#D1D5DB", fontSize: 10 }}>
+        no img
+      </div>
+    )}
+  </div>
+);
+
+// ───────── The card ─────────
+
+interface Props {
+  product: CalcPageProduct;
+  routes: RouteInput[];
+  settings: Settings;
+}
+
+export function CalculationsCard({ product, routes, settings }: Props) {
+  const supplierName = product.supplier?.name ?? "Unknown";
+  const productInput = useMemo(() => toProductInput(product), [product]);
+
+  const calc = useMemo(
+    () => (productInput ? computeProductCalc(productInput, routes, settings) : null),
+    [productInput, routes, settings],
+  );
+
+  const orderedRoutes = useMemo(
+    () => [...routes].sort((a, b) => a.sortOrder - b.sortOrder || a.code.localeCompare(b.code)),
+    [routes],
+  );
+  const bbRoutes = useMemo(() => orderedRoutes.filter((r) => r.destination === "BB"), [orderedRoutes]);
+
+  const selectedByRow: Record<number, string | null> = useMemo(() => {
+    const out: Record<number, string | null> = {};
+    calc?.rows.forEach((r, i) => {
+      out[i] = cheapestBbRouteForRow(r, calc.bbRouteOrder);
+    });
+    return out;
+  }, [calc]);
+
+  return (
+    <div
+      style={{
+        background: "#FFFFFF",
+        border: "0.5px solid #E5E7EB",
+        borderRadius: 12,
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <SupplierSpine supplierName={supplierName} />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "stretch",
+          marginLeft: 26,
+          width: "max-content",
+        }}
+      >
+        <ImageBlock p={product} />
+        <IdentityBlock p={product} />
+        <SpecsBlock p={product} />
+
+        {!calc && (
+          <div style={{ padding: 24, fontSize: 12, color: "#9CA3AF", fontStyle: "italic" }}>
+            Missing data — fill carton specs and at least one pricing band to see calculations.
+          </div>
+        )}
+
+        {calc && (
+          <>
+            {/* ─── Product Costs (white, USD, Built) ─── */}
+            <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, background: "#fff" }}>
+              <BlockHeader title="Product Costs" currency="USD" tag="built" />
+              <table style={{ borderCollapse: "collapse", fontSize: 11, ...NUM_FONT }}>
+                <thead>
+                  <tr style={{ color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 9 }}>
+                    <Th>Qty</Th>
+                    <Th align="right">Unit</Th>
+                    <Th align="right">Setup</Th>
+                    <Th align="right">Total</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {calc.rows.map((row, i) => {
+                    const tier = productInput!.pricingTiers[i];
+                    return (
+                      <tr key={i} style={{ height: ROW_H }}>
+                        <Td>{row.spec.qty}</Td>
+                        <Td align="right">{formatMoney({ amount: tier.unitUsd, currency: "USD" })}</Td>
+                        <Td align="right">{formatMoney({ amount: tier.setupUsd, currency: "USD" })}</Td>
+                        <Td align="right" bold>
+                          {formatMoney(row.spec.productTotalUsd)}
+                        </Td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ─── FOB (amber output, USD, single column) ─── */}
+            <OutputColumn label="FOB" columns={[{ id: "all", label: "All routes" }]}>
+              {calc.rows.map((row, i) => (
+                <Bubble key={i} amber>
+                  <div style={{ fontWeight: 600 }}>{formatMoney(row.spec.productTotalUsd)}</div>
+                  <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(row.spec.fobUnitUsd)} /u</div>
+                </Bubble>
+              ))}
+            </OutputColumn>
+
+            {/* ─── Transport (white, USD, New) ─── */}
+            <RouteColumnBlock
+              title="Transportation Costs"
+              tag="new"
+              currency="USD"
+              routes={orderedRoutes}
+              rows={calc.rows}
+              renderCell={(row, route, i) => {
+                const c = row.transports[route.id];
+                if (!c.active) {
+                  return (
+                    <Bubble key={route.id} gray>
+                      <div style={{ textAlign: "center" }}>{EM}</div>
+                      <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "center" }}>{c.reason}</div>
+                    </Bubble>
+                  );
+                }
+                const tierLabel = c.tier
+                  ? `${formatNumber(c.tier.from, 0)}–${c.tier.to == null ? "∞" : formatNumber(c.tier.to, 0)}`
+                  : "—";
+                const surchargeMul = (1 + route.fuelPct) * (1 + route.bufferPct);
+                const surchargeStr = surchargeMul === 1 ? "" : ` × ${formatNumber(surchargeMul, 2)}`;
+                const selected = selectedByRow[i] === route.id;
+                return (
+                  <Bubble key={route.id} selected={selected}>
+                    <div style={{ fontSize: 10, color: "#6B7280", lineHeight: 1.3 }}>
+                      {formatNumber(c.applied, 2)} {route.rateUnit} · {tierLabel} @ {formatMoney({ amount: c.tier!.rateUsd, currency: "USD" })}
+                    </div>
+                    <div style={{ fontSize: 10, color: "#374151", lineHeight: 1.3 }}>
+                      ({formatMoney({ amount: route.baseFeeUsd, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })})
+                      {surchargeStr} = <strong>{formatMoney(c.transportUsd)}</strong>
+                    </div>
+                  </Bubble>
+                );
+              }}
+              ROW_H={86}
+            />
+
+            {/* ─── CIF (amber output, USD) ─── */}
+            <RouteColumnBlock
+              title="CIF"
+              tag="output"
+              currency="USD"
+              routes={orderedRoutes}
+              rows={calc.rows}
+              isOutput
+              renderCell={(row, route, i) => {
+                const c = row.transports[route.id];
+                if (!c.active) {
+                  return (
+                    <Bubble key={route.id} gray>
+                      <div style={{ textAlign: "center" }}>{EM}</div>
+                    </Bubble>
+                  );
+                }
+                const selected = selectedByRow[i] === route.id;
+                return (
+                  <Bubble key={route.id} amber selected={selected}>
+                    <div style={{ fontWeight: 600 }}>{formatMoney(c.cifUsd)}</div>
+                    <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(c.cifUnitUsd)} /u</div>
+                  </Bubble>
+                );
+              }}
+            />
+
+            {/* ─── LAC (white, BBD, → BB) ─── */}
+            {bbRoutes.length > 0 && (
+              <RouteColumnBlock
+                title="Local Area Charges"
+                tag="new"
+                currency="BBD"
+                scopeBB
+                routes={bbRoutes}
+                rows={calc.rows}
+                renderCell={(row, route, i) => {
+                  const c = row.bbOutputs[route.id];
+                  if (!c.active) {
+                    return (
+                      <Bubble key={route.id} gray>
+                        <div style={{ textAlign: "center" }}>{EM}</div>
+                        <div style={{ fontSize: 9, fontStyle: "italic", textAlign: "center" }}>{c.reason}</div>
+                      </Bubble>
+                    );
+                  }
+                  const selected = selectedByRow[i] === route.id;
+                  return (
+                    <Bubble key={route.id} selected={selected}>
+                      <div style={{ fontSize: 10, color: "#6B7280", lineHeight: 1.3 }}>
+                        {formatMoney({ amount: route.lacFixedBbd, currency: "BBD" })} + {formatNumber(row.spec.totalCbm, 5)} × {formatMoney({ amount: route.lacPerCbmBbd, currency: "BBD" })}
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 600 }}>{formatMoney(c.lacBbd)}</div>
+                    </Bubble>
+                  );
+                }}
+                ROW_H={68}
+              />
+            )}
+
+            {/* ─── LDF (amber, BBD, → BB) ─── */}
+            {bbRoutes.length > 0 && (
+              <RouteColumnBlock
+                title="LDF"
+                tag="output"
+                currency="BBD"
+                scopeBB
+                isOutput
+                routes={bbRoutes}
+                rows={calc.rows}
+                renderCell={(row, route, i) => {
+                  const c = row.bbOutputs[route.id];
+                  if (!c.active) {
+                    return (
+                      <Bubble key={route.id} gray>
+                        <div style={{ textAlign: "center" }}>{EM}</div>
+                      </Bubble>
+                    );
+                  }
+                  const selected = selectedByRow[i] === route.id;
+                  return (
+                    <Bubble key={route.id} amber selected={selected}>
+                      <div style={{ fontWeight: 600 }}>{formatMoney(c.ldfBbd)}</div>
+                      <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(c.ldfUnitBbd)} /u</div>
+                    </Bubble>
+                  );
+                }}
+              />
+            )}
+
+            {/* ─── Duty (white, BBD, → BB) ─── */}
+            {bbRoutes.length > 0 && (
+              <RouteColumnBlock
+                title="Duties Cost"
+                tag="new"
+                currency="BBD"
+                scopeBB
+                routes={bbRoutes}
+                rows={calc.rows}
+                renderCell={(row, route, i) => {
+                  const t = row.transports[route.id];
+                  const c = row.bbOutputs[route.id];
+                  if (!c.active || !t.active) {
+                    return (
+                      <Bubble key={route.id} gray>
+                        <div style={{ textAlign: "center" }}>{EM}</div>
+                      </Bubble>
+                    );
+                  }
+                  const selected = selectedByRow[i] === route.id;
+                  return (
+                    <Bubble key={route.id} selected={selected}>
+                      <div style={{ fontSize: 10, color: "#6B7280", lineHeight: 1.3 }}>
+                        {formatMoney(t.cifUsd)} × {formatNumber(settings.customsMultiplier, 1)} × {formatNumber(productInput!.dutyRate * 100, 0)}%
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 600 }}>{formatMoney(c.dutyBbd)}</div>
+                    </Bubble>
+                  );
+                }}
+                ROW_H={68}
+              />
+            )}
+
+            {/* ─── LDP (amber, BBD, → BB) ─── */}
+            {bbRoutes.length > 0 && (
+              <RouteColumnBlock
+                title="LDP"
+                tag="output"
+                currency="BBD"
+                scopeBB
+                isOutput
+                routes={bbRoutes}
+                rows={calc.rows}
+                renderCell={(row, route, i) => {
+                  const c = row.bbOutputs[route.id];
+                  if (!c.active) {
+                    return (
+                      <Bubble key={route.id} gray>
+                        <div style={{ textAlign: "center" }}>{EM}</div>
+                      </Bubble>
+                    );
+                  }
+                  const selected = selectedByRow[i] === route.id;
+                  return (
+                    <Bubble key={route.id} amber selected={selected}>
+                      <div style={{ fontWeight: 700 }}>{formatMoney(c.ldpBbd)}</div>
+                      <div style={{ fontSize: 10, opacity: 0.75 }}>{formatMoney(c.ldpUnitBbd)} /u</div>
+                    </Bubble>
+                  );
+                }}
+              />
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ───────── Small table cells for the Product Costs sub-table ─────────
+
+const Th = ({ children, align }: { children: React.ReactNode; align?: "right" }) => (
+  <th
+    style={{
+      padding: "2px 8px",
+      fontWeight: 700,
+      textAlign: align ?? "left",
+      whiteSpace: "nowrap",
+    }}
+  >
+    {children}
+  </th>
+);
+
+const Td = ({ children, align, bold }: { children: React.ReactNode; align?: "right"; bold?: boolean }) => (
+  <td
+    style={{
+      padding: "2px 8px",
+      textAlign: align ?? "left",
+      fontWeight: bold ? 600 : 400,
+      whiteSpace: "nowrap",
+    }}
+  >
+    {children}
+  </td>
+);
+
+// ───────── Output column (single-column, e.g. FOB) ─────────
+
+const OutputColumn = ({
+  label,
+  columns,
+  children,
+}: {
+  label: string;
+  columns: { id: string; label: string }[];
+  children: React.ReactNode;
+}) => (
+  <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, background: AMBER_BG }}>
+    <BlockHeader title={label} currency="USD" tag="output" />
+    <div style={{ display: "flex", gap: BUBBLE_GAP, marginBottom: 4 }}>
+      {columns.map((c) => (
+        <div key={c.id} style={{ width: BUBBLE_W }}>
+          <RouteColumnHeader label={c.label} />
+        </div>
+      ))}
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: BUBBLE_GAP }}>{children}</div>
+  </div>
+);
+
+// ───────── Route-column block (Transport, CIF, LAC, LDF, Duty, LDP) ─────────
+
+const RouteColumnBlock = ({
+  title,
+  tag,
+  currency,
+  scopeBB,
+  isOutput,
+  routes,
+  rows,
+  renderCell,
+  ROW_H: rowH = ROW_H,
+}: {
+  title: string;
+  tag: "new" | "output";
+  currency: "USD" | "BBD";
+  scopeBB?: boolean;
+  isOutput?: boolean;
+  routes: RouteInput[];
+  rows: CalcRow[];
+  renderCell: (row: CalcRow, route: RouteInput, rowIdx: number) => React.ReactNode;
+  ROW_H?: number;
+}) => (
+  <div
+    style={{
+      padding: "12px 14px",
+      borderRight: BLOCK_BORDER,
+      background: isOutput ? AMBER_BG : "#FFFFFF",
+    }}
+  >
+    <BlockHeader title={title} currency={currency} tag={tag} scopeBB={scopeBB} />
+    <div style={{ display: "flex", gap: BUBBLE_GAP, marginBottom: 4 }}>
+      {routes.map((r) => (
+        <div key={r.id} style={{ width: BUBBLE_W }}>
+          <RouteColumnHeader label={r.code} />
+        </div>
+      ))}
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: BUBBLE_GAP }}>
+      {rows.map((row, i) => (
+        <div key={i} style={{ display: "flex", gap: BUBBLE_GAP, minHeight: rowH }}>
+          {routes.map((r) => (
+            <div key={r.id}>
+              {/* delegate to renderCell; it returns a <Bubble/> */}
+              {renderCell(row, r, i)}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+);
