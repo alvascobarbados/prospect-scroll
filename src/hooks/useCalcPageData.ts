@@ -28,7 +28,7 @@ export interface CalcPageProduct {
   production_days_max: number | null;
   moq: number | null;
   subcategory: { id: string; name: string; duty_rate_pct: number | string | null } | null;
-  supplier: { id: string; code: string | null; name: string; unit_system: "metric" | "imperial" | null } | null;
+  supplier: { id: string; code: string | null; name: string; unit_system: "metric" | "imperial" | null; dimension_unit: "cm" | "in" | null; weight_unit_v2: "kg" | "lb" | null } | null;
   origin: { id: string; code: string; name: string } | null;
   product_decorations: Array<{
     id: string;
