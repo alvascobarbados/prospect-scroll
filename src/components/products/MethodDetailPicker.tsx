@@ -203,22 +203,26 @@ export function MethodDetailPicker({ trigger, align = "start", onPicked }: Metho
                   <span style={{ fontSize: 12, color: "#9CA3AF" }}>No matches.</span>
                 )}
               </CommandEmpty>
-              <CommandGroup>
-                {filtered.map((md) => (
-                  <CommandItem
-                    key={md.id}
-                    value={label(md)}
-                    onSelect={() => handlePick(md)}
-                  >
-                    {label(md)}
-                  </CommandItem>
-                ))}
-                {canCreate && filtered.length > 0 && (
+              {grouped.map((g) => (
+                <CommandGroup key={g.key} heading={g.methodName}>
+                  {g.items.map((md) => (
+                    <CommandItem
+                      key={md.id}
+                      value={`${g.methodName} ${md.detail}`}
+                      onSelect={() => handlePick(md)}
+                    >
+                      {md.detail}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))}
+              {canCreate && filtered.length > 0 && (
+                <CommandGroup>
                   <CommandItem value={`__create__${search}`} onSelect={startCreate}>
                     <Plus size={13} className="mr-2" /> Create "{search.trim()}"
                   </CommandItem>
-                )}
-              </CommandGroup>
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         )}
