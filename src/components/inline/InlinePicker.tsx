@@ -78,14 +78,23 @@ export function InlinePicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`cursor-pointer rounded px-0.5 hover:bg-[#F3F4F6] transition-colors text-left ${className ?? ""}`}
+          className={`group cursor-pointer rounded px-0.5 hover:bg-[#F3F4F6] transition-colors text-left inline-flex items-center gap-1 ${className ?? ""}`}
           style={{ background: "transparent", border: "none", padding: 0, ...style }}
         >
-          {display || emptyDisplay || (
-            <span className="italic" style={{ color: "#9CA3AF" }}>
-              —
-            </span>
-          )}
+          <span style={{ display: "inline-flex", alignItems: "center" }}>
+            {display || emptyDisplay || (
+              <span className="italic" style={{ color: "#9CA3AF" }}>
+                —
+              </span>
+            )}
+          </span>
+          <ChevronDown
+            size={12}
+            strokeWidth={2}
+            className="opacity-30 group-hover:opacity-100 transition-opacity shrink-0"
+            style={{ color: "#9CA3AF" }}
+            aria-hidden
+          />
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-0">
