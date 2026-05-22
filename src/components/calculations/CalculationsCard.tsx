@@ -455,10 +455,25 @@ export function CalculationsCard({ product, routes, settings }: Props) {
               renderCell={(row, route, i) => {
                 const c = row.transports[route.id];
                 if (!c.active) {
+                  // "invalid data" → amber warning (visibly distinct from
+                  // the neutral gray "origin mismatch" / "no tier").
+                  const isInvalid = c.reason === "invalid data";
                   return (
-                    <Bubble key={route.id} gray>
-                      <div style={{ textAlign: "center" }}>{EM}</div>
-                      <div style={{ fontSize: 11, fontStyle: "italic", textAlign: "center" }}>{('reason' in c) ? c.reason : ''}</div>
+                    <Bubble key={route.id} gray={!isInvalid} amber={isInvalid}>
+                      <div style={{ textAlign: "center" }}>
+                        {isInvalid ? "⚠" : EM}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontStyle: isInvalid ? "normal" : "italic",
+                          textAlign: "center",
+                          color: isInvalid ? "#92400E" : undefined,
+                          fontWeight: isInvalid ? 600 : undefined,
+                        }}
+                      >
+                        {c.reason}
+                      </div>
                     </Bubble>
                   );
                 }
@@ -476,10 +491,10 @@ export function CalculationsCard({ product, routes, settings }: Props) {
                     <div style={{ fontSize: 12, color: c.itcMissing ? "#92400E" : "#6B7280", lineHeight: 1.3 }}>
                       {c.itcMissing
                         ? "⚠ inland freight not set"
-                        : `${formatNumber(c.applied, 2)} ${route.rateUnit} · ${tierLabel} @ ${formatMoney({ amount: c.tier!.rateUsd, currency: "USD" })}`}
+                        : `${formatNumber(c.applied, 2)} ${route.chargeableUnit} · ${tierLabel} @ ${formatMoney({ amount: c.tier!.rateUsd ?? 0, currency: "USD" })}`}
                     </div>
                     <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.3 }}>
-                      ({formatMoney({ amount: route.baseFeeUsd, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })}{itcStr})
+                      ({formatMoney({ amount: route.baseFeeUsd ?? 0, currency: "USD" })} + {formatMoney({ amount: c.tierCostUsd, currency: "USD" })}{itcStr})
                       {surchargeStr} = <strong>{formatMoney(c.transportUsd)}</strong>
                     </div>
                   </Bubble>
