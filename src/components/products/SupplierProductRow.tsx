@@ -207,6 +207,9 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
         <IdentityCell
           product={product}
           categoryName={categoryName ?? null}
+          allCategories={allCategories}
+          suppliers={suppliers}
+          origins={origins}
           showVariantInline={showVariantInline}
           autoEditVariant={autoFocusVariantForId === product.id}
           onChanged={onChanged}
@@ -215,13 +218,13 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       </div>
 
       {/* ── BLOCK 3: Product Details (Attributes + Includes) ──────── */}
-      <div style={cellStyle(false)}>
+      <div style={{ ...cellStyle(false), paddingTop: 6 }}>
         <DetailsGrid product={product} onChanged={onChanged} />
         <Divider />
       </div>
 
       {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
-      <div style={cellStyle(false)}>
+      <div style={{ ...cellStyle(false), paddingTop: 6 }}>
         {specsIncomplete && (
           <div
             style={{
