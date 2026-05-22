@@ -1,5 +1,4 @@
 import type { Product } from "./helpers/buildSupplierProductDataList";
-import { SupplierSpine } from "./SupplierSpine";
 import { SupplierProductRow } from "./SupplierProductRow";
 
 interface SupplierProductCardProps {
@@ -8,7 +7,6 @@ interface SupplierProductCardProps {
 }
 
 export function SupplierProductCard({ product, onChanged }: SupplierProductCardProps) {
-  const supplierName = product.supplier?.name ?? "Unknown Supplier";
   return (
     <div
       style={{
@@ -17,10 +15,8 @@ export function SupplierProductCard({ product, onChanged }: SupplierProductCardP
         borderRadius: 12,
         position: "relative",
         overflow: "hidden",
-        minWidth: 1240,
       }}
     >
-      <SupplierSpine supplierName={supplierName} />
       <SupplierProductRow product={product} onChanged={onChanged} />
     </div>
   );
