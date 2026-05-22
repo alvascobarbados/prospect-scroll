@@ -262,10 +262,10 @@ const SpecsBlock = ({ p }: { p: CalcPageProduct }) => {
       : EM;
   return (
     <div style={{ padding: "12px 14px", borderRight: BLOCK_BORDER, minWidth: 200, whiteSpace: "nowrap", flexShrink: 0 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: NAVY, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
         Specs
       </div>
-      <div style={{ fontSize: 11, color: "#374151", display: "grid", gap: 4 }}>
+      <div style={{ fontSize: 13, color: "#374151", display: "grid", gap: 4 }}>
         <div><span style={{ color: "#9CA3AF" }}>Pcs/Ctn </span>{p.carton_pack ?? EM}</div>
         <div><span style={{ color: "#9CA3AF" }}>Ctn </span>{dims}</div>
         <div><span style={{ color: "#9CA3AF" }}>Wt </span>{p.carton_weight != null ? `${p.carton_weight} kg` : EM}</div>
