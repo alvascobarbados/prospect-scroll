@@ -14,12 +14,17 @@ import { ImageUploadCell } from "./ImageUploadCell";
 import { supabase } from "@/integrations/supabase/client";
 import { formatLeadTime } from "./helpers/formatLeadTime";
 import { ConfirmDialog } from "@/components/leads/ConfirmDialog";
+import { ProductCardMenu } from "./ProductCardMenu";
+import { duplicateProductAsVariant } from "./helpers/duplicateProductAsVariant";
 
 interface SupplierProductRowProps {
   product: Product;
   /** Inside a variant group, show the variant label more prominently. */
   showVariantInline?: boolean;
+  /** When this matches product.id, the variant-label inline editor opens automatically. */
+  autoFocusVariantForId?: string | null;
   onChanged?: () => void;
+  onDuplicated?: (newId: string) => void;
 }
 
 const VISIBLE_DECO_SLOTS = 2;
