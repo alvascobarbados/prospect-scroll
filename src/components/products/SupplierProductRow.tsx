@@ -515,7 +515,7 @@ function AttributeLabelPicker({
 
   return (
     <InlinePicker
-      display={<span style={{ color: "#6B7280", fontSize: 12 }}>{currentLabel || "—"}</span>}
+      display={<span style={{ color: "#6B7280", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em" }}>{currentLabel || "—"}</span>}
       options={options}
       onSelect={async (opt) => {
         const label = allLabels.find((l) => l.id === opt.id);
@@ -637,7 +637,7 @@ function VirtualAttributeRow({
 }) {
   return (
     <div style={{ display: "contents" }}>
-      <span style={{ color: "#6B7280", fontSize: 12 }}>{labelName}</span>
+      <span style={{ color: "#6B7280", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em" }}>{labelName}</span>
       <span style={{ color: "#0E2849" }}>
         <InlineText
           value=""
