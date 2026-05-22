@@ -260,11 +260,13 @@ function IdentityCell({
   showVariantInline,
   autoEditVariant,
   onChanged,
+  hideDetails,
 }: {
   product: Product;
   showVariantInline: boolean;
   autoEditVariant?: boolean;
   onChanged?: () => void;
+  hideDetails?: boolean;
 }) {
   const code = product.supplier?.code ?? null;
   const itemSuffix = stripCodePrefix(product.supplier_item_number, code);
