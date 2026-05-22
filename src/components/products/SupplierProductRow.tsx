@@ -224,7 +224,7 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       </div>
 
       {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
-      <div style={{ ...cellStyle(false), paddingTop: 6 }}>
+      <div style={{ ...cellStyle(false), paddingTop: 14 }}>
         {specsIncomplete && (
           <div
             style={{
