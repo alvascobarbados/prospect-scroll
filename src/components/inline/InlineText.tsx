@@ -47,7 +47,7 @@ export function InlineText({
             startEdit();
           }
         }}
-        className={`cursor-text rounded px-0.5 hover:bg-[#F3F4F6] hover:[text-decoration:underline_dashed] hover:decoration-[#9CA3AF] hover:underline-offset-2 transition-colors ${className ?? ""}`}
+        className={`cursor-text rounded px-0.5 hover:bg-[#F3F4F6] hover:underline decoration-dashed decoration-[#9CA3AF] underline-offset-2 transition-colors ${className ?? ""}`}
         style={style}
       >
         {value || (
