@@ -57,8 +57,8 @@ async function updateProduct(id: string, patch: Record<string, unknown>) {
 }
 
 export function SupplierProductRow({ product, showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
-  const [expanded, setExpanded] = useState(false);
   const [hovered, setHovered] = useState(false);
+
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const allDecos = [...product.product_decorations].sort((a, b) => a.sort_order - b.sort_order);
