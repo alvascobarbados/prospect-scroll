@@ -190,6 +190,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           legacyImageUrl={product.image_url}
           onChanged={onChanged}
         />
+        <Divider />
       </div>
 
       {/* ── BLOCK 2: Identity ──────────────────────────────────────── */}
@@ -200,6 +201,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           autoEditVariant={autoFocusVariantForId === product.id}
           onChanged={onChanged}
         />
+        <Divider />
       </div>
 
       {/* ── BLOCK 3: Product Details (Attributes + Includes) ──────── */}
@@ -223,6 +225,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           </span>
         </div>
         <DetailsGrid product={product} onChanged={onChanged} />
+        <Divider />
       </div>
 
       {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
@@ -253,6 +256,7 @@ export function SupplierProductRow({ product, showVariantInline = false, autoFoc
           volumeUnit={lUnit}
           onChanged={onChanged}
         />
+        <Divider />
       </div>
 
       {/* ── BLOCK 5: Pricing — all decorations stack vertically ──── */}
