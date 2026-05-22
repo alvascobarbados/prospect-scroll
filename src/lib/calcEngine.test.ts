@@ -58,6 +58,7 @@ const dhl: RouteInput = {
   bufferPct: 0,
   lacFixedBbd: 80,
   lacPerCbmBbd: 0,
+  includeInlandFreight: false,
   tiers: [
     { from: 0, to: 61, rateUsd: 4.17 },
     { from: 61, to: null, rateUsd: 4.22 },
