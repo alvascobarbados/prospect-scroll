@@ -13,9 +13,12 @@ import {
   type ProductFilterState,
 } from "./SupplierProductFilterBar";
 
-interface CategoryRow { id: string; name: string; parent_id: string | null }
+interface CategoryRow { id: string; name: string; code: string | null; parent_id: string | null }
 
-export interface CategoryMeta { name: string; parentId: string | null }
+export interface CategoryMeta { name: string; code: string | null; parentId: string | null }
+
+export interface PickerSupplier { id: string; name: string; code: string | null; unit_system: "metric" | "imperial" | null }
+export interface PickerOrigin { id: string; name: string }
 
 export function SupplierProductDataPage() {
   const navigate = useNavigate();
@@ -25,6 +28,9 @@ export function SupplierProductDataPage() {
   const [drafts, setDrafts] = useState<string[]>([]);
   const [filter, setFilter] = useState<ProductFilterState>(EMPTY_PRODUCT_FILTER);
   const [categoryById, setCategoryById] = useState<Map<string, CategoryMeta>>(new Map());
+  const [allCategories, setAllCategories] = useState<CategoryRow[]>([]);
+  const [suppliers, setSuppliers] = useState<PickerSupplier[]>([]);
+  const [origins, setOrigins] = useState<PickerOrigin[]>([]);
   const [autoFocusVariantForId, setAutoFocusVariantForId] = useState<string | null>(null);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
