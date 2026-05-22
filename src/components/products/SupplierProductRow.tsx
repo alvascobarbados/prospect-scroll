@@ -368,16 +368,8 @@ function IdentityCell({
       )}
 
       {/* Supplier / Item Number / Origin / Subcategory */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "auto 1fr",
-          gap: "4px 12px",
-          fontSize: 12,
-          lineHeight: 1.4,
-          alignItems: "baseline",
-        }}
-      >
+      <div style={KV_GRID_STYLE}>
+
         <KvLabel>Supplier</KvLabel>
         <KvValue>{product.supplier?.name ?? "—"}</KvValue>
 
