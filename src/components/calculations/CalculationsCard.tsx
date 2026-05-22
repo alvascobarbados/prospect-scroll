@@ -342,7 +342,8 @@ export function CalculationsCard({ product, routes, settings }: Props) {
         border: "0.5px solid #E5E7EB",
         borderRadius: 12,
         position: "relative",
-        overflow: "hidden",
+        width: "max-content",
+        minWidth: "100%",
       }}
     >
       <SupplierSpine supplierName={supplierName} />
