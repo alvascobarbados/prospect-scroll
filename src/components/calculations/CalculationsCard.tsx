@@ -233,7 +233,7 @@ const Bubble = ({ children, amber, gray, selected, height = ROW_H }: BubbleProps
         borderRadius: 6,
         padding: "6px 8px",
         color,
-        fontSize: 11,
+        fontSize: 14,
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
