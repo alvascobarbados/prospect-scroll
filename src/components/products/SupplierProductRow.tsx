@@ -24,19 +24,8 @@ import { SHEET_GRID_TEMPLATE, SHEET_COL_GAP, SHEET_ROW_PADDING } from "./helpers
 
 const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
 
-const BLOCK_HEADER_STYLE: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 600,
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  color: "#6B7280",
-  marginBottom: 8,
-  lineHeight: 1.2,
-};
 
-function BlockHeader({ children }: { children: React.ReactNode }) {
-  return <div style={BLOCK_HEADER_STYLE}>{children}</div>;
-}
+
 
 const KV_GRID_STYLE: React.CSSProperties = {
   display: "grid",
