@@ -49,6 +49,16 @@ function dutyDecimal(p: CalcPageProduct): number {
   return n / 100;
 }
 
+/** True when the subcategory has no duty rate set at all (NULL / empty / non-numeric).
+ *  A legitimate 0% is NOT considered unset. Used to surface a visible warning so a
+ *  missing rate can't silently under-cost a quote. */
+function isDutyUnset(p: CalcPageProduct): boolean {
+  const raw = p.subcategory?.duty_rate_pct;
+  if (raw == null || raw === "") return true;
+  const n = typeof raw === "string" ? parseFloat(raw) : raw;
+  return !Number.isFinite(n);
+}
+
 function toProductInput(p: CalcPageProduct): ProductInput | null {
   if (!p.origin?.code) return null;
   const tiers: { qty: number; unitUsd: number; setupUsd: number }[] = [];
