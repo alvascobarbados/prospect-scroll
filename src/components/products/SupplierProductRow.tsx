@@ -791,11 +791,11 @@ function SpecsCell({
 
 function SpecRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "baseline" }}>
-      <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "#6B7280" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "88px 1fr", columnGap: 12, alignItems: "baseline" }}>
+      <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "#6B7280", lineHeight: 1.4 }}>
         {label}
       </span>
-      <span>{children}</span>
+      <span style={{ fontSize: 13, color: "#0E2849", lineHeight: 1.4 }}>{children}</span>
     </div>
   );
 }
