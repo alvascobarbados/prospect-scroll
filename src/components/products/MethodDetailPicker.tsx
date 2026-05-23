@@ -217,12 +217,18 @@ export function MethodDetailPicker({ trigger, align = "start", onPicked }: Metho
                       key={md.id}
                       value={`${g.methodName} ${md.detail}`}
                       onSelect={() => handlePick(md)}
+                      style={
+                        g.isNoDeco
+                          ? { fontStyle: "italic", color: "#6B7280" }
+                          : undefined
+                      }
                     >
                       {md.detail}
                     </CommandItem>
                   ))}
                 </CommandGroup>
               ))}
+
               {canCreate && filtered.length > 0 && (
                 <CommandGroup>
                   <CommandItem value={`__create__${search}`} onSelect={startCreate}>
