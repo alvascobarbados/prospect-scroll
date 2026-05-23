@@ -178,7 +178,13 @@ export function useCalcPageData() {
       }
 
       setProducts((prodsRes.data ?? []) as unknown as CalcPageProduct[]);
-      setKitComponents(((kitsRes.data ?? []) as unknown as KitComponentRow[]));
+      // Filter kit components: only those whose component is LIVE.
+      // (See engine-only filter rationale above.)
+      const liveKitRows = ((kitsRes.data ?? []) as any[])
+        .filter((r) => r.component?.status === "live")
+        .map(({ component: _c, ...rest }) => rest);
+      setKitComponents(liveKitRows as unknown as KitComponentRow[]);
+
 
 
       const methods = methodsRes.data ?? [];
