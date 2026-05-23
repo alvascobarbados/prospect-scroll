@@ -165,10 +165,12 @@ function productToInput(p: any): ProductInput | null {
   const Q = 50;
   const kitCalc = computeKitCalc("KIT-TEST", kitLines, [Q], routes, settings);
 
-  // Component costs at effectiveQty=50 individually
-  const sfgAt50 = computeProductCalc({ ...sfgInput, pricingTiers: [{ qty: 50, unitUsd: sfgInput.pricingTiers.find(t => t.qty <= 50)?.unitUsd ?? sfgInput.pricingTiers[0].unitUsd, setupUsd: sfgInput.pricingTiers.find(t => t.qty <= 50)?.setupUsd ?? 0, inlandFreightUsd: null }] }, routes, settings);
-  const v2Input = productToInput(v2)!;
-  const v2At50 = computeProductCalc({ ...v2Input, pricingTiers: [{ qty: 50, unitUsd: v2Input.pricingTiers.find(t => t.qty <= 50)?.unitUsd ?? v2Input.pricingTiers[0].unitUsd, setupUsd: v2Input.pricingTiers.find(t => t.qty <= 50)?.setupUsd ?? 0, inlandFreightUsd: null }] }, routes, settings);
+  // Component costs at effectiveQty=50 individually — use the SAME wrapper helper
+  // so both paths consume identical synthetic single-tier inputs (apples-to-apples).
+  const { computeComponentCalcAt } = await import("../src/lib/calcKitEngine");
+  const sfgAt50 = computeComponentCalcAt(calcPageProductToKitComponent(sfg as any), null, 50, routes, settings)!;
+  const v2At50  = computeComponentCalcAt(calcPageProductToKitComponent(v2  as any), null, 50, routes, settings)!;
+
 
   const kitRow = kitCalc.rows[0];
   const oceanK = kitRow.bbOutputs[oceanRoute.id];
