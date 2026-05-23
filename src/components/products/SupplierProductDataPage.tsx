@@ -60,7 +60,7 @@ export function SupplierProductDataPage() {
             ),
             product_decoration_bands(id, qty, unit_cost, setup_cost, inland_freight_usd)
           ),
-          product_includes(id, quantity, description, sort_order),
+          product_includes!product_includes_product_id_fkey(id, quantity, description, sort_order),
           kit_components:product_kit_components!product_kit_components_kit_product_id_fkey(
             id, quantity, decoration_id, sort_order,
             component:products!product_kit_components_component_product_id_fkey(
