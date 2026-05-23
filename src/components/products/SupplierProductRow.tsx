@@ -242,26 +242,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
           />
         ) : (
           <>
-            {specsIncomplete && (
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignSelf: "flex-start",
-                  alignItems: "center",
-                  gap: 6,
-                  background: "#FEF3E2",
-                  color: "#C2410C",
-                  fontSize: 11,
-                  fontWeight: 500,
-                  padding: "3px 8px",
-                  borderRadius: 4,
-                  marginBottom: 8,
-                }}
-                title="Engine-critical specs missing — this product will not be costed until carton pack, dimensions, and weight are filled."
-              >
-                <AlertTriangle size={12} /> specs incomplete
-              </div>
-            )}
             <SpecsCell
               product={product}
               weightUnit={wUnit}
