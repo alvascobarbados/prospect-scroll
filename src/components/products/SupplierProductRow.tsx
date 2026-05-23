@@ -21,6 +21,8 @@ import { ProductCardMenu } from "./ProductCardMenu";
 import { duplicateProductAsVariant } from "./helpers/duplicateProductAsVariant";
 import { SHEET_GRID_TEMPLATE, SHEET_COL_GAP, SHEET_ROW_PADDING } from "./helpers/sheetGrid";
 import type { CategoryRowLite, SupplierLite, OriginLite } from "./SupplierProductDataList";
+import { KitComponentsBlock } from "./KitComponentsBlock";
+import { KitPricingBlock } from "./KitPricingBlock";
 
 
 const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
