@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { X } from "lucide-react";
 import { useMasterData } from "@/hooks/useMasterData";
-import { supabase } from "@/integrations/supabase/client";
 import type { Product } from "./helpers/buildSupplierProductDataList";
 
 export interface ProductFilterState {
@@ -18,13 +17,6 @@ export const EMPTY_PRODUCT_FILTER: ProductFilterState = {
   originId: "",
 };
 
-interface CategoryRow {
-  id: string;
-  name: string;
-  code: string | null;
-  parent_id: string | null;
-}
-
 interface FilterBarProps {
   value: ProductFilterState;
   onChange: (next: ProductFilterState) => void;
@@ -37,132 +29,82 @@ const labelStyle: React.CSSProperties = {
   textTransform: "uppercase",
   letterSpacing: "0.06em",
   color: "#6B7280",
-  marginBottom: 3,
+  marginRight: 6,
 };
 
 const selectStyle: React.CSSProperties = {
   border: "0.5px solid #D1D5DB",
   borderRadius: 6,
-  padding: "6px 8px",
+  padding: "5px 8px",
   fontSize: 12,
   color: "#0E2849",
   background: "#FFFFFF",
   fontFamily: "inherit",
-  minWidth: 150,
+  minWidth: 130,
 };
 
 export function SupplierProductFilterBar({ value, onChange, products }: FilterBarProps) {
   const { origins } = useMasterData();
-  const [categories, setCategories] = useState<CategoryRow[]>([]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("product_categories")
-        .select("id, name, code, parent_id")
-        .order("name");
-      if (cancelled) return;
-      setCategories((data ?? []) as CategoryRow[]);
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  const parentCategories = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
-  const subcategories = useMemo(() => {
-    const subs = categories.filter((c) => c.parent_id);
-    return value.categoryId ? subs.filter((s) => s.parent_id === value.categoryId) : subs;
-  }, [categories, value.categoryId]);
-
-  // Origins limited to those actually in the (already supplier-scoped) products list.
-  const originIdsInUse = useMemo(() => new Set(products.map((p) => p.origin?.id).filter(Boolean) as string[]), [products]);
+  const originIdsInUse = useMemo(
+    () => new Set(products.map((p) => p.origin?.id).filter(Boolean) as string[]),
+    [products],
+  );
   const visibleOrigins = origins.filter((o) => originIdsInUse.has(o.id));
 
-  const hasAny = !!(value.supplierId || value.categoryId || value.subcategoryId || value.originId);
+  if (visibleOrigins.length === 0 && !value.originId) return null;
+
+  const hasOrigin = !!value.originId;
 
   return (
     <div
       style={{
-        display: "flex",
-        gap: 16,
-        alignItems: "flex-end",
-        flexWrap: "wrap",
-        padding: "12px 16px",
+        display: "inline-flex",
+        gap: 8,
+        alignItems: "center",
+        padding: "6px 10px",
         background: "#FFFFFF",
         border: "0.5px solid #E5E7EB",
-        borderRadius: 12,
-        marginBottom: 16,
+        borderRadius: 8,
       }}
     >
-
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <label style={labelStyle}>Category</label>
-        <select
-          value={value.categoryId}
-          onChange={(e) => onChange({ ...value, categoryId: e.target.value, subcategoryId: "" })}
-          style={selectStyle}
-        >
-          <option value="">All categories</option>
-          {parentCategories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <label style={labelStyle}>Subcategory</label>
-        <select
-          value={value.subcategoryId}
-          onChange={(e) => onChange({ ...value, subcategoryId: e.target.value })}
-          style={selectStyle}
-        >
-          <option value="">All subcategories</option>
-          {subcategories.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <label style={labelStyle}>Origin</label>
-        <select
-          value={value.originId}
-          onChange={(e) => onChange({ ...value, originId: e.target.value })}
-          style={selectStyle}
-        >
-          <option value="">All origins</option>
-          {visibleOrigins.map((o) => (
-            <option key={o.id} value={o.id}>{o.name}</option>
-          ))}
-        </select>
-      </div>
-
-      {hasAny && (
+      <label style={labelStyle}>Origin</label>
+      <select
+        value={value.originId}
+        onChange={(e) => onChange({ ...value, originId: e.target.value })}
+        style={selectStyle}
+      >
+        <option value="">All</option>
+        {visibleOrigins.map((o) => (
+          <option key={o.id} value={o.id}>{o.name}</option>
+        ))}
+      </select>
+      {hasOrigin && (
         <button
           type="button"
-          onClick={() => onChange(EMPTY_PRODUCT_FILTER)}
+          onClick={() => onChange({ ...value, originId: "" })}
+          aria-label="Clear origin filter"
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 4,
+            gap: 2,
             background: "transparent",
             border: "0.5px solid #E5E7EB",
             borderRadius: 6,
-            padding: "6px 10px",
-            fontSize: 12,
+            padding: "4px 6px",
+            fontSize: 11,
             color: "#6B7280",
             cursor: "pointer",
-            height: 30,
           }}
         >
-          <X size={12} /> Clear
+          <X size={11} />
         </button>
       )}
     </div>
   );
 }
 
-/** Get the product's category id (parent of its subcategory), best-effort from cached categories. */
+/** Apply category/subcategory/origin filter (category & subcategory now driven by chip strip). */
 export function applyProductFilter(
   products: Product[],
   filter: ProductFilterState,
