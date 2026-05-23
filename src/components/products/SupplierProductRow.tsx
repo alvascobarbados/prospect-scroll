@@ -75,7 +75,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [confirmConvertSingle, setConfirmConvertSingle] = useState(false);
   const allDecos = [...product.product_decorations].sort((a, b) => a.sort_order - b.sort_order);
   const nextDecoSortOrder = (allDecos.at(-1)?.sort_order ?? 0) + 1;
 
