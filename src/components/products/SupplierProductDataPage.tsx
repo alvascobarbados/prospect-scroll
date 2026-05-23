@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { buildSupplierProductDataList, type Product } from "./helpers/buildSupplierProductDataList";
 import { SupplierProductDataList } from "./SupplierProductDataList";
 import { DraftProductCard } from "./DraftProductCard";
+import { DraftKitCard } from "./DraftKitCard";
 import {
   SupplierProductFilterBar,
   EMPTY_PRODUCT_FILTER,
@@ -26,6 +27,7 @@ export function SupplierProductDataPage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [drafts, setDrafts] = useState<string[]>([]);
+  const [kitDrafts, setKitDrafts] = useState<string[]>([]);
   const [filter, setFilter] = useState<ProductFilterState>(EMPTY_PRODUCT_FILTER);
   const [categoryById, setCategoryById] = useState<Map<string, CategoryMeta>>(new Map());
   const [allCategories, setAllCategories] = useState<CategoryRow[]>([]);
@@ -145,10 +147,18 @@ export function SupplierProductDataPage() {
   const startDraft = () => {
     setDrafts((d) => [...d, `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`]);
   };
+  const startKitDraft = () => {
+    setKitDrafts((d) => [...d, `kit-draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`]);
+  };
 
   const discardDraft = (id: string) => setDrafts((d) => d.filter((x) => x !== id));
   const commitDraft = (id: string) => {
     discardDraft(id);
+    reload();
+  };
+  const discardKitDraft = (id: string) => setKitDrafts((d) => d.filter((x) => x !== id));
+  const commitKitDraft = (id: string) => {
+    discardKitDraft(id);
     reload();
   };
 
@@ -196,6 +206,24 @@ export function SupplierProductDataPage() {
           >
             <Plus size={15} /> Add product
           </button>
+          <button
+            onClick={startKitDraft}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: "hsl(var(--brand-orange))",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <Plus size={15} /> Kit
+          </button>
         </div>
 
         {error && (
@@ -213,6 +241,15 @@ export function SupplierProductDataPage() {
             <div style={{ color: "#9CA3AF", fontSize: 13 }}>Loading…</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {kitDrafts.map((id) => (
+                <DraftKitCard
+                  key={id}
+                  draftId={id}
+                  allProducts={products ?? []}
+                  onCommitted={() => commitKitDraft(id)}
+                  onDiscard={() => discardKitDraft(id)}
+                />
+              ))}
               {drafts.map((id) => (
                 <DraftProductCard
                   key={id}

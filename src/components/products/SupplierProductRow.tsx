@@ -75,7 +75,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [confirmConvertSingle, setConfirmConvertSingle] = useState(false);
   const allDecos = [...product.product_decorations].sort((a, b) => a.sort_order - b.sort_order);
   const nextDecoSortOrder = (allDecos.at(-1)?.sort_order ?? 0) + 1;
 
@@ -109,45 +108,7 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
     }
   };
 
-  const handleConvertToKit = async () => {
-    try {
-      await updateProduct(product.id, { product_kind: "kit" });
-      toast.success("Converted to kit");
-      onChanged?.();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to convert";
-      if (/referenced as a kit component|used in a kit/i.test(msg)) {
-        toast.error("Can't convert: this product is used in a kit");
-      } else {
-        toast.error(msg);
-      }
-    }
-  };
-
-  const performConvertToSingle = async () => {
-    try {
-      if (kitComponents.length > 0) {
-        const ids = kitComponents.map((c) => c.id);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: delErr } = await (supabase.from("product_kit_components").delete().in("id", ids) as any);
-        if (delErr) throw new Error(delErr.message);
-      }
-      await updateProduct(product.id, { product_kind: "single" });
-      toast.success("Converted to single");
-      setConfirmConvertSingle(false);
-      onChanged?.();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to convert");
-    }
-  };
-
-  const handleConvertToSingle = async () => {
-    if (kitComponents.length === 0) {
-      await performConvertToSingle();
-      return;
-    }
-    setConfirmConvertSingle(true);
-  };
+  // Convert paths removed: kits are created via "+ Kit" and removed via delete.
 
   const cellStyle = (isLast: boolean): React.CSSProperties => ({
     minWidth: 0,
@@ -194,7 +155,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       >
         <div style={{ opacity: hovered ? 1 : 0.45, transition: "opacity 120ms" }}>
           <ProductCardMenu
-            productKind={isKit ? "kit" : "single"}
             onDuplicateAsVariant={async () => {
               try {
                 const newId = await duplicateProductAsVariant(product.id);
@@ -205,8 +165,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
                 toast.error(err instanceof Error ? err.message : "Failed to duplicate");
               }
             }}
-            onConvertToKit={handleConvertToKit}
-            onConvertToSingle={handleConvertToSingle}
           />
         </div>
         <button
@@ -345,14 +303,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
           </div>
         )}
       </div>
-      <ConfirmDialog
-        open={confirmConvertSingle}
-        title="Convert kit to single product?"
-        description={`This kit has ${kitComponents.length} component${kitComponents.length === 1 ? "" : "s"}. Converting will remove the component links (the component products themselves are kept).`}
-        confirmLabel="Convert"
-        onConfirm={performConvertToSingle}
-        onCancel={() => setConfirmConvertSingle(false)}
-      />
     </div>
   );
 }
