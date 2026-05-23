@@ -259,7 +259,7 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </tbody>
