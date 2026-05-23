@@ -63,7 +63,7 @@ async function load(): Promise<CalcContext> {
             id,
             product_decoration_bands(qty, unit_cost, setup_cost, inland_freight_usd)
           )
-        `),
+        `).eq("status", "live"), // ENGINE-ONLY: kits cannot cost a draft component.
         supabase.from("shipping_methods").select("id, code, name, fuel_surcharge_pct, buffer_pct, chargeable_metric, chargeable_unit"),
         supabase.from("shipping_method_routes").select("id, shipping_method_id, origin_id, destination_id, fixed_cost, lac_fixed_bbd, lac_per_cbm_bbd, include_inland_freight"),
         supabase.from("shipping_method_tiers").select("id, route_id, band_from, band_to, rate").order("band_from"),
