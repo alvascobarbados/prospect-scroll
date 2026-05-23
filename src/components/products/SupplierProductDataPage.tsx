@@ -66,7 +66,7 @@ export function SupplierProductDataPage() {
           kit_components:product_kit_components!product_kit_components_kit_product_id_fkey(
             id, quantity, decoration_id, sort_order,
             component:products!product_kit_components_component_product_id_fkey(
-              id, name, supplier_item_number, product_kind, carton_pack,
+              id, name, supplier_item_number, variant_name, variant_label, product_kind, carton_pack,
               product_decorations(
                 id, sort_order, notes, ref_image_url,
                 method_detail:method_details(
