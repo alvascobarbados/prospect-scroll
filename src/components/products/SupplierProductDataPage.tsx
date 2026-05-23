@@ -440,11 +440,13 @@ export function SupplierProductDataPage() {
               }}
             >
               <div style={{ marginBottom: 12 }}>
-                No products yet for this supplier.
+                {isAllMode ? "No products in the catalog yet." : "No products yet for this supplier."}
               </div>
               <div style={{ display: "inline-flex", gap: 8 }}>
                 <button
                   onClick={startDraft}
+                  disabled={!canAdd}
+                  title={isAllMode ? "Select a supplier to add items" : undefined}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -452,19 +454,25 @@ export function SupplierProductDataPage() {
                     padding: "8px 14px",
                     borderRadius: 8,
                     border: "none",
-                    background: "hsl(var(--brand-orange))",
-                    color: "#fff",
+                    background: canAdd ? "hsl(var(--brand-orange))" : "#E5E7EB",
+                    color: canAdd ? "#fff" : "#9CA3AF",
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: "pointer",
+                    cursor: canAdd ? "pointer" : "not-allowed",
                   }}
                 >
                   <Plus size={15} /> Add product
                 </button>
                 <button
                   onClick={startKitDraft}
-                  disabled={!kitsCanBeAdded}
-                  title={!kitsCanBeAdded ? "Add at least one product before creating a kit" : undefined}
+                  disabled={!canAdd || !kitsCanBeAdded}
+                  title={
+                    isAllMode
+                      ? "Select a supplier to add items"
+                      : !kitsCanBeAdded
+                      ? "Add at least one product before creating a kit"
+                      : undefined
+                  }
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -473,10 +481,10 @@ export function SupplierProductDataPage() {
                     borderRadius: 8,
                     border: "0.5px solid #D1D5DB",
                     background: "#FFFFFF",
-                    color: kitsCanBeAdded ? "hsl(var(--brand-navy))" : "#9CA3AF",
+                    color: canAdd && kitsCanBeAdded ? "hsl(var(--brand-navy))" : "#9CA3AF",
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: kitsCanBeAdded ? "pointer" : "not-allowed",
+                    cursor: canAdd && kitsCanBeAdded ? "pointer" : "not-allowed",
                   }}
                 >
                   <Plus size={15} /> Add Kit
