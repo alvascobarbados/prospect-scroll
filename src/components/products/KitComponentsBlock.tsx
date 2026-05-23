@@ -61,15 +61,6 @@ export function KitComponentsBlock({
 
   const eligibles = allProducts.filter((p) => eligibleAsComponent(p, kitProductId));
 
-  const addComponent = async () => {
-    if (eligibles.length === 0) {
-      toast.error("No eligible products available");
-      return;
-    }
-    // Create an empty row tied to the first eligible product as a placeholder?
-    // Better: open the picker via a transient "add" row — we'll show an inline picker.
-    // For simplicity here, prompt user to pick first via the picker control below.
-  };
 
   return (
     <div>
