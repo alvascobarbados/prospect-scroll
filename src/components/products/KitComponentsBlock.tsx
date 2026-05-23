@@ -142,11 +142,8 @@ function ComponentLine({
   };
 
   const updateLine = async (patch: Record<string, unknown>) => {
-    const { error } = await supabase
-      .from("product_kit_components")
-      .update(patch)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .eq("id", line.id as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from("product_kit_components").update(patch as any).eq("id", line.id) as any);
     if (error) {
       toast.error(error.message);
       throw new Error(error.message);
