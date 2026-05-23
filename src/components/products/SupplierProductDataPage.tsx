@@ -147,10 +147,18 @@ export function SupplierProductDataPage() {
   const startDraft = () => {
     setDrafts((d) => [...d, `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`]);
   };
+  const startKitDraft = () => {
+    setKitDrafts((d) => [...d, `kit-draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`]);
+  };
 
   const discardDraft = (id: string) => setDrafts((d) => d.filter((x) => x !== id));
   const commitDraft = (id: string) => {
     discardDraft(id);
+    reload();
+  };
+  const discardKitDraft = (id: string) => setKitDrafts((d) => d.filter((x) => x !== id));
+  const commitKitDraft = (id: string) => {
+    discardKitDraft(id);
     reload();
   };
 
