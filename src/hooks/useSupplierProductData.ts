@@ -34,7 +34,7 @@ export function useSupplierProductData() {
             ),
             product_decoration_bands(id, qty, unit_cost, setup_cost, inland_freight_usd)
           ),
-          product_includes(id, quantity, description, sort_order)
+          product_includes!product_includes_product_id_fkey(id, quantity, description, sort_order)
         `)
         .order("display_order", { ascending: true, nullsFirst: false })
         .order("name", { ascending: true });
