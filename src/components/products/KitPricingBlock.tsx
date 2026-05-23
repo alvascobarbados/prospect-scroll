@@ -125,6 +125,9 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
           );
           // Per-component contributions sourced from the engine (re-cost each
           // component at effectiveQty for display only — same engine path).
+          // Per-unit contributions: each component's engine-computed fobUnitUsd
+          // (FOB per component unit) × line qty per kit = component cost per kit.
+          // Sum equals the kit per-unit price (r.fobUsd / r.qty).
           const contributions = lines.map((line) => {
             const calc = computeComponentCalcAt(
               line.component,
@@ -133,13 +136,15 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
               ctx.routes,
               ctx.settings,
             );
-            const fob = calc?.rows[0]?.spec.productTotalUsd.amount ?? null;
+            const unit = calc?.rows[0]?.spec.fobUnitUsd.amount ?? null;
+            const perKit = unit == null ? null : unit * line.quantity;
             return {
               name: componentNameById.get(line.component.id) ?? line.component.id,
               qty: line.quantity,
-              fob,
+              perKit,
             };
           });
+          const kitPerUnit = r.fobUsd == null ? null : r.fobUsd / r.qty;
           return (
             <div key={r.qty} style={{ fontSize: 12, color: "#0E2849" }}>
               <div
@@ -152,7 +157,7 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
                 }}
               >
                 <span>{r.qty.toLocaleString()}</span>
-                <span>{r.fobUsd == null ? "—" : fmtUsd(r.fobUsd)}</span>
+                <span>{kitPerUnit == null ? "—" : fmtUsd(kitPerUnit)}</span>
               </div>
               {(incompleteNames.length > 0 || missingComponentIds.length > 0) && (
                 <div
@@ -163,7 +168,7 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
                   {[...incompleteNames, ...missingComponentIds].join(", ")}
                 </div>
               )}
-              {r.fobUsd != null && (
+              {kitPerUnit != null && (
                 <div style={{ marginTop: 4, paddingLeft: 4, color: "#6B7280", fontSize: 11, lineHeight: 1.5 }}>
                   {contributions.map((c, i) => (
                     <div key={i} style={{ display: "flex", gap: 6 }}>
@@ -179,7 +184,7 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
                       >
                         {c.name}
                       </span>
-                      <span>{c.fob == null ? "—" : fmtUsd(c.fob)}</span>
+                      <span>{c.perKit == null ? "—" : fmtUsd(c.perKit)}</span>
                     </div>
                   ))}
                 </div>
