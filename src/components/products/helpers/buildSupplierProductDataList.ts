@@ -59,7 +59,15 @@ export interface KitComponentRowProduct {
   supplier_item_number: string | null;
   product_kind?: "single" | "kit";
   carton_pack: number | null;
+  variant_name: string | null;
+  variant_label: string | null;
   product_decorations: ProductDecoration[];
+}
+
+/** Display name including variant suffix when present. */
+export function componentDisplayName(c: { name: string; variant_name: string | null; variant_label: string | null }): string {
+  const v = (c.variant_name ?? c.variant_label ?? "").trim();
+  return v ? `${c.name} – ${v}` : c.name;
 }
 
 export interface KitComponentRow {
