@@ -241,6 +241,15 @@ export function SupplierProductDataPage() {
             <div style={{ color: "#9CA3AF", fontSize: 13 }}>Loading…</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {kitDrafts.map((id) => (
+                <DraftKitCard
+                  key={id}
+                  draftId={id}
+                  allProducts={products ?? []}
+                  onCommitted={() => commitKitDraft(id)}
+                  onDiscard={() => discardKitDraft(id)}
+                />
+              ))}
               {drafts.map((id) => (
                 <DraftProductCard
                   key={id}
