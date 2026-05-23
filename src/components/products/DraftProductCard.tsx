@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useMasterData } from "@/hooks/useMasterData";
-import { composePrimaryItemNumber, nextSequenceFor } from "@/lib/productItemNumber";
+import { composeDraftIdentity, isDraftIdentityBaseValid } from "@/lib/draftIdentity";
 import { originLetterFromCode } from "@/lib/originLetter";
 import { InlineText } from "@/components/inline/InlineText";
 import { InlineNumber } from "@/components/inline/InlineNumber";
@@ -185,13 +185,10 @@ export function DraftProductCard({ draftId, onCommitted, onDiscard }: DraftProdu
     }
   }, [subcategory, categoryId]);
 
-  // canSave — UNCHANGED logic
+  // canSave — UNCHANGED logic. Identity-base (5 shared checks) lives in
+  // isDraftIdentityBaseValid; product-only extra gate is leadMin >= 1.
   const canSave =
-    !!supplier?.code &&
-    !!supplier?.origin_id &&
-    !!subcategory?.code &&
-    name.trim().length > 0 &&
-    itemSuffix.trim().length > 0 &&
+    isDraftIdentityBaseValid({ supplier, subcategory, name, itemSuffix }) &&
     leadMin != null &&
     Number.isFinite(leadMin) &&
     leadMin >= 1;
@@ -211,11 +208,13 @@ export function DraftProductCard({ draftId, onCommitted, onDiscard }: DraftProdu
         .select("primary_item_number");
       if (exErr) throw new Error(exErr.message);
       const nums = (existing ?? []).map((r) => r.primary_item_number).filter(Boolean) as string[];
-      const seq = nextSequenceFor(subcategory.code, nums);
-      const primaryItemNumber = composePrimaryItemNumber(subcategory.code, seq, originLetter);
-
-      const cleanSuffix = itemSuffix.trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
-      const supplierItemNumber = `${supplier.code}-${cleanSuffix}`;
+      const { primaryItemNumber, supplierItemNumber } = composeDraftIdentity({
+        supplierCode: supplier.code,
+        subcategoryCode: subcategory.code,
+        originLetter,
+        itemSuffix,
+        existingPrimaryItemNumbers: nums,
+      });
 
       const leadMinNum = leadMin as number;
       const leadMaxNum =
