@@ -97,19 +97,6 @@ export function SupplierProductFilterBar({ value, onChange, products }: FilterBa
         marginBottom: 16,
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <label style={labelStyle}>Supplier</label>
-        <select
-          value={value.supplierId}
-          onChange={(e) => onChange({ ...value, supplierId: e.target.value })}
-          style={selectStyle}
-        >
-          <option value="">All suppliers</option>
-          {visibleSuppliers.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-      </div>
 
       <div style={{ display: "flex", flexDirection: "column" }}>
         <label style={labelStyle}>Category</label>
