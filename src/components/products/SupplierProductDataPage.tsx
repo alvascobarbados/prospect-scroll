@@ -373,11 +373,19 @@ export function SupplierProductDataPage() {
             }}
           >
             {suppliers.length === 0 && <option value="">Loading…</option>}
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
+            {suppliers.length > 0 && (
+              <option value={ALL_SUPPLIERS}>
+                All Suppliers ({fmtCount(totalCounts.live, totalCounts.draft)})
               </option>
-            ))}
+            )}
+            {suppliers.map((s) => {
+              const c = supplierCounts.get(s.id) ?? { live: 0, draft: 0 };
+              return (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({fmtCount(c.live, c.draft)})
+                </option>
+              );
+            })}
           </select>
           {products && (
             <span style={{ marginLeft: "auto", fontSize: 12, color: "#6B7280" }}>
@@ -389,6 +397,7 @@ export function SupplierProductDataPage() {
             </span>
           )}
         </div>
+
 
         {/* Live category / subcategory counts — the audit tool. */}
         {products && products.length > 0 && (
