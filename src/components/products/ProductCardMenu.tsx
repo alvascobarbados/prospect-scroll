@@ -3,18 +3,10 @@ import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export interface ProductCardMenuProps {
-  productKind?: "single" | "kit";
   onDuplicateAsVariant: () => void | Promise<void>;
-  onConvertToKit?: () => void | Promise<void>;
-  onConvertToSingle?: () => void | Promise<void>;
 }
 
-export function ProductCardMenu({
-  productKind = "single",
-  onDuplicateAsVariant,
-  onConvertToKit,
-  onConvertToSingle,
-}: ProductCardMenuProps) {
+export function ProductCardMenu({ onDuplicateAsVariant }: ProductCardMenuProps) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -74,30 +66,6 @@ export function ProductCardMenu({
         >
           {busy ? "Working…" : "Duplicate as variant"}
         </button>
-        {productKind === "single" && onConvertToKit && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => handle(onConvertToKit)}
-            style={itemStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#F3F4F6")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
-            Convert to kit
-          </button>
-        )}
-        {productKind === "kit" && onConvertToSingle && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => handle(onConvertToSingle)}
-            style={itemStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#F3F4F6")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
-            Convert to single
-          </button>
-        )}
       </PopoverContent>
     </Popover>
   );
