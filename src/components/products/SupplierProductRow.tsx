@@ -303,14 +303,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
           </div>
         )}
       </div>
-      <ConfirmDialog
-        open={confirmConvertSingle}
-        title="Convert kit to single product?"
-        description={`This kit has ${kitComponents.length} component${kitComponents.length === 1 ? "" : "s"}. Converting will remove the component links (the component products themselves are kept).`}
-        confirmLabel="Convert"
-        onConfirm={performConvertToSingle}
-        onCancel={() => setConfirmConvertSingle(false)}
-      />
     </div>
   );
 }
