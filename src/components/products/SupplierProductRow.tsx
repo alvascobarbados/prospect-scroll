@@ -24,6 +24,7 @@ import type { CategoryRowLite, SupplierLite, OriginLite } from "./SupplierProduc
 import { KitComponentsBlock } from "./KitComponentsBlock";
 import { KitPricingBlock } from "./KitPricingBlock";
 import { KitQuantityTiers } from "./KitQuantityTiers";
+import { liveGateMissing } from "@/lib/productLiveGate";
 
 
 const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
@@ -85,12 +86,9 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
   const wUnit = weightUnitFor(system);
   const lUnit = linearUnitFor(system);
 
-  const specsIncomplete =
-    product.carton_pack == null ||
-    product.carton_length == null ||
-    product.carton_width == null ||
-    product.carton_height == null ||
-    product.carton_weight == null;
+  const isDraft = (product.status ?? "live") === "draft";
+  const liveMissing = liveGateMissing(product);
+  const liveEligible = liveMissing.length === 0;
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -129,19 +127,124 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
     />
   );
 
+  const handleSetStatus = async (next: "draft" | "live") => {
+    try {
+      await updateProduct(product.id, { status: next });
+      toast.success(next === "live" ? `Made live: ${product.name}` : `Reverted to draft: ${product.name}`);
+      onChanged?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update status");
+    }
+  };
+
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        display: "grid",
-        gridTemplateColumns: SHEET_GRID_TEMPLATE,
-        columnGap: SHEET_COL_GAP,
-        alignItems: "start",
-        padding: SHEET_ROW_PADDING,
         position: "relative",
+        background: isDraft ? "#FFFBF1" : "transparent",
+        borderLeft: isDraft ? "3px solid #E97B2C" : "3px solid transparent",
       }}
     >
+      {isDraft && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "8px 14px 0 14px",
+            fontSize: 12,
+          }}
+        >
+          <span
+            aria-label="Draft product — not yet costable"
+            title="Draft — this product is not used by the costing engine until you make it live."
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#E97B2C",
+              color: "#FFFFFF",
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              padding: "3px 8px",
+              borderRadius: 4,
+              textTransform: "uppercase",
+            }}
+          >
+            <AlertTriangle size={11} /> DRAFT
+          </span>
+          <button
+            type="button"
+            disabled={!liveEligible}
+            onClick={() => liveEligible && handleSetStatus("live")}
+            title={
+              liveEligible
+                ? "Mark this product as live so it can be costed and assigned."
+                : `Cannot make live yet. Missing: ${liveMissing.map((m) => m.label).join(", ")}`
+            }
+            style={{
+              padding: "4px 10px",
+              borderRadius: 6,
+              border: "none",
+              background: liveEligible ? "#1B2A4E" : "#E5E7EB",
+              color: liveEligible ? "#FFFFFF" : "#9CA3AF",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: liveEligible ? "pointer" : "not-allowed",
+            }}
+          >
+            Make Live
+          </button>
+          {!liveEligible && (
+            <span style={{ color: "#92400E", fontSize: 11 }}>
+              Still missing: {liveMissing.map((m) => m.label).join(", ")}
+            </span>
+          )}
+        </div>
+      )}
+      {!isDraft && (
+        <div
+          style={{
+            position: "absolute",
+            top: 8,
+            left: 14,
+            zIndex: 2,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => handleSetStatus("draft")}
+            title="Revert this product to draft. It will stop being costed."
+            style={{
+              padding: "2px 8px",
+              borderRadius: 4,
+              border: "0.5px solid #E5E7EB",
+              background: "transparent",
+              color: "#6B7280",
+              fontSize: 10,
+              fontWeight: 500,
+              cursor: "pointer",
+              opacity: hovered ? 1 : 0,
+              transition: "opacity 120ms",
+            }}
+          >
+            Revert to draft
+          </button>
+        </div>
+      )}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: SHEET_GRID_TEMPLATE,
+          columnGap: SHEET_COL_GAP,
+          alignItems: "start",
+          padding: SHEET_ROW_PADDING,
+          position: "relative",
+        }}
+      >
       <div
         style={{
           position: "absolute",
@@ -244,26 +347,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
           />
         ) : (
           <>
-            {specsIncomplete && (
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignSelf: "flex-start",
-                  alignItems: "center",
-                  gap: 6,
-                  background: "#FEF3E2",
-                  color: "#C2410C",
-                  fontSize: 11,
-                  fontWeight: 500,
-                  padding: "3px 8px",
-                  borderRadius: 4,
-                  marginBottom: 8,
-                }}
-                title="Engine-critical specs missing — this product will not be costed until carton pack, dimensions, and weight are filled."
-              >
-                <AlertTriangle size={12} /> specs incomplete
-              </div>
-            )}
             <SpecsCell
               product={product}
               weightUnit={wUnit}
@@ -302,6 +385,7 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
             />
           </div>
         )}
+      </div>
       </div>
     </div>
   );

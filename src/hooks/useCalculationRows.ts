@@ -63,6 +63,8 @@ export function useCalculationRows() {
             product_decoration_bands(id, qty, unit_cost, setup_cost)
           )
         `)
+        // ENGINE-ONLY: drafts never reach the costing engine.
+        .eq("status", "live")
         .order("name", { ascending: true });
 
       if (cancelled) return;
