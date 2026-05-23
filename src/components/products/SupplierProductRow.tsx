@@ -49,6 +49,8 @@ interface SupplierProductRowProps {
   suppliers?: SupplierLite[];
   /** All origins — used by the origin inline picker. */
   origins?: OriginLite[];
+  /** All loaded products on the sheet (used to filter kit component eligibility). */
+  allProducts?: Product[];
   /** Inside a variant group, show the variant label more prominently. */
   showVariantInline?: boolean;
   /** When this matches product.id, the variant-label inline editor opens automatically. */
