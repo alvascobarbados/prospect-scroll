@@ -180,8 +180,7 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
             const showChevron = kitPerUnit != null && lines.length > 0;
 
             return (
-              <>
-                <tr key={`row-${r.qty}`}>
+              <Fragment key={r.qty}>
                   <td style={{ ...bodyCellStyle("left"), fontWeight: 500 }}>
                     {r.qty.toLocaleString()}
                   </td>
