@@ -147,14 +147,22 @@ export function useCalcPageData() {
             ),
             product_decoration_bands(id, qty, unit_cost, setup_cost, inland_freight_usd)
           )
-        `).order("name", { ascending: true }),
+        `)
+          .eq("status", "live") // ENGINE-ONLY: drafts must never reach the costing engine.
+          .order("name", { ascending: true }),
         supabase.from("shipping_methods").select("id, code, name, fuel_surcharge_pct, buffer_pct, chargeable_metric, chargeable_unit"),
         supabase.from("shipping_method_routes").select("id, shipping_method_id, origin_id, destination_id, fixed_cost, lac_fixed_bbd, lac_per_cbm_bbd, include_inland_freight"),
         supabase.from("shipping_method_tiers").select("id, route_id, band_from, band_to, rate").order("band_from"),
         supabase.from("origins").select("id, code, name"),
         supabase.from("destinations").select("id, code"),
         supabase.from("app_settings").select("key, value"),
-        supabase.from("product_kit_components").select("id, kit_product_id, component_product_id, quantity, decoration_id, sort_order").order("sort_order"),
+        // ENGINE-ONLY: filter kit components to those whose component is LIVE.
+        // A kit referencing a draft component must be flagged not-costable by
+        // the engine (component lookup will miss), never silently summing.
+        supabase.from("product_kit_components")
+          .select("id, kit_product_id, component_product_id, quantity, decoration_id, sort_order, component:products!product_kit_components_component_product_id_fkey(status)")
+          .order("sort_order"),
+
       ]);
 
 
