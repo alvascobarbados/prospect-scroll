@@ -177,7 +177,7 @@ function ComponentLine({
           }
           options={eligibles.map((p) => ({
             id: p.id,
-            label: p.name,
+            label: componentDisplayName(p),
             hint: p.supplier_item_number ?? undefined,
           }))}
           onSelect={async (opt) => {
