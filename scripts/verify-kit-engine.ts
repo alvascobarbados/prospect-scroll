@@ -145,6 +145,23 @@ function productToInput(p: any): ProductInput | null {
   const v2 = products.find((p: any) => p.supplier_item_number === "SFG-3-V2");
   if (!sfg || !v2) throw new Error("fixtures missing");
 
+  // Resolve each fixture's "No Decoration" decoration_id (seeded by migration + insert).
+  const nodecoMethodCode = "NODECO";
+  const findNoDecoId = async (productId: string): Promise<string> => {
+    const { data, error } = await supabase
+      .from("product_decorations")
+      .select("id, method_detail:method_details(decoration_method:decoration_methods(code))")
+      .eq("product_id", productId);
+    if (error) throw error;
+    const row = (data as any[]).find(
+      (r) => (r.method_detail?.decoration_method?.code ?? "").toUpperCase() === nodecoMethodCode,
+    );
+    if (!row) throw new Error(`No-decoration decoration missing for product ${productId}`);
+    return row.id as string;
+  };
+  const sfgNoDecoId = await findNoDecoId(sfg.id);
+  const v2NoDecoId = await findNoDecoId(v2.id);
+
   // ───────── 1. Regression: SFG-AGU LDP @ qty 250 ─────────
   const sfgInput = productToInput(sfg)!;
   const sfgCalc = computeProductCalc(sfgInput, routes, settings);
@@ -157,26 +174,23 @@ function productToInput(p: any): ProductInput | null {
   if (ocean250.active) console.log(`  OCEAN-CHINA-BB LDP = BBD ${ocean250.ldpBbd!.amount.toFixed(2)} (expect 2634.74)`);
   if (dhl250.active)  console.log(`  DHL-CHINA-BB   LDP = BBD ${dhl250.ldpBbd!.amount.toFixed(2)} (expect 7046.22)`);
 
-  // ───────── 2. Kit = 1× SFG-AGU + 1× SFG-3-V2 (decoration NULL) at Q=50 ─────────
+  // ───────── 2. Kit = 1× SFG-AGU + 1× SFG-3-V2 (No Decoration) at Q=50 ─────────
   const kitLines: KitComponentLine[] = [
-    { id: "L1", component: calcPageProductToKitComponent(sfg as any), quantity: 1, decoration_id: null, sort_order: 0 },
-    { id: "L2", component: calcPageProductToKitComponent(v2 as any),  quantity: 1, decoration_id: null, sort_order: 1 },
+    { id: "L1", component: calcPageProductToKitComponent(sfg as any), quantity: 1, decoration_id: sfgNoDecoId, sort_order: 0 },
+    { id: "L2", component: calcPageProductToKitComponent(v2 as any),  quantity: 1, decoration_id: v2NoDecoId,  sort_order: 1 },
   ];
   const Q = 50;
   const kitCalc = computeKitCalc("KIT-TEST", kitLines, [Q], routes, settings);
 
-  // Component costs at effectiveQty=50 individually — use the SAME wrapper helper
-  // so both paths consume identical synthetic single-tier inputs (apples-to-apples).
   const { computeComponentCalcAt } = await import("../src/lib/calcKitEngine");
-  const sfgAt50 = computeComponentCalcAt(calcPageProductToKitComponent(sfg as any), null, 50, routes, settings)!;
-  const v2At50  = computeComponentCalcAt(calcPageProductToKitComponent(v2  as any), null, 50, routes, settings)!;
-
+  const sfgAt50 = computeComponentCalcAt(calcPageProductToKitComponent(sfg as any), sfgNoDecoId, 50, routes, settings)!;
+  const v2At50  = computeComponentCalcAt(calcPageProductToKitComponent(v2  as any), v2NoDecoId,  50, routes, settings)!;
 
   const kitRow = kitCalc.rows[0];
   const oceanK = kitRow.bbOutputs[oceanRoute.id];
   const sfgOceanCell = sfgAt50.rows[0].bbOutputs[oceanRoute.id];
   const v2OceanCell = v2At50.rows[0].bbOutputs[oceanRoute.id];
-  console.log(`\nKIT (1×SFG-AGU + 1×SFG-3-V2, no deco) @ Q=${Q} on OCEAN-CHINA-BB:`);
+  console.log(`\nKIT (1×SFG-AGU + 1×SFG-3-V2, NoDeco) @ Q=${Q} on OCEAN-CHINA-BB:`);
   console.log(`  complete=${kitRow.complete}`);
   if (sfgOceanCell.active) console.log(`  component SFG-AGU LDP   = BBD ${sfgOceanCell.ldpBbd?.amount.toFixed(2) ?? "—"}`);
   if (v2OceanCell.active)  console.log(`  component SFG-3-V2 LDP  = BBD ${v2OceanCell.ldpBbd?.amount.toFixed(2) ?? "—"}`);
@@ -193,8 +207,8 @@ function productToInput(p: any): ProductInput | null {
   // ───────── 3. Incomplete propagation: blank carton on V2 ─────────
   const v2Broken: any = { ...v2, carton_weight: null };
   const brokenLines: KitComponentLine[] = [
-    { id: "L1", component: calcPageProductToKitComponent(sfg as any), quantity: 1, decoration_id: null, sort_order: 0 },
-    { id: "L2", component: calcPageProductToKitComponent(v2Broken),   quantity: 1, decoration_id: null, sort_order: 1 },
+    { id: "L1", component: calcPageProductToKitComponent(sfg as any), quantity: 1, decoration_id: sfgNoDecoId, sort_order: 0 },
+    { id: "L2", component: calcPageProductToKitComponent(v2Broken),   quantity: 1, decoration_id: v2NoDecoId,  sort_order: 1 },
   ];
   const brokenCalc = computeKitCalc("KIT-BROKEN", brokenLines, [Q], routes, settings);
   const brokenRow = brokenCalc.rows[0];
@@ -208,3 +222,4 @@ function productToInput(p: any): ProductInput | null {
     console.log(`  incomplete components = ${brokenOcean.incompleteComponents.join(",")}`);
   }
 })();
+

@@ -102,15 +102,15 @@ function dutyDecimal(raw: number | string | null | undefined): number | null {
   return n / 100;
 }
 
-/** Filter component bands by decoration_id (or merge across decorations if NULL),
- *  dedup by qty (first wins), sorted ascending. */
+/** Filter component bands by an EXPLICIT decoration_id, dedup by qty
+ *  (first wins), sorted ascending. The kit engine never merges across
+ *  decorations — every kit line carries a real decoration_id (a print
+ *  method or the component's "No Decoration" decoration). */
 function bandsForDecoration(
   comp: KitComponentProduct,
-  decorationId: string | null,
+  decorationId: string,
 ): KitComponentBand[] {
-  const src = decorationId
-    ? comp.bands.filter((b) => b.decoration_id === decorationId)
-    : comp.bands;
+  const src = comp.bands.filter((b) => b.decoration_id === decorationId);
   const seen = new Set<number>();
   const out: KitComponentBand[] = [];
   for (const b of src) {
@@ -121,6 +121,7 @@ function bandsForDecoration(
   out.sort((a, b) => a.qty - b.qty);
   return out;
 }
+
 
 /** Pick the band whose qty ≤ effectiveQty (largest such); fall back to smallest band
  *  when effectiveQty is below the lowest break. Returns null if there are no bands. */
@@ -135,7 +136,10 @@ function pickBandForQty(bands: KitComponentBand[], effectiveQty: number): KitCom
 }
 
 /** Build a synthetic ProductInput with ONE pricing tier at exactly effectiveQty.
- *  Returns null if mandatory carton/origin/bands missing → component is incomplete. */
+ *  Returns null if mandatory carton/origin/decoration/bands are missing → component
+ *  is incomplete. `decorationId` MUST be a real decoration on the component (a print
+ *  method OR the component's "No Decoration" decoration). NULL is treated as
+ *  incomplete — there is no silent merge across decorations. */
 function buildComponentProductInput(
   comp: KitComponentProduct,
   decorationId: string | null,
@@ -151,9 +155,11 @@ function buildComponentProductInput(
   ) {
     return null;
   }
+  if (!decorationId) return null;
   const bands = bandsForDecoration(comp, decorationId);
   const band = pickBandForQty(bands, effectiveQty);
   if (!band) return null;
+
   return {
     id: comp.id,
     origin: comp.origin_code,
