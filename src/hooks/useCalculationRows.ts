@@ -47,8 +47,6 @@ export function useCalculationRows() {
     (async () => {
       const { data, error } = await supabase
         .from("products")
-        // ENGINE-ONLY: drafts never reach the costing engine.
-        .eq("status", "live")
         .select(`
           id, name, supplier_item_number, variant_name, updated_at, moq,
           carton_pack, carton_length, carton_width, carton_height, carton_weight,
@@ -65,6 +63,8 @@ export function useCalculationRows() {
             product_decoration_bands(id, qty, unit_cost, setup_cost)
           )
         `)
+        // ENGINE-ONLY: drafts never reach the costing engine.
+        .eq("status", "live")
         .order("name", { ascending: true });
 
       if (cancelled) return;
