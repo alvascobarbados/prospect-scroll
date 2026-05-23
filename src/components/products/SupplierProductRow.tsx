@@ -67,14 +67,17 @@ async function updateProduct(id: string, patch: Record<string, unknown>) {
   if (error) throw new Error(error.message);
 }
 
-export function SupplierProductRow({ product, categoryName, allCategories = [], suppliers = [], origins = [], showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
+export function SupplierProductRow({ product, categoryName, allCategories = [], suppliers = [], origins = [], allProducts = [], showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
   const [hovered, setHovered] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmConvertSingle, setConfirmConvertSingle] = useState(false);
   const allDecos = [...product.product_decorations].sort((a, b) => a.sort_order - b.sort_order);
   const nextDecoSortOrder = (allDecos.at(-1)?.sort_order ?? 0) + 1;
 
+  const isKit = (product.product_kind ?? "single") === "kit";
+  const kitComponents = product.kit_components ?? [];
 
   const system = product.supplier?.unit_system ?? "metric";
   const wUnit = weightUnitFor(system);
