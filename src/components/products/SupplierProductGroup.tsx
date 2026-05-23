@@ -95,6 +95,7 @@ export function SupplierProductGroup({ parentName, members, resolveCategory, all
               allCategories={allCategories}
               suppliers={suppliers}
               origins={origins}
+              allProducts={allProducts}
               showVariantInline
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
