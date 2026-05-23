@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useKitCalcContext } from "@/hooks/useKitCalcContext";
 import {
@@ -7,7 +7,10 @@ import {
   computeComponentCalcAt,
   type KitComponentLine,
 } from "@/lib/calcKitEngine";
-import type { KitComponentRow } from "./helpers/buildSupplierProductDataList";
+import {
+  componentDisplayName,
+  type KitComponentRow,
+} from "./helpers/buildSupplierProductDataList";
 
 interface KitPricingBlockProps {
   kitProductId: string;
@@ -39,9 +42,27 @@ const INCOMPLETE_PILL: React.CSSProperties = {
 const fmtUsd = (n: number) =>
   `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+function headerCellStyle(align: "left" | "right"): React.CSSProperties {
+  return {
+    fontSize: 12,
+    fontWeight: 500,
+    color: "#6B7280",
+    letterSpacing: "0.05em",
+    textTransform: "uppercase",
+    padding: "4px 8px 6px",
+    textAlign: align,
+    whiteSpace: "nowrap",
+    borderBottom: "0.5px solid #E5E7EB",
+  };
+}
+function bodyCellStyle(align: "left" | "right"): React.CSSProperties {
+  return { padding: "6px 8px", textAlign: align, color: "#0E2849" };
+}
+
 export function KitPricingBlock({ kitProductId, components }: KitPricingBlockProps) {
   const ctx = useKitCalcContext();
   const [tiers, setTiers] = useState<number[] | null>(null);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -94,14 +115,14 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
   // Build engine inputs from loaded component products.
   const lines: KitComponentLine[] = [];
   const componentNameById = new Map<string, string>();
-  const missingComponentIds: string[] = [];
+  const missingComponentNames: string[] = [];
   for (const row of components) {
     const compMeta = row.component;
     if (!compMeta) continue;
-    componentNameById.set(compMeta.id, compMeta.name);
+    componentNameById.set(compMeta.id, componentDisplayName(compMeta));
     const engineComp = ctx.componentById.get(compMeta.id);
     if (!engineComp) {
-      missingComponentIds.push(compMeta.name);
+      missingComponentNames.push(componentDisplayName(compMeta));
       continue;
     }
     lines.push({
@@ -115,87 +136,137 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
 
   const result = computeKitCalc(kitProductId, lines, tiers, ctx.routes, ctx.settings);
 
+  const toggle = (qty: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(qty)) next.delete(qty);
+      else next.add(qty);
+      return next;
+    });
+  };
+
   return (
     <div>
       <div style={HEADER_STYLE}>Kit Pricing</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {result.rows.map((r) => {
-          const incompleteNames = r.incompleteComponents.map(
-            (id) => componentNameById.get(id) ?? id,
-          );
-          // Per-component contributions sourced from the engine (re-cost each
-          // component at effectiveQty for display only — same engine path).
-          // Per-unit contributions: each component's engine-computed fobUnitUsd
-          // (FOB per component unit) × line qty per kit = component cost per kit.
-          // Sum equals the kit per-unit price (r.fobUsd / r.qty).
-          const contributions = lines.map((line) => {
-            const calc = computeComponentCalcAt(
-              line.component,
-              line.decoration_id,
-              r.qty * line.quantity,
-              ctx.routes,
-              ctx.settings,
+      <table
+        style={{
+          width: "auto",
+          tableLayout: "fixed",
+          borderCollapse: "collapse",
+          fontSize: 13,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        <colgroup>
+          <col style={{ width: 56 }} />
+          <col style={{ width: 72 }} />
+          <col style={{ width: 18 }} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th style={headerCellStyle("left")}>Qty</th>
+            <th style={headerCellStyle("right")}>Unit $</th>
+            <th style={headerCellStyle("right")} aria-hidden />
+          </tr>
+        </thead>
+        <tbody>
+          {result.rows.map((r) => {
+            const incompleteNames = r.incompleteComponents.map(
+              (id) => componentNameById.get(id) ?? id,
             );
-            const unit = calc?.rows[0]?.spec.fobUnitUsd.amount ?? null;
-            const perKit = unit == null ? null : unit * line.quantity;
-            return {
-              name: componentNameById.get(line.component.id) ?? line.component.id,
-              qty: line.quantity,
-              perKit,
-            };
-          });
-          const kitPerUnit = r.fobUsd == null ? null : r.fobUsd / r.qty;
-          return (
-            <div key={r.qty} style={{ fontSize: 12, color: "#0E2849" }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "60px 110px",
-                  columnGap: 12,
-                  alignItems: "baseline",
-                  fontWeight: 600,
-                }}
-              >
-                <span>{r.qty.toLocaleString()}</span>
-                <span>{kitPerUnit == null ? "—" : fmtUsd(kitPerUnit)}</span>
-              </div>
-              {(incompleteNames.length > 0 || missingComponentIds.length > 0) && (
-                <div
-                  style={{ marginTop: 4, ...INCOMPLETE_PILL }}
-                  title={[...incompleteNames, ...missingComponentIds].join("; ")}
-                >
-                  <AlertTriangle size={12} /> specs incomplete:{" "}
-                  {[...incompleteNames, ...missingComponentIds].join(", ")}
-                </div>
-              )}
-              {kitPerUnit != null && (
-                <div style={{ marginTop: 4, paddingLeft: 4, color: "#6B7280", fontSize: 11, lineHeight: 1.5 }}>
-                  {contributions.map((c, i) => (
-                    <div key={i} style={{ display: "flex", gap: 6 }}>
-                      <span style={{ color: "#9CA3AF" }}>×{c.qty}</span>
-                      <span
+            const allIssues = [...incompleteNames, ...missingComponentNames];
+            const kitPerUnit = r.fobUsd == null ? null : r.fobUsd / r.qty;
+            const isOpen = expanded.has(r.qty);
+            const showChevron = kitPerUnit != null && lines.length > 0;
+
+            return (
+              <>
+                <tr key={`row-${r.qty}`}>
+                  <td style={{ ...bodyCellStyle("left"), fontWeight: 500 }}>
+                    {r.qty.toLocaleString()}
+                  </td>
+                  <td style={bodyCellStyle("right")}>
+                    {kitPerUnit == null ? (
+                      <span style={{ color: "#9CA3AF" }}>—</span>
+                    ) : (
+                      <span title="Calculated — read-only">{fmtUsd(kitPerUnit)}</span>
+                    )}
+                  </td>
+                  <td style={{ ...bodyCellStyle("right"), padding: "6px 0" }}>
+                    {showChevron ? (
+                      <button
+                        type="button"
+                        onClick={() => toggle(r.qty)}
+                        aria-label={isOpen ? "Hide breakdown" : "Show breakdown"}
                         style={{
-                          flex: 1,
-                          minWidth: 0,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
+                          background: "transparent",
+                          border: "none",
+                          padding: 0,
+                          color: "#9CA3AF",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
+                          transition: "transform 120ms",
                         }}
                       >
-                        {c.name}
+                        <ChevronRight size={12} />
+                      </button>
+                    ) : null}
+                  </td>
+                </tr>
+                {allIssues.length > 0 && (
+                  <tr key={`issue-${r.qty}`}>
+                    <td colSpan={3} style={{ padding: "0 8px 4px" }}>
+                      <span style={INCOMPLETE_PILL} title={allIssues.join("; ")}>
+                        <AlertTriangle size={12} /> specs incomplete: {allIssues.join(", ")}
                       </span>
-                      <span>{c.perKit == null ? "—" : fmtUsd(c.perKit)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                    </td>
+                  </tr>
+                )}
+                {isOpen && kitPerUnit != null && (
+                  <tr key={`exp-${r.qty}`}>
+                    <td colSpan={3} style={{ padding: "2px 8px 6px", color: "#6B7280", fontSize: 11, lineHeight: 1.5 }}>
+                      {lines.map((line, i) => {
+                        const calc = computeComponentCalcAt(
+                          line.component,
+                          line.decoration_id,
+                          r.qty * line.quantity,
+                          ctx.routes,
+                          ctx.settings,
+                        );
+                        const unit = calc?.rows[0]?.spec.fobUnitUsd.amount ?? null;
+                        const perKit = unit == null ? null : unit * line.quantity;
+                        return (
+                          <div key={i} style={{ display: "flex", gap: 6 }}>
+                            <span style={{ color: "#9CA3AF" }}>×{line.quantity}</span>
+                            <span
+                              style={{
+                                flex: 1,
+                                minWidth: 0,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {componentNameById.get(line.component.id) ?? line.component.id}
+                            </span>
+                            <span>{perKit == null ? "—" : fmtUsd(perKit)}</span>
+                          </div>
+                        );
+                      })}
+                    </td>
+                  </tr>
+                )}
+              </>
+            );
+          })}
+        </tbody>
+      </table>
       <div
         style={{
-          marginTop: 8,
+          marginTop: 6,
           fontSize: 10,
           color: "#9CA3AF",
           fontStyle: "italic",
