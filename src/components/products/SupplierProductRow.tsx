@@ -386,6 +386,7 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
           </div>
         )}
       </div>
+      </div>
     </div>
   );
 }
