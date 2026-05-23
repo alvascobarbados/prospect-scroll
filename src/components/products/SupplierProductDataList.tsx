@@ -60,6 +60,7 @@ export function SupplierProductDataList({
   allCategories = [],
   suppliers = [],
   origins = [],
+  allProducts = [],
   autoFocusVariantForId,
   onChanged,
   onDuplicated,
@@ -90,6 +91,7 @@ export function SupplierProductDataList({
               allCategories={allCategories}
               suppliers={suppliers}
               origins={origins}
+              allProducts={allProducts}
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
               onDuplicated={onDuplicated}
@@ -103,6 +105,7 @@ export function SupplierProductDataList({
               allCategories={allCategories}
               suppliers={suppliers}
               origins={origins}
+              allProducts={allProducts}
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
               onDuplicated={onDuplicated}
