@@ -181,6 +181,7 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
 
             return (
               <Fragment key={r.qty}>
+                <tr>
                   <td style={{ ...bodyCellStyle("left"), fontWeight: 500 }}>
                     {r.qty.toLocaleString()}
                   </td>
