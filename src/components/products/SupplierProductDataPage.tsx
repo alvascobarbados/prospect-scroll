@@ -38,7 +38,10 @@ export function SupplierProductDataPage() {
   // Page SCOPE: one supplier at a time. Default to first alphabetical when
   // suppliers load. Internal users can switch freely; future supplier-login
   // can pin this (just remove the selector / disable changes).
+  // "" = All Suppliers (omits the .eq filter). Default = first alphabetical supplier.
+  const ALL_SUPPLIERS = "__all__";
   const [activeSupplierId, setActiveSupplierId] = useState<string>("");
+  const [supplierCounts, setSupplierCounts] = useState<Map<string, { live: number; draft: number }>>(new Map());
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -58,6 +61,38 @@ export function SupplierProductDataPage() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Lightweight count query — supplier_id + status only, no row payloads.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("products").select("supplier_id, status");
+      if (cancelled) return;
+      const map = new Map<string, { live: number; draft: number }>();
+      for (const r of (data ?? []) as { supplier_id: string; status: string | null }[]) {
+        const k = r.supplier_id;
+        if (!k) continue;
+        const entry = map.get(k) ?? { live: 0, draft: 0 };
+        if ((r.status ?? "live") === "draft") entry.draft += 1;
+        else entry.live += 1;
+        map.set(k, entry);
+      }
+      setSupplierCounts(map);
+    })();
+    return () => { cancelled = true; };
+  }, [reloadKey]);
+
+  const totalCounts = useMemo(() => {
+    let live = 0, draft = 0;
+    for (const v of supplierCounts.values()) { live += v.live; draft += v.draft; }
+    return { live, draft };
+  }, [supplierCounts]);
+
+  const fmtCount = (live: number, draft: number) =>
+    draft > 0 ? `${live} · ${draft} draft` : `${live}`;
+
+  const isAllMode = activeSupplierId === ALL_SUPPLIERS;
+  const canAdd = !!activeSupplierId && !isAllMode;
 
   // Products are SCOPED at the query layer to the active supplier.
   // .eq("supplier_id", activeSupplierId) is a real query parameter — not a
