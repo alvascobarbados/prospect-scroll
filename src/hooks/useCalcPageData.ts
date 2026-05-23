@@ -108,14 +108,25 @@ function numFromSetting(rows: SettingsRow[], key: string, fallback: number): num
   return n;
 }
 
+export interface KitComponentRow {
+  id: string;
+  kit_product_id: string;
+  component_product_id: string;
+  quantity: number;
+  decoration_id: string | null;
+  sort_order: number;
+}
+
 export function useCalcPageData() {
   const [products, setProducts] = useState<CalcPageProduct[] | null>(null);
   const [routes, setRoutes] = useState<RouteInput[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [kitComponents, setKitComponents] = useState<KitComponentRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   const reload = () => setReloadKey((k) => k + 1);
+
 
   useEffect(() => {
     let cancelled = false;
