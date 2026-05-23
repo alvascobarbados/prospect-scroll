@@ -380,3 +380,64 @@ export function computeKitCalc(
 // `bbd` / `usd` re-exported so callers formatting kit numbers don't need to
 // import from formatMoney directly when they already pull from this module.
 export { bbd, usd };
+
+// ─────────── Adapter: CalcPageProduct → KitComponentProduct ───────────
+
+/**
+ * Adapt a loaded CalcPageProduct (the same shape used by the Calculations
+ * card) into a KitComponentProduct. Reuses existing data loading — no
+ * duplicate queries or engine logic.
+ */
+export function calcPageProductToKitComponent(p: {
+  id: string;
+  carton_pack: number | null;
+  carton_length: number | null;
+  carton_width: number | null;
+  carton_height: number | null;
+  carton_weight: number | null;
+  subcategory: { duty_rate_pct: number | string | null } | null;
+  supplier: { dimension_unit: "cm" | "in" | null; weight_unit_v2: "kg" | "lb" | null } | null;
+  origin: { code: string } | null;
+  product_decorations: Array<{
+    id: string;
+    product_decoration_bands: Array<{
+      qty: number;
+      unit_cost: number | string;
+      setup_cost: number | string;
+      inland_freight_usd?: number | string | null;
+    }>;
+  }>;
+}): KitComponentProduct {
+  const bands: KitComponentBand[] = [];
+  for (const d of p.product_decorations ?? []) {
+    for (const b of d.product_decoration_bands ?? []) {
+      const itc =
+        b.inland_freight_usd == null || b.inland_freight_usd === ""
+          ? null
+          : typeof b.inland_freight_usd === "string"
+            ? parseFloat(b.inland_freight_usd)
+            : Number(b.inland_freight_usd);
+      bands.push({
+        decoration_id: d.id,
+        qty: Number(b.qty),
+        unit_cost: typeof b.unit_cost === "string" ? parseFloat(b.unit_cost) : Number(b.unit_cost),
+        setup_cost: typeof b.setup_cost === "string" ? parseFloat(b.setup_cost) : Number(b.setup_cost),
+        inland_freight_usd: Number.isFinite(itc as number) ? (itc as number) : null,
+      });
+    }
+  }
+  return {
+    id: p.id,
+    origin_code: p.origin?.code ?? null,
+    carton_pack: p.carton_pack,
+    carton_length: p.carton_length,
+    carton_width: p.carton_width,
+    carton_height: p.carton_height,
+    carton_weight: p.carton_weight,
+    dimension_unit: p.supplier?.dimension_unit ?? null,
+    weight_unit: p.supplier?.weight_unit_v2 ?? null,
+    duty_rate_pct: p.subcategory?.duty_rate_pct ?? null,
+    bands,
+  };
+}
+
