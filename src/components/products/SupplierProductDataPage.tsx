@@ -399,19 +399,32 @@ export function SupplierProductDataPage() {
         </div>
 
 
-        {/* Live category / subcategory counts — the audit tool. */}
+        {/* Unified filter zone: category chip strip (counts + filter) + origin trailing control. */}
         {products && products.length > 0 && (
-          <CategoryCountsStrip
-            countsByCategory={countsByCategory}
-            activeSubcategoryId={filter.subcategoryId}
-            onPickSubcategory={(catId, subId) =>
-              setFilter((f) => ({
-                ...f,
-                categoryId: f.subcategoryId === subId ? "" : catId,
-                subcategoryId: f.subcategoryId === subId ? "" : subId,
-              }))
-            }
-          />
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ flex: "1 1 600px", minWidth: 0 }}>
+              <CategoryCountsStrip
+                countsByCategory={countsByCategory}
+                activeSubcategoryId={filter.subcategoryId}
+                onPickSubcategory={(catId, subId) =>
+                  setFilter((f) => ({
+                    ...f,
+                    categoryId: f.subcategoryId === subId ? "" : catId,
+                    subcategoryId: f.subcategoryId === subId ? "" : subId,
+                  }))
+                }
+              />
+            </div>
+            <SupplierProductFilterBar value={filter} onChange={setFilter} products={products} />
+          </div>
         )}
 
         {error && (
@@ -420,9 +433,6 @@ export function SupplierProductDataPage() {
           </div>
         )}
 
-        {products && (
-          <SupplierProductFilterBar value={filter} onChange={setFilter} products={products} />
-        )}
 
         <div style={{ paddingBottom: 16 }}>
           {products === null ? (
