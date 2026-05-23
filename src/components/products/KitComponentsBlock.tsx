@@ -14,10 +14,11 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDown } from "lucide-react";
-import type {
-  KitComponentRow,
-  Product,
-  ProductDecoration,
+import {
+  componentDisplayName,
+  type KitComponentRow,
+  type Product,
+  type ProductDecoration,
 } from "./helpers/buildSupplierProductDataList";
 
 interface KitComponentsBlockProps {
@@ -162,7 +163,7 @@ function ComponentLine({
             <span>
               {comp ? (
                 <>
-                  <span style={{ fontWeight: 500 }}>{comp.name}</span>
+                  <span style={{ fontWeight: 500 }}>{componentDisplayName(comp)}</span>
                   {comp.supplier_item_number && (
                     <span style={{ color: "#6B7280", marginLeft: 6, fontSize: 11 }}>
                       {comp.supplier_item_number}
@@ -176,7 +177,7 @@ function ComponentLine({
           }
           options={eligibles.map((p) => ({
             id: p.id,
-            label: p.name,
+            label: componentDisplayName(p),
             hint: p.supplier_item_number ?? undefined,
           }))}
           onSelect={async (opt) => {
@@ -337,7 +338,7 @@ function AddComponentRow({
         }
         options={eligibles.map((p) => ({
           id: p.id,
-          label: p.name,
+          label: componentDisplayName(p),
           hint: p.supplier_item_number ?? undefined,
         }))}
         onSelect={async (opt) => {
