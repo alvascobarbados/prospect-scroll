@@ -108,6 +108,46 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
     }
   };
 
+  const handleConvertToKit = async () => {
+    try {
+      await updateProduct(product.id, { product_kind: "kit" });
+      toast.success("Converted to kit");
+      onChanged?.();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to convert";
+      if (/referenced as a kit component|used in a kit/i.test(msg)) {
+        toast.error("Can't convert: this product is used in a kit");
+      } else {
+        toast.error(msg);
+      }
+    }
+  };
+
+  const performConvertToSingle = async () => {
+    try {
+      if (kitComponents.length > 0) {
+        const ids = kitComponents.map((c) => c.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: delErr } = await (supabase.from("product_kit_components").delete().in("id", ids) as any);
+        if (delErr) throw new Error(delErr.message);
+      }
+      await updateProduct(product.id, { product_kind: "single" });
+      toast.success("Converted to single");
+      setConfirmConvertSingle(false);
+      onChanged?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to convert");
+    }
+  };
+
+  const handleConvertToSingle = async () => {
+    if (kitComponents.length === 0) {
+      await performConvertToSingle();
+      return;
+    }
+    setConfirmConvertSingle(true);
+  };
+
   const cellStyle = (isLast: boolean): React.CSSProperties => ({
     minWidth: 0,
     position: "relative",
