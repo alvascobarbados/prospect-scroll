@@ -282,7 +282,8 @@ export function SupplierProductDataPage() {
           </h1>
           <button
             onClick={startDraft}
-            disabled={!activeSupplierId}
+            disabled={!canAdd}
+            title={isAllMode ? "Select a supplier to add items" : undefined}
             style={{
               marginLeft: "auto",
               display: "inline-flex",
@@ -291,19 +292,25 @@ export function SupplierProductDataPage() {
               padding: "8px 14px",
               borderRadius: 8,
               border: "none",
-              background: activeSupplierId ? "hsl(var(--brand-orange))" : "#E5E7EB",
-              color: activeSupplierId ? "#fff" : "#9CA3AF",
+              background: canAdd ? "hsl(var(--brand-orange))" : "#E5E7EB",
+              color: canAdd ? "#fff" : "#9CA3AF",
               fontSize: 13,
               fontWeight: 600,
-              cursor: activeSupplierId ? "pointer" : "not-allowed",
+              cursor: canAdd ? "pointer" : "not-allowed",
             }}
           >
             <Plus size={15} /> Add product
           </button>
           <button
             onClick={startKitDraft}
-            disabled={!activeSupplierId || !kitsCanBeAdded}
-            title={!kitsCanBeAdded ? "Add at least one product before creating a kit" : undefined}
+            disabled={!canAdd || !kitsCanBeAdded}
+            title={
+              isAllMode
+                ? "Select a supplier to add items"
+                : !kitsCanBeAdded
+                ? "Add at least one product before creating a kit"
+                : undefined
+            }
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -311,15 +318,16 @@ export function SupplierProductDataPage() {
               padding: "8px 14px",
               borderRadius: 8,
               border: "none",
-              background: activeSupplierId && kitsCanBeAdded ? "hsl(var(--brand-orange))" : "#E5E7EB",
-              color: activeSupplierId && kitsCanBeAdded ? "#fff" : "#9CA3AF",
+              background: canAdd && kitsCanBeAdded ? "hsl(var(--brand-orange))" : "#E5E7EB",
+              color: canAdd && kitsCanBeAdded ? "#fff" : "#9CA3AF",
               fontSize: 13,
               fontWeight: 600,
-              cursor: activeSupplierId && kitsCanBeAdded ? "pointer" : "not-allowed",
+              cursor: canAdd && kitsCanBeAdded ? "pointer" : "not-allowed",
             }}
           >
             <Plus size={15} /> Add Kit
           </button>
+
         </div>
 
         {/* Supplier SCOPE selector — page shows ONE supplier at a time. */}
