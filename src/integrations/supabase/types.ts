@@ -587,6 +587,58 @@ export type Database = {
         }
         Relationships: []
       }
+      product_kit_components: {
+        Row: {
+          component_product_id: string
+          created_at: string
+          decoration_id: string | null
+          id: string
+          kit_product_id: string
+          quantity: number
+          sort_order: number
+        }
+        Insert: {
+          component_product_id: string
+          created_at?: string
+          decoration_id?: string | null
+          id?: string
+          kit_product_id: string
+          quantity?: number
+          sort_order?: number
+        }
+        Update: {
+          component_product_id?: string
+          created_at?: string
+          decoration_id?: string | null
+          id?: string
+          kit_product_id?: string
+          quantity?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_kit_components_component_product_id_fkey"
+            columns: ["component_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_kit_components_decoration_id_fkey"
+            columns: ["decoration_id"]
+            isOneToOne: false
+            referencedRelation: "product_decorations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_kit_components_kit_product_id_fkey"
+            columns: ["kit_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           carton_height: number | null
@@ -605,6 +657,7 @@ export type Database = {
           parent_name: string | null
           parent_product_id: string | null
           primary_item_number: string
+          product_kind: string
           production_days_max: number | null
           production_days_min: number
           subcategory_id: string
@@ -633,6 +686,7 @@ export type Database = {
           parent_name?: string | null
           parent_product_id?: string | null
           primary_item_number: string
+          product_kind?: string
           production_days_max?: number | null
           production_days_min: number
           subcategory_id: string
@@ -661,6 +715,7 @@ export type Database = {
           parent_name?: string | null
           parent_product_id?: string | null
           primary_item_number?: string
+          product_kind?: string
           production_days_max?: number | null
           production_days_min?: number
           subcategory_id?: string
