@@ -274,57 +274,80 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
         <Divider />
       </div>
 
-      {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
+      {/* ── BLOCK 4: Packing OR Components (kit) ──────────────────── */}
       <div style={{ ...cellStyle(false), paddingTop: 14 }}>
-        {specsIncomplete && (
-          <div
-            style={{
-              display: "inline-flex",
-              alignSelf: "flex-start",
-              alignItems: "center",
-              gap: 6,
-              background: "#FEF3E2",
-              color: "#C2410C",
-              fontSize: 11,
-              fontWeight: 500,
-              padding: "3px 8px",
-              borderRadius: 4,
-              marginBottom: 8,
-            }}
-            title="Engine-critical specs missing — this product will not be costed until carton pack, dimensions, and weight are filled."
-          >
-            <AlertTriangle size={12} /> specs incomplete
-          </div>
+        {isKit ? (
+          <KitComponentsBlock
+            kitProductId={product.id}
+            components={kitComponents}
+            allProducts={allProducts}
+            onChanged={onChanged}
+          />
+        ) : (
+          <>
+            {specsIncomplete && (
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignSelf: "flex-start",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "#FEF3E2",
+                  color: "#C2410C",
+                  fontSize: 11,
+                  fontWeight: 500,
+                  padding: "3px 8px",
+                  borderRadius: 4,
+                  marginBottom: 8,
+                }}
+                title="Engine-critical specs missing — this product will not be costed until carton pack, dimensions, and weight are filled."
+              >
+                <AlertTriangle size={12} /> specs incomplete
+              </div>
+            )}
+            <SpecsCell
+              product={product}
+              weightUnit={wUnit}
+              volumeUnit={lUnit}
+              onChanged={onChanged}
+            />
+          </>
         )}
-        <SpecsCell
-          product={product}
-          weightUnit={wUnit}
-          volumeUnit={lUnit}
-          onChanged={onChanged}
-        />
         <Divider />
       </div>
 
-      {/* ── BLOCK 5: Pricing — all decorations stack vertically ──── */}
+      {/* ── BLOCK 5: Pricing OR Kit Pricing ───────────────────────── */}
       <div style={{ ...cellStyle(true), paddingTop: 14 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {allDecos.map((d, i) => (
+        {isKit ? (
+          <KitPricingBlock components={kitComponents} />
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {allDecos.map((d, i) => (
+              <DecorationBlock
+                key={d.id}
+                decoration={d}
+                productId={product.id}
+                nextSortOrder={nextDecoSortOrder + i}
+                onChanged={onChanged}
+              />
+            ))}
             <DecorationBlock
-              key={d.id}
-              decoration={d}
+              decoration={null}
               productId={product.id}
-              nextSortOrder={nextDecoSortOrder + i}
+              nextSortOrder={nextDecoSortOrder + allDecos.length}
               onChanged={onChanged}
             />
-          ))}
-          <DecorationBlock
-            decoration={null}
-            productId={product.id}
-            nextSortOrder={nextDecoSortOrder + allDecos.length}
-            onChanged={onChanged}
-          />
-        </div>
+          </div>
+        )}
       </div>
+      <ConfirmDialog
+        open={confirmConvertSingle}
+        title="Convert kit to single product?"
+        description={`This kit has ${kitComponents.length} component${kitComponents.length === 1 ? "" : "s"}. Converting will remove the component links (the component products themselves are kept).`}
+        confirmLabel="Convert"
+        onConfirm={performConvertToSingle}
+        onCancel={() => setConfirmConvertSingle(false)}
+      />
     </div>
   );
 }
