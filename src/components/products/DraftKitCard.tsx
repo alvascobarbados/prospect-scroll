@@ -43,6 +43,8 @@ interface Category {
 interface DraftKitCardProps {
   draftId: string;
   allProducts: Product[];
+  /** When set, the new draft is locked to this supplier (page is supplier-scoped). */
+  presetSupplierId?: string;
   onCommitted: () => void;
   onDiscard: () => void;
 }
@@ -143,13 +145,13 @@ function decorationLabel(d: ProductDecoration | null | undefined): string {
   return m.toLowerCase() === det.toLowerCase() ? det : `${m} — ${det}`;
 }
 
-export function DraftKitCard({ draftId, allProducts, onCommitted, onDiscard }: DraftKitCardProps) {
+export function DraftKitCard({ draftId, allProducts, presetSupplierId, onCommitted, onDiscard }: DraftKitCardProps) {
   const { suppliers, origins } = useMasterData();
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
 
   // identity (mirrors DraftProductCard)
-  const [supplierId, setSupplierId] = useState("");
+  const [supplierId, setSupplierId] = useState(presetSupplierId ?? "");
   const [categoryId, setCategoryId] = useState("");
   const [subcategoryId, setSubcategoryId] = useState("");
   const [name, setName] = useState("");
@@ -507,18 +509,24 @@ export function DraftKitCard({ draftId, allProducts, onCommitted, onDiscard }: D
           <div style={KV_GRID_STYLE}>
             <KvLabel>Supplier</KvLabel>
             <KvValue>
-              <InlinePicker
-                display={
-                  supplier ? (
-                    <span>{supplier.name}</span>
-                  ) : (
-                    <span style={{ color: "#9CA3AF", fontStyle: "italic" }}>select supplier</span>
-                  )
-                }
-                options={supplierOptions.map((s) => ({ id: s.id, label: s.name, hint: s.code ?? undefined }))}
-                onSelect={async (opt) => setSupplierId(opt.id)}
-                placeholder="Search supplier…"
-              />
+              {presetSupplierId ? (
+                <span style={{ color: "#0E2849", fontSize: 12 }}>
+                  {supplier?.name ?? "—"}
+                </span>
+              ) : (
+                <InlinePicker
+                  display={
+                    supplier ? (
+                      <span>{supplier.name}</span>
+                    ) : (
+                      <span style={{ color: "#9CA3AF", fontStyle: "italic" }}>select supplier</span>
+                    )
+                  }
+                  options={supplierOptions.map((s) => ({ id: s.id, label: s.name, hint: s.code ?? undefined }))}
+                  onSelect={async (opt) => setSupplierId(opt.id)}
+                  placeholder="Search supplier…"
+                />
+              )}
             </KvValue>
 
             <KvLabel>Supplier Item Number</KvLabel>

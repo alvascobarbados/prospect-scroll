@@ -52,7 +52,7 @@ const selectStyle: React.CSSProperties = {
 };
 
 export function SupplierProductFilterBar({ value, onChange, products }: FilterBarProps) {
-  const { suppliers, origins } = useMasterData();
+  const { origins } = useMasterData();
   const [categories, setCategories] = useState<CategoryRow[]>([]);
 
   useEffect(() => {
@@ -74,11 +74,8 @@ export function SupplierProductFilterBar({ value, onChange, products }: FilterBa
     return value.categoryId ? subs.filter((s) => s.parent_id === value.categoryId) : subs;
   }, [categories, value.categoryId]);
 
-  // Only show suppliers / origins that actually have products in the list (nice to scan)
-  const supplierIdsInUse = useMemo(() => new Set(products.map((p) => p.supplier?.id).filter(Boolean) as string[]), [products]);
+  // Origins limited to those actually in the (already supplier-scoped) products list.
   const originIdsInUse = useMemo(() => new Set(products.map((p) => p.origin?.id).filter(Boolean) as string[]), [products]);
-
-  const visibleSuppliers = suppliers.filter((s) => supplierIdsInUse.has(s.id));
   const visibleOrigins = origins.filter((o) => originIdsInUse.has(o.id));
 
   const hasAny = !!(value.supplierId || value.categoryId || value.subcategoryId || value.originId);
@@ -97,19 +94,6 @@ export function SupplierProductFilterBar({ value, onChange, products }: FilterBa
         marginBottom: 16,
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <label style={labelStyle}>Supplier</label>
-        <select
-          value={value.supplierId}
-          onChange={(e) => onChange({ ...value, supplierId: e.target.value })}
-          style={selectStyle}
-        >
-          <option value="">All suppliers</option>
-          {visibleSuppliers.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-      </div>
 
       <div style={{ display: "flex", flexDirection: "column" }}>
         <label style={labelStyle}>Category</label>
