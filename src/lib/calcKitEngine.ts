@@ -136,7 +136,10 @@ function pickBandForQty(bands: KitComponentBand[], effectiveQty: number): KitCom
 }
 
 /** Build a synthetic ProductInput with ONE pricing tier at exactly effectiveQty.
- *  Returns null if mandatory carton/origin/bands missing → component is incomplete. */
+ *  Returns null if mandatory carton/origin/decoration/bands are missing → component
+ *  is incomplete. `decorationId` MUST be a real decoration on the component (a print
+ *  method OR the component's "No Decoration" decoration). NULL is treated as
+ *  incomplete — there is no silent merge across decorations. */
 function buildComponentProductInput(
   comp: KitComponentProduct,
   decorationId: string | null,
@@ -152,9 +155,11 @@ function buildComponentProductInput(
   ) {
     return null;
   }
+  if (!decorationId) return null;
   const bands = bandsForDecoration(comp, decorationId);
   const band = pickBandForQty(bands, effectiveQty);
   if (!band) return null;
+
   return {
     id: comp.id,
     origin: comp.origin_code,
