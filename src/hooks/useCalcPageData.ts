@@ -122,7 +122,7 @@ export function useCalcPageData() {
     (async () => {
       const [prodsRes, methodsRes, routesRes, tiersRes, originsRes, destsRes, settingsRes] = await Promise.all([
         supabase.from("products").select(`
-          id, name, supplier_item_number, variant_name, primary_item_number, image_url, updated_at, moq,
+          id, name, supplier_item_number, variant_name, primary_item_number, image_url, updated_at, moq, product_kind,
           carton_pack, carton_length, carton_width, carton_height, carton_weight,
           production_days_min, production_days_max,
           subcategory:product_categories!products_subcategory_id_fkey(id, name, duty_rate_pct),
