@@ -27,6 +27,8 @@ export interface CalcPageProduct {
   production_days_min: number | null;
   production_days_max: number | null;
   moq: number | null;
+  product_kind: "single" | "kit";
+
   subcategory: { id: string; name: string; duty_rate_pct: number | string | null } | null;
   supplier: { id: string; code: string | null; name: string; unit_system: "metric" | "imperial" | null; dimension_unit: "cm" | "in" | null; weight_unit_v2: "kg" | "lb" | null } | null;
   origin: { id: string; code: string; name: string } | null;
@@ -106,21 +108,32 @@ function numFromSetting(rows: SettingsRow[], key: string, fallback: number): num
   return n;
 }
 
+export interface KitComponentRow {
+  id: string;
+  kit_product_id: string;
+  component_product_id: string;
+  quantity: number;
+  decoration_id: string | null;
+  sort_order: number;
+}
+
 export function useCalcPageData() {
   const [products, setProducts] = useState<CalcPageProduct[] | null>(null);
   const [routes, setRoutes] = useState<RouteInput[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [kitComponents, setKitComponents] = useState<KitComponentRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   const reload = () => setReloadKey((k) => k + 1);
 
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [prodsRes, methodsRes, routesRes, tiersRes, originsRes, destsRes, settingsRes] = await Promise.all([
+      const [prodsRes, methodsRes, routesRes, tiersRes, originsRes, destsRes, settingsRes, kitsRes] = await Promise.all([
         supabase.from("products").select(`
-          id, name, supplier_item_number, variant_name, primary_item_number, image_url, updated_at, moq,
+          id, name, supplier_item_number, variant_name, primary_item_number, image_url, updated_at, moq, product_kind,
           carton_pack, carton_length, carton_width, carton_height, carton_weight,
           production_days_min, production_days_max,
           subcategory:product_categories!products_subcategory_id_fkey(id, name, duty_rate_pct),
@@ -141,7 +154,9 @@ export function useCalcPageData() {
         supabase.from("origins").select("id, code, name"),
         supabase.from("destinations").select("id, code"),
         supabase.from("app_settings").select("key, value"),
+        supabase.from("product_kit_components").select("id, kit_product_id, component_product_id, quantity, decoration_id, sort_order").order("sort_order"),
       ]);
+
 
       if (cancelled) return;
 
@@ -155,6 +170,8 @@ export function useCalcPageData() {
       }
 
       setProducts((prodsRes.data ?? []) as unknown as CalcPageProduct[]);
+      setKitComponents(((kitsRes.data ?? []) as unknown as KitComponentRow[]));
+
 
       const methods = methodsRes.data ?? [];
       const originRows = originsRes.data ?? [];
@@ -242,5 +259,5 @@ export function useCalcPageData() {
     };
   }, [reloadKey]);
 
-  return { products, routes, settings, error, reload };
+  return { products, routes, settings, kitComponents, error, reload };
 }

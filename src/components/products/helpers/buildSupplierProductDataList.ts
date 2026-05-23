@@ -77,7 +77,9 @@ export interface Product {
   product_details: ProductDetailRow[];
   product_decorations: ProductDecoration[];
   product_includes?: ProductIncludeRow[];
+  product_kind?: "single" | "kit";
 }
+
 
 export type ListItem =
   | { type: "card"; product: Product }
