@@ -104,7 +104,7 @@ export function SupplierProductDataPage() {
     }
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("products")
         .select(`
           id, name, supplier_item_number, primary_item_number, status, parent_product_id, parent_name, variant_name, display_order, variant_label,
@@ -141,10 +141,15 @@ export function SupplierProductDataPage() {
               )
             )
           )
-        `)
-        .eq("supplier_id", activeSupplierId)
+        `);
+      // Stage-2 scope: real supplier → .eq; All Suppliers → omit (RLS-ready).
+      if (!isAllMode) {
+        query = query.eq("supplier_id", activeSupplierId);
+      }
+      const { data, error } = await query
         .order("display_order", { ascending: true, nullsFirst: false })
         .order("name", { ascending: true });
+
 
       if (cancelled) return;
       if (error) {
