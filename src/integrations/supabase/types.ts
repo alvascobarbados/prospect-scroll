@@ -346,6 +346,45 @@ export type Database = {
         }
         Relationships: []
       }
+      product_audit_log: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          field: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          product_id: string | null
+          row_id: string
+          table_name: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          field?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          product_id?: string | null
+          row_id: string
+          table_name: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          field?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          product_id?: string | null
+          row_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       product_categories: {
         Row: {
           base_margin_pct: number
@@ -700,6 +739,7 @@ export type Database = {
           product_kind: string
           production_days_max: number | null
           production_days_min: number
+          status: string
           subcategory_id: string
           supplier_description: string | null
           supplier_id: string
@@ -729,6 +769,7 @@ export type Database = {
           product_kind?: string
           production_days_max?: number | null
           production_days_min: number
+          status?: string
           subcategory_id: string
           supplier_description?: string | null
           supplier_id: string
@@ -758,6 +799,7 @@ export type Database = {
           product_kind?: string
           production_days_max?: number | null
           production_days_min?: number
+          status?: string
           subcategory_id?: string
           supplier_description?: string | null
           supplier_id?: string
