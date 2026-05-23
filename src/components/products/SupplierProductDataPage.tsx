@@ -27,6 +27,7 @@ export function SupplierProductDataPage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [drafts, setDrafts] = useState<string[]>([]);
+  const [kitDrafts, setKitDrafts] = useState<string[]>([]);
   const [filter, setFilter] = useState<ProductFilterState>(EMPTY_PRODUCT_FILTER);
   const [categoryById, setCategoryById] = useState<Map<string, CategoryMeta>>(new Map());
   const [allCategories, setAllCategories] = useState<CategoryRow[]>([]);
