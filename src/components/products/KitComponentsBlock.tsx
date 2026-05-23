@@ -163,7 +163,7 @@ function ComponentLine({
             <span>
               {comp ? (
                 <>
-                  <span style={{ fontWeight: 500 }}>{comp.name}</span>
+                  <span style={{ fontWeight: 500 }}>{componentDisplayName(comp)}</span>
                   {comp.supplier_item_number && (
                     <span style={{ color: "#6B7280", marginLeft: 6, fontSize: 11 }}>
                       {comp.supplier_item_number}
