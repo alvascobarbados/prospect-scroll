@@ -43,6 +43,8 @@ interface Category {
 interface DraftKitCardProps {
   draftId: string;
   allProducts: Product[];
+  /** When set, the new draft is locked to this supplier (page is supplier-scoped). */
+  presetSupplierId?: string;
   onCommitted: () => void;
   onDiscard: () => void;
 }
