@@ -647,6 +647,38 @@ export type Database = {
           },
         ]
       }
+      product_kit_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          kit_product_id: string
+          quantity: number
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kit_product_id: string
+          quantity: number
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kit_product_id?: string
+          quantity?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_kit_tiers_kit_product_id_fkey"
+            columns: ["kit_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           carton_height: number | null
