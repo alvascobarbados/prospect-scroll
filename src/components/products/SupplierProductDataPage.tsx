@@ -206,6 +206,24 @@ export function SupplierProductDataPage() {
           >
             <Plus size={15} /> Add product
           </button>
+          <button
+            onClick={startKitDraft}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: "hsl(var(--brand-orange))",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <Plus size={15} /> Kit
+          </button>
         </div>
 
         {error && (
