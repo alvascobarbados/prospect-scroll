@@ -509,18 +509,24 @@ export function DraftKitCard({ draftId, allProducts, presetSupplierId, onCommitt
           <div style={KV_GRID_STYLE}>
             <KvLabel>Supplier</KvLabel>
             <KvValue>
-              <InlinePicker
-                display={
-                  supplier ? (
-                    <span>{supplier.name}</span>
-                  ) : (
-                    <span style={{ color: "#9CA3AF", fontStyle: "italic" }}>select supplier</span>
-                  )
-                }
-                options={supplierOptions.map((s) => ({ id: s.id, label: s.name, hint: s.code ?? undefined }))}
-                onSelect={async (opt) => setSupplierId(opt.id)}
-                placeholder="Search supplier…"
-              />
+              {presetSupplierId ? (
+                <span style={{ color: "#0E2849", fontSize: 12 }}>
+                  {supplier?.name ?? "—"}
+                </span>
+              ) : (
+                <InlinePicker
+                  display={
+                    supplier ? (
+                      <span>{supplier.name}</span>
+                    ) : (
+                      <span style={{ color: "#9CA3AF", fontStyle: "italic" }}>select supplier</span>
+                    )
+                  }
+                  options={supplierOptions.map((s) => ({ id: s.id, label: s.name, hint: s.code ?? undefined }))}
+                  onSelect={async (opt) => setSupplierId(opt.id)}
+                  placeholder="Search supplier…"
+                />
+              )}
             </KvValue>
 
             <KvLabel>Supplier Item Number</KvLabel>
