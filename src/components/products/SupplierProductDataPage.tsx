@@ -35,9 +35,38 @@ export function SupplierProductDataPage() {
   const [origins, setOrigins] = useState<PickerOrigin[]>([]);
   const [autoFocusVariantForId, setAutoFocusVariantForId] = useState<string | null>(null);
 
+  // Page SCOPE: one supplier at a time. Default to first alphabetical when
+  // suppliers load. Internal users can switch freely; future supplier-login
+  // can pin this (just remove the selector / disable changes).
+  const [activeSupplierId, setActiveSupplierId] = useState<string>("");
+
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
+  // Suppliers + origins for inline pickers and the scope selector.
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [{ data: sup }, { data: ori }] = await Promise.all([
+        supabase.from("suppliers").select("id, name, code, unit_system").order("name"),
+        supabase.from("origins").select("id, name").order("name"),
+      ]);
+      if (cancelled) return;
+      const supList = (sup ?? []) as PickerSupplier[];
+      setSuppliers(supList);
+      setOrigins((ori ?? []) as PickerOrigin[]);
+      setActiveSupplierId((cur) => cur || (supList[0]?.id ?? ""));
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Products are SCOPED at the query layer to the active supplier.
+  // .eq("supplier_id", activeSupplierId) is a real query parameter — not a
+  // post-fetch filter — so a future RLS policy attaches without a rewrite.
+  useEffect(() => {
+    if (!activeSupplierId) {
+      setProducts(null);
+      return;
+    }
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
@@ -78,6 +107,7 @@ export function SupplierProductDataPage() {
             )
           )
         `)
+        .eq("supplier_id", activeSupplierId)
         .order("display_order", { ascending: true, nullsFirst: false })
         .order("name", { ascending: true });
 
@@ -92,10 +122,8 @@ export function SupplierProductDataPage() {
     return () => {
       cancelled = true;
     };
-  }, [reloadKey]);
+  }, [reloadKey, activeSupplierId]);
 
-  // Cache category id → { name, code, parentId } so we can resolve a subcategory's
-  // parent category name without nesting an FK select on the products query.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -110,21 +138,6 @@ export function SupplierProductDataPage() {
       }
       setCategoryById(map);
       setAllCategories(rows);
-    })();
-    return () => { cancelled = true; };
-  }, [reloadKey]);
-
-  // Suppliers + origins for inline pickers in the identity cell.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const [{ data: sup }, { data: ori }] = await Promise.all([
-        supabase.from("suppliers").select("id, name, code, unit_system").order("name"),
-        supabase.from("origins").select("id, name").order("name"),
-      ]);
-      if (cancelled) return;
-      setSuppliers((sup ?? []) as PickerSupplier[]);
-      setOrigins((ori ?? []) as PickerOrigin[]);
     })();
     return () => { cancelled = true; };
   }, [reloadKey]);
@@ -162,10 +175,50 @@ export function SupplierProductDataPage() {
     reload();
   };
 
+  // Counts strip: how the active supplier's items spread across categories.
+  // Driven by the loaded (already supplier-scoped) products array.
+  const countsByCategory = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; total: number; draft: number; subs: Map<string, { name: string; total: number; draft: number }> }
+    >();
+    if (!products) return map;
+    for (const p of products) {
+      const subId = p.subcategory?.id;
+      if (!subId) continue;
+      const subMeta = categoryById.get(subId);
+      const parentId = subMeta?.parentId ?? subId; // fallback: sub w/o parent
+      const parentMeta = categoryById.get(parentId);
+      const isDraft = (p.status ?? "live") === "draft";
+      let cat = map.get(parentId);
+      if (!cat) {
+        cat = {
+          name: parentMeta?.name ?? subMeta?.name ?? "Uncategorised",
+          total: 0,
+          draft: 0,
+          subs: new Map(),
+        };
+        map.set(parentId, cat);
+      }
+      cat.total += 1;
+      if (isDraft) cat.draft += 1;
+      let sub = cat.subs.get(subId);
+      if (!sub) {
+        sub = { name: subMeta?.name ?? p.subcategory?.name ?? "—", total: 0, draft: 0 };
+        cat.subs.set(subId, sub);
+      }
+      sub.total += 1;
+      if (isDraft) sub.draft += 1;
+    }
+    return map;
+  }, [products, categoryById]);
+
+  const kitsCanBeAdded = (products ?? []).some((p) => (p.product_kind ?? "single") === "single");
+
   return (
     <DesktopAppShell>
       <div style={{ padding: "32px 32px 64px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
           <button
             onClick={() => navigate("/")}
             aria-label="Back"
@@ -189,6 +242,7 @@ export function SupplierProductDataPage() {
           </h1>
           <button
             onClick={startDraft}
+            disabled={!activeSupplierId}
             style={{
               marginLeft: "auto",
               display: "inline-flex",
@@ -197,17 +251,19 @@ export function SupplierProductDataPage() {
               padding: "8px 14px",
               borderRadius: 8,
               border: "none",
-              background: "hsl(var(--brand-orange))",
-              color: "#fff",
+              background: activeSupplierId ? "hsl(var(--brand-orange))" : "#E5E7EB",
+              color: activeSupplierId ? "#fff" : "#9CA3AF",
               fontSize: 13,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: activeSupplierId ? "pointer" : "not-allowed",
             }}
           >
             <Plus size={15} /> Add product
           </button>
           <button
             onClick={startKitDraft}
+            disabled={!activeSupplierId || !kitsCanBeAdded}
+            title={!kitsCanBeAdded ? "Add at least one product before creating a kit" : undefined}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -215,16 +271,91 @@ export function SupplierProductDataPage() {
               padding: "8px 14px",
               borderRadius: 8,
               border: "none",
-              background: "hsl(var(--brand-orange))",
-              color: "#fff",
+              background: activeSupplierId && kitsCanBeAdded ? "hsl(var(--brand-orange))" : "#E5E7EB",
+              color: activeSupplierId && kitsCanBeAdded ? "#fff" : "#9CA3AF",
               fontSize: 13,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: activeSupplierId && kitsCanBeAdded ? "pointer" : "not-allowed",
             }}
           >
             <Plus size={15} /> Add Kit
           </button>
         </div>
+
+        {/* Supplier SCOPE selector — page shows ONE supplier at a time. */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "12px 16px",
+            background: "#FFFFFF",
+            border: "0.5px solid #E5E7EB",
+            borderRadius: 12,
+            marginBottom: 12,
+          }}
+        >
+          <label
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: "#6B7280",
+            }}
+          >
+            Supplier
+          </label>
+          <select
+            value={activeSupplierId}
+            onChange={(e) => {
+              setActiveSupplierId(e.target.value);
+              setFilter(EMPTY_PRODUCT_FILTER);
+            }}
+            style={{
+              border: "0.5px solid #D1D5DB",
+              borderRadius: 6,
+              padding: "6px 10px",
+              fontSize: 13,
+              fontWeight: 500,
+              color: "hsl(var(--brand-navy))",
+              background: "#FFFFFF",
+              fontFamily: "inherit",
+              minWidth: 220,
+            }}
+          >
+            {suppliers.length === 0 && <option value="">Loading…</option>}
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          {products && (
+            <span style={{ marginLeft: "auto", fontSize: 12, color: "#6B7280" }}>
+              {products.length} {products.length === 1 ? "item" : "items"}
+              {(() => {
+                const draftCount = products.filter((p) => (p.status ?? "live") === "draft").length;
+                return draftCount > 0 ? ` (${draftCount} draft)` : "";
+              })()}
+            </span>
+          )}
+        </div>
+
+        {/* Live category / subcategory counts — the audit tool. */}
+        {products && products.length > 0 && (
+          <CategoryCountsStrip
+            countsByCategory={countsByCategory}
+            activeSubcategoryId={filter.subcategoryId}
+            onPickSubcategory={(catId, subId) =>
+              setFilter((f) => ({
+                ...f,
+                categoryId: f.subcategoryId === subId ? "" : catId,
+                subcategoryId: f.subcategoryId === subId ? "" : subId,
+              }))
+            }
+          />
+        )}
 
         {error && (
           <div style={{ color: "hsl(var(--destructive))", marginBottom: 16, fontSize: 13 }}>
@@ -239,12 +370,69 @@ export function SupplierProductDataPage() {
         <div style={{ paddingBottom: 16 }}>
           {products === null ? (
             <div style={{ color: "#9CA3AF", fontSize: 13 }}>Loading…</div>
+          ) : products.length === 0 && drafts.length === 0 && kitDrafts.length === 0 ? (
+            <div
+              style={{
+                padding: "48px 24px",
+                background: "#FFFFFF",
+                border: "0.5px dashed #D1D5DB",
+                borderRadius: 12,
+                textAlign: "center",
+                color: "#6B7280",
+                fontSize: 13,
+              }}
+            >
+              <div style={{ marginBottom: 12 }}>
+                No products yet for this supplier.
+              </div>
+              <div style={{ display: "inline-flex", gap: 8 }}>
+                <button
+                  onClick={startDraft}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "8px 14px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: "hsl(var(--brand-orange))",
+                    color: "#fff",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Plus size={15} /> Add product
+                </button>
+                <button
+                  onClick={startKitDraft}
+                  disabled={!kitsCanBeAdded}
+                  title={!kitsCanBeAdded ? "Add at least one product before creating a kit" : undefined}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "8px 14px",
+                    borderRadius: 8,
+                    border: "0.5px solid #D1D5DB",
+                    background: "#FFFFFF",
+                    color: kitsCanBeAdded ? "hsl(var(--brand-navy))" : "#9CA3AF",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: kitsCanBeAdded ? "pointer" : "not-allowed",
+                  }}
+                >
+                  <Plus size={15} /> Add Kit
+                </button>
+              </div>
+            </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {kitDrafts.map((id) => (
                 <DraftKitCard
                   key={id}
                   draftId={id}
+                  presetSupplierId={activeSupplierId}
                   allProducts={products ?? []}
                   onCommitted={() => commitKitDraft(id)}
                   onDiscard={() => discardKitDraft(id)}
@@ -254,6 +442,7 @@ export function SupplierProductDataPage() {
                 <DraftProductCard
                   key={id}
                   draftId={id}
+                  presetSupplierId={activeSupplierId}
                   onCommitted={() => commitDraft(id)}
                   onDiscard={() => discardDraft(id)}
                 />
@@ -274,5 +463,79 @@ export function SupplierProductDataPage() {
         </div>
       </div>
     </DesktopAppShell>
+  );
+}
+
+function CategoryCountsStrip({
+  countsByCategory,
+  activeSubcategoryId,
+  onPickSubcategory,
+}: {
+  countsByCategory: Map<
+    string,
+    { name: string; total: number; draft: number; subs: Map<string, { name: string; total: number; draft: number }> }
+  >;
+  activeSubcategoryId: string;
+  onPickSubcategory: (categoryId: string, subcategoryId: string) => void;
+}) {
+  const cats = [...countsByCategory.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name));
+  if (cats.length === 0) return null;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 12,
+        padding: "10px 16px",
+        background: "#FFFFFF",
+        border: "0.5px solid #E5E7EB",
+        borderRadius: 12,
+        marginBottom: 12,
+        fontSize: 12,
+        color: "#0E2849",
+      }}
+      aria-label="Catalogue spread by category"
+    >
+      {cats.map(([catId, cat]) => {
+        const subs = [...cat.subs.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name));
+        return (
+          <div key={catId} style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 600, color: "hsl(var(--brand-navy))" }}>
+              {cat.name}
+            </span>
+            <span style={{ color: "#6B7280" }}>
+              {cat.total}
+              {cat.draft > 0 ? ` (${cat.draft} draft)` : ""}
+            </span>
+            {subs.length > 0 && <span style={{ color: "#D1D5DB" }}>·</span>}
+            {subs.map(([subId, sub], i) => {
+              const isActive = activeSubcategoryId === subId;
+              return (
+                <button
+                  key={subId}
+                  type="button"
+                  onClick={() => onPickSubcategory(catId, subId)}
+                  style={{
+                    background: isActive ? "hsl(var(--brand-orange))" : "transparent",
+                    color: isActive ? "#fff" : "#0E2849",
+                    border: "0.5px solid",
+                    borderColor: isActive ? "hsl(var(--brand-orange))" : "#E5E7EB",
+                    borderRadius: 999,
+                    padding: "2px 9px",
+                    fontSize: 11,
+                    cursor: "pointer",
+                    marginRight: i === subs.length - 1 ? 0 : 0,
+                  }}
+                  title={isActive ? "Click to clear filter" : `Filter to ${sub.name}`}
+                >
+                  {sub.name} {sub.total}
+                  {sub.draft > 0 ? ` (${sub.draft}d)` : ""}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
   );
 }
