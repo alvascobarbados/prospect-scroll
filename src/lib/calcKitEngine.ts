@@ -366,14 +366,8 @@ export function computeKitCalc(
       transports,
       bbOutputs,
     });
+  }
 
-    // appease typescript: rows already pushed, return value unused
-    return undefined as unknown as KitRow;
-  });
-
-  // The map above pushes into rows AND returns; the returned array contains
-  // the same rows in order. Use rows array directly:
-  void rows;
 
   return {
     kitProductId,
