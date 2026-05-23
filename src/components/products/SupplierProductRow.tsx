@@ -23,7 +23,7 @@ import { SHEET_GRID_TEMPLATE, SHEET_COL_GAP, SHEET_ROW_PADDING } from "./helpers
 import type { CategoryRowLite, SupplierLite, OriginLite } from "./SupplierProductDataList";
 import { KitComponentsBlock } from "./KitComponentsBlock";
 import { KitPricingBlock } from "./KitPricingBlock";
-import { KitQuantityTiers } from "./KitQuantityTiers";
+
 import { liveGateMissing } from "@/lib/productLiveGate";
 
 
@@ -362,7 +362,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       <div style={{ ...cellStyle(true), paddingTop: 14 }}>
         {isKit ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <KitQuantityTiers kitProductId={product.id} />
             <KitPricingBlock kitProductId={product.id} components={kitComponents} />
           </div>
 

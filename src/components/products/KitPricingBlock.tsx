@@ -1,7 +1,9 @@
 import { Fragment, useEffect, useState } from "react";
-import { AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useKitCalcContext } from "@/hooks/useKitCalcContext";
+import { InlineNumber } from "@/components/inline/InlineNumber";
 import {
   computeKitCalc,
   computeComponentCalcAt,
@@ -15,6 +17,12 @@ import {
 interface KitPricingBlockProps {
   kitProductId: string;
   components: KitComponentRow[];
+}
+
+interface TierRow {
+  id: string;
+  quantity: number;
+  sort_order: number;
 }
 
 const HEADER_STYLE: React.CSSProperties = {
@@ -61,25 +69,78 @@ function bodyCellStyle(align: "left" | "right"): React.CSSProperties {
 
 export function KitPricingBlock({ kitProductId, components }: KitPricingBlockProps) {
   const ctx = useKitCalcContext();
-  const [tiers, setTiers] = useState<number[] | null>(null);
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [tierRows, setTierRows] = useState<TierRow[] | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [hoverId, setHoverId] = useState<string | null>(null);
+
+  const reload = async () => {
+    const { data, error } = await supabase
+      .from("product_kit_tiers")
+      .select("id, quantity, sort_order")
+      .eq("kit_product_id", kitProductId)
+      .order("sort_order")
+      .order("quantity");
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setTierRows(
+      (data ?? []).map((r: any) => ({
+        id: String(r.id),
+        quantity: Number(r.quantity),
+        sort_order: Number(r.sort_order),
+      })),
+    );
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("product_kit_tiers")
-        .select("quantity, sort_order")
-        .eq("kit_product_id", kitProductId)
-        .order("sort_order")
-        .order("quantity");
-      if (cancelled) return;
-      setTiers((data ?? []).map((r: any) => Number(r.quantity)).filter((n) => Number.isFinite(n) && n > 0));
-    })();
-    return () => {
-      cancelled = true;
-    };
+    void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kitProductId]);
+
+  const addTier = async () => {
+    const max = (tierRows ?? []).reduce((m, t) => Math.max(m, t.quantity), 0);
+    const next = max > 0 ? max * 2 : 50;
+    const sort = ((tierRows ?? []).at(-1)?.sort_order ?? 0) + 1;
+    const { error } = await supabase
+      .from("product_kit_tiers")
+      .insert({ kit_product_id: kitProductId, quantity: next, sort_order: sort });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await reload();
+  };
+
+  const removeTier = async (id: string) => {
+    const { error } = await supabase.from("product_kit_tiers").delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await reload();
+  };
+
+  const updateTier = async (id: string, quantity: number) => {
+    const { error } = await supabase
+      .from("product_kit_tiers")
+      .update({ quantity })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await reload();
+  };
+
+  const toggle = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   if (components.length === 0) {
     return (
@@ -92,22 +153,11 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
     );
   }
 
-  if (!ctx || tiers === null) {
+  if (!ctx || tierRows === null) {
     return (
       <div>
         <div style={HEADER_STYLE}>Kit Pricing</div>
         <div style={{ color: "#9CA3AF", fontSize: 12 }}>Loading…</div>
-      </div>
-    );
-  }
-
-  if (tiers.length === 0) {
-    return (
-      <div>
-        <div style={HEADER_STYLE}>Kit Pricing</div>
-        <div style={{ color: "#9CA3AF", fontSize: 12, fontStyle: "italic" }}>
-          Add a kit quantity tier to see pricing.
-        </div>
       </div>
     );
   }
@@ -134,16 +184,12 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
     });
   }
 
-  const result = computeKitCalc(kitProductId, lines, tiers, ctx.routes, ctx.settings);
-
-  const toggle = (qty: number) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(qty)) next.delete(qty);
-      else next.add(qty);
-      return next;
-    });
-  };
+  const tierQuantities = tierRows
+    .map((t) => t.quantity)
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const result = computeKitCalc(kitProductId, lines, tierQuantities, ctx.routes, ctx.settings);
+  // Map qty → engine row for lookup (tiers are unique-by-qty in practice).
+  const resultByQty = new Map(result.rows.map((r) => [r.qty, r]));
 
   return (
     <div>
@@ -158,8 +204,9 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
         }}
       >
         <colgroup>
-          <col style={{ width: 56 }} />
           <col style={{ width: 72 }} />
+          <col style={{ width: 80 }} />
+          <col style={{ width: 18 }} />
           <col style={{ width: 18 }} />
         </colgroup>
         <thead>
@@ -167,23 +214,39 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
             <th style={headerCellStyle("left")}>Qty</th>
             <th style={headerCellStyle("right")}>Unit $</th>
             <th style={headerCellStyle("right")} aria-hidden />
+            <th style={headerCellStyle("right")} aria-hidden />
           </tr>
         </thead>
         <tbody>
-          {result.rows.map((r) => {
-            const incompleteNames = r.incompleteComponents.map(
-              (id) => componentNameById.get(id) ?? id,
-            );
+          {tierRows.map((t) => {
+            const r = resultByQty.get(t.quantity);
+            const incompleteNames = r
+              ? r.incompleteComponents.map((id) => componentNameById.get(id) ?? id)
+              : [];
             const allIssues = [...incompleteNames, ...missingComponentNames];
-            const kitPerUnit = r.fobUsd == null ? null : r.fobUsd / r.qty;
-            const isOpen = expanded.has(r.qty);
+            const kitPerUnit =
+              r && r.fobUsd != null ? r.fobUsd / r.qty : null;
+            const isOpen = expanded.has(t.id);
             const showChevron = kitPerUnit != null && lines.length > 0;
+            const isHover = hoverId === t.id;
 
             return (
-              <Fragment key={r.qty}>
-                <tr>
+              <Fragment key={t.id}>
+                <tr
+                  onMouseEnter={() => setHoverId(t.id)}
+                  onMouseLeave={() => setHoverId((h) => (h === t.id ? null : h))}
+                >
                   <td style={{ ...bodyCellStyle("left"), fontWeight: 500 }}>
-                    {r.qty.toLocaleString()}
+                    <InlineNumber
+                      value={t.quantity}
+                      integer
+                      min={1}
+                      width={56}
+                      onSave={async (v) => {
+                        if (v == null) return;
+                        await updateTier(t.id, v);
+                      }}
+                    />
                   </td>
                   <td style={bodyCellStyle("right")}>
                     {kitPerUnit == null ? (
@@ -196,7 +259,7 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
                     {showChevron ? (
                       <button
                         type="button"
-                        onClick={() => toggle(r.qty)}
+                        onClick={() => toggle(t.id)}
                         aria-label={isOpen ? "Hide breakdown" : "Show breakdown"}
                         style={{
                           background: "transparent",
@@ -215,19 +278,43 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
                       </button>
                     ) : null}
                   </td>
+                  <td style={{ ...bodyCellStyle("right"), padding: "6px 0" }}>
+                    <button
+                      type="button"
+                      onClick={() => removeTier(t.id)}
+                      aria-label="Remove tier"
+                      style={{
+                        opacity: isHover ? 1 : 0,
+                        transition: "opacity 120ms",
+                        background: "transparent",
+                        border: "none",
+                        padding: 0,
+                        color: "#9CA3AF",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <X size={11} />
+                    </button>
+                  </td>
                 </tr>
                 {allIssues.length > 0 && (
-                  <tr key={`issue-${r.qty}`}>
-                    <td colSpan={3} style={{ padding: "0 8px 4px" }}>
+                  <tr>
+                    <td colSpan={4} style={{ padding: "0 8px 4px" }}>
                       <span style={INCOMPLETE_PILL} title={allIssues.join("; ")}>
                         <AlertTriangle size={12} /> specs incomplete: {allIssues.join(", ")}
                       </span>
                     </td>
                   </tr>
                 )}
-                {isOpen && kitPerUnit != null && (
-                  <tr key={`exp-${r.qty}`}>
-                    <td colSpan={3} style={{ padding: "2px 8px 6px", color: "#6B7280", fontSize: 11, lineHeight: 1.5 }}>
+                {isOpen && kitPerUnit != null && r && (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      style={{ padding: "2px 8px 6px", color: "#6B7280", fontSize: 11, lineHeight: 1.5 }}
+                    >
                       {lines.map((line, i) => {
                         const calc = computeComponentCalcAt(
                           line.component,
@@ -264,6 +351,27 @@ export function KitPricingBlock({ kitProductId, components }: KitPricingBlockPro
           })}
         </tbody>
       </table>
+
+      <div style={{ display: "flex", gap: 14, marginTop: 6, alignItems: "center" }}>
+        <button
+          type="button"
+          onClick={addTier}
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            color: "#E97817",
+            fontSize: 12,
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <Plus size={12} /> Add tier
+        </button>
+      </div>
+
       <div
         style={{
           marginTop: 6,
