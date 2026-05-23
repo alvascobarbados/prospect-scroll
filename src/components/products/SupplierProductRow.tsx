@@ -155,7 +155,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       >
         <div style={{ opacity: hovered ? 1 : 0.45, transition: "opacity 120ms" }}>
           <ProductCardMenu
-            productKind={isKit ? "kit" : "single"}
             onDuplicateAsVariant={async () => {
               try {
                 const newId = await duplicateProductAsVariant(product.id);
@@ -166,8 +165,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
                 toast.error(err instanceof Error ? err.message : "Failed to duplicate");
               }
             }}
-            onConvertToKit={handleConvertToKit}
-            onConvertToSingle={handleConvertToSingle}
           />
         </div>
         <button
