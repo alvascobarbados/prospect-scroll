@@ -413,7 +413,7 @@ function IdentityCell({
   return (
     <div style={{ minWidth: 0 }}>
       {/* Name */}
-      <div style={{ minWidth: 0 }}>
+      <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <InlineText
           value={product.name}
           onSave={async (next) => {
@@ -424,6 +424,23 @@ function IdentityCell({
           style={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2 }}
           inputStyle={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2, minWidth: 120 }}
         />
+        {(product.product_kind ?? "single") === "kit" && (
+          <span
+            style={{
+              background: "hsl(var(--brand-orange))",
+              color: "#FFFFFF",
+              fontSize: 10,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              padding: "2px 8px",
+              borderRadius: 999,
+              fontWeight: 600,
+            }}
+            title="This product is a kit — its cost is the sum of its components."
+          >
+            Kit
+          </span>
+        )}
       </div>
 
       {/* Variant chip / placeholder */}
