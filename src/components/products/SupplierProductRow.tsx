@@ -85,12 +85,9 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
   const wUnit = weightUnitFor(system);
   const lUnit = linearUnitFor(system);
 
-  const specsIncomplete =
-    product.carton_pack == null ||
-    product.carton_length == null ||
-    product.carton_width == null ||
-    product.carton_height == null ||
-    product.carton_weight == null;
+  const isDraft = (product.status ?? "live") === "draft";
+  const liveMissing = liveGateMissing(product);
+  const liveEligible = liveMissing.length === 0;
 
   const handleDelete = async () => {
     setDeleting(true);
