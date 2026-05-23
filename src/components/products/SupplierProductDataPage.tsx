@@ -38,7 +38,10 @@ export function SupplierProductDataPage() {
   // Page SCOPE: one supplier at a time. Default to first alphabetical when
   // suppliers load. Internal users can switch freely; future supplier-login
   // can pin this (just remove the selector / disable changes).
+  // "" = All Suppliers (omits the .eq filter). Default = first alphabetical supplier.
+  const ALL_SUPPLIERS = "__all__";
   const [activeSupplierId, setActiveSupplierId] = useState<string>("");
+  const [supplierCounts, setSupplierCounts] = useState<Map<string, { live: number; draft: number }>>(new Map());
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -59,6 +62,38 @@ export function SupplierProductDataPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // Lightweight count query — supplier_id + status only, no row payloads.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("products").select("supplier_id, status");
+      if (cancelled) return;
+      const map = new Map<string, { live: number; draft: number }>();
+      for (const r of (data ?? []) as { supplier_id: string; status: string | null }[]) {
+        const k = r.supplier_id;
+        if (!k) continue;
+        const entry = map.get(k) ?? { live: 0, draft: 0 };
+        if ((r.status ?? "live") === "draft") entry.draft += 1;
+        else entry.live += 1;
+        map.set(k, entry);
+      }
+      setSupplierCounts(map);
+    })();
+    return () => { cancelled = true; };
+  }, [reloadKey]);
+
+  const totalCounts = useMemo(() => {
+    let live = 0, draft = 0;
+    for (const v of supplierCounts.values()) { live += v.live; draft += v.draft; }
+    return { live, draft };
+  }, [supplierCounts]);
+
+  const fmtCount = (live: number, draft: number) =>
+    draft > 0 ? `${live} · ${draft} draft` : `${live}`;
+
+  const isAllMode = activeSupplierId === ALL_SUPPLIERS;
+  const canAdd = !!activeSupplierId && !isAllMode;
+
   // Products are SCOPED at the query layer to the active supplier.
   // .eq("supplier_id", activeSupplierId) is a real query parameter — not a
   // post-fetch filter — so a future RLS policy attaches without a rewrite.
@@ -69,7 +104,7 @@ export function SupplierProductDataPage() {
     }
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("products")
         .select(`
           id, name, supplier_item_number, primary_item_number, status, parent_product_id, parent_name, variant_name, display_order, variant_label,
@@ -106,10 +141,15 @@ export function SupplierProductDataPage() {
               )
             )
           )
-        `)
-        .eq("supplier_id", activeSupplierId)
+        `);
+      // Stage-2 scope: real supplier → .eq; All Suppliers → omit (RLS-ready).
+      if (!isAllMode) {
+        query = query.eq("supplier_id", activeSupplierId);
+      }
+      const { data, error } = await query
         .order("display_order", { ascending: true, nullsFirst: false })
         .order("name", { ascending: true });
+
 
       if (cancelled) return;
       if (error) {
@@ -242,7 +282,8 @@ export function SupplierProductDataPage() {
           </h1>
           <button
             onClick={startDraft}
-            disabled={!activeSupplierId}
+            disabled={!canAdd}
+            title={isAllMode ? "Select a supplier to add items" : undefined}
             style={{
               marginLeft: "auto",
               display: "inline-flex",
@@ -251,19 +292,25 @@ export function SupplierProductDataPage() {
               padding: "8px 14px",
               borderRadius: 8,
               border: "none",
-              background: activeSupplierId ? "hsl(var(--brand-orange))" : "#E5E7EB",
-              color: activeSupplierId ? "#fff" : "#9CA3AF",
+              background: canAdd ? "hsl(var(--brand-orange))" : "#E5E7EB",
+              color: canAdd ? "#fff" : "#9CA3AF",
               fontSize: 13,
               fontWeight: 600,
-              cursor: activeSupplierId ? "pointer" : "not-allowed",
+              cursor: canAdd ? "pointer" : "not-allowed",
             }}
           >
             <Plus size={15} /> Add product
           </button>
           <button
             onClick={startKitDraft}
-            disabled={!activeSupplierId || !kitsCanBeAdded}
-            title={!kitsCanBeAdded ? "Add at least one product before creating a kit" : undefined}
+            disabled={!canAdd || !kitsCanBeAdded}
+            title={
+              isAllMode
+                ? "Select a supplier to add items"
+                : !kitsCanBeAdded
+                ? "Add at least one product before creating a kit"
+                : undefined
+            }
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -271,15 +318,16 @@ export function SupplierProductDataPage() {
               padding: "8px 14px",
               borderRadius: 8,
               border: "none",
-              background: activeSupplierId && kitsCanBeAdded ? "hsl(var(--brand-orange))" : "#E5E7EB",
-              color: activeSupplierId && kitsCanBeAdded ? "#fff" : "#9CA3AF",
+              background: canAdd && kitsCanBeAdded ? "hsl(var(--brand-orange))" : "#E5E7EB",
+              color: canAdd && kitsCanBeAdded ? "#fff" : "#9CA3AF",
               fontSize: 13,
               fontWeight: 600,
-              cursor: activeSupplierId && kitsCanBeAdded ? "pointer" : "not-allowed",
+              cursor: canAdd && kitsCanBeAdded ? "pointer" : "not-allowed",
             }}
           >
             <Plus size={15} /> Add Kit
           </button>
+
         </div>
 
         {/* Supplier SCOPE selector — page shows ONE supplier at a time. */}
@@ -325,11 +373,19 @@ export function SupplierProductDataPage() {
             }}
           >
             {suppliers.length === 0 && <option value="">Loading…</option>}
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
+            {suppliers.length > 0 && (
+              <option value={ALL_SUPPLIERS}>
+                All Suppliers ({fmtCount(totalCounts.live, totalCounts.draft)})
               </option>
-            ))}
+            )}
+            {suppliers.map((s) => {
+              const c = supplierCounts.get(s.id) ?? { live: 0, draft: 0 };
+              return (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({fmtCount(c.live, c.draft)})
+                </option>
+              );
+            })}
           </select>
           {products && (
             <span style={{ marginLeft: "auto", fontSize: 12, color: "#6B7280" }}>
@@ -341,6 +397,7 @@ export function SupplierProductDataPage() {
             </span>
           )}
         </div>
+
 
         {/* Live category / subcategory counts — the audit tool. */}
         {products && products.length > 0 && (
@@ -383,11 +440,13 @@ export function SupplierProductDataPage() {
               }}
             >
               <div style={{ marginBottom: 12 }}>
-                No products yet for this supplier.
+                {isAllMode ? "No products in the catalog yet." : "No products yet for this supplier."}
               </div>
               <div style={{ display: "inline-flex", gap: 8 }}>
                 <button
                   onClick={startDraft}
+                  disabled={!canAdd}
+                  title={isAllMode ? "Select a supplier to add items" : undefined}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -395,19 +454,25 @@ export function SupplierProductDataPage() {
                     padding: "8px 14px",
                     borderRadius: 8,
                     border: "none",
-                    background: "hsl(var(--brand-orange))",
-                    color: "#fff",
+                    background: canAdd ? "hsl(var(--brand-orange))" : "#E5E7EB",
+                    color: canAdd ? "#fff" : "#9CA3AF",
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: "pointer",
+                    cursor: canAdd ? "pointer" : "not-allowed",
                   }}
                 >
                   <Plus size={15} /> Add product
                 </button>
                 <button
                   onClick={startKitDraft}
-                  disabled={!kitsCanBeAdded}
-                  title={!kitsCanBeAdded ? "Add at least one product before creating a kit" : undefined}
+                  disabled={!canAdd || !kitsCanBeAdded}
+                  title={
+                    isAllMode
+                      ? "Select a supplier to add items"
+                      : !kitsCanBeAdded
+                      ? "Add at least one product before creating a kit"
+                      : undefined
+                  }
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -416,10 +481,10 @@ export function SupplierProductDataPage() {
                     borderRadius: 8,
                     border: "0.5px solid #D1D5DB",
                     background: "#FFFFFF",
-                    color: kitsCanBeAdded ? "hsl(var(--brand-navy))" : "#9CA3AF",
+                    color: canAdd && kitsCanBeAdded ? "hsl(var(--brand-navy))" : "#9CA3AF",
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: kitsCanBeAdded ? "pointer" : "not-allowed",
+                    cursor: canAdd && kitsCanBeAdded ? "pointer" : "not-allowed",
                   }}
                 >
                   <Plus size={15} /> Add Kit
