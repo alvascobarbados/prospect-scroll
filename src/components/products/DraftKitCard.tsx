@@ -25,7 +25,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useMasterData } from "@/hooks/useMasterData";
-import { composePrimaryItemNumber, nextSequenceFor } from "@/lib/productItemNumber";
+import { composeDraftIdentity, isDraftIdentityBaseValid } from "@/lib/draftIdentity";
 import { originLetterFromCode } from "@/lib/originLetter";
 import { InlineText } from "@/components/inline/InlineText";
 import { InlineNumber } from "@/components/inline/InlineNumber";
@@ -217,12 +217,10 @@ export function DraftKitCard({ draftId, allProducts, onCommitted, onDiscard }: D
 
   const hasComponents = components.some((c) => c.componentId);
 
+  // canSave — UNCHANGED logic. Identity-base (5 shared checks) lives in
+  // isDraftIdentityBaseValid; kit-only extra gate is hasComponents.
   const canSave =
-    !!supplier?.code &&
-    !!supplier?.origin_id &&
-    !!subcategory?.code &&
-    name.trim().length > 0 &&
-    itemSuffix.trim().length > 0 &&
+    isDraftIdentityBaseValid({ supplier, subcategory, name, itemSuffix }) &&
     hasComponents;
 
   const updateComponent = (tempId: string, patch: Partial<DraftComponent>) => {
@@ -258,10 +256,13 @@ export function DraftKitCard({ draftId, allProducts, onCommitted, onDiscard }: D
         .select("primary_item_number");
       if (exErr) throw new Error(exErr.message);
       const nums = (existing ?? []).map((r) => r.primary_item_number).filter(Boolean) as string[];
-      const seq = nextSequenceFor(subcategory.code, nums);
-      const primaryItemNumber = composePrimaryItemNumber(subcategory.code, seq, originLetter);
-      const cleanSuffix = itemSuffix.trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
-      const supplierItemNumber = `${supplier.code}-${cleanSuffix}`;
+      const { primaryItemNumber, supplierItemNumber } = composeDraftIdentity({
+        supplierCode: supplier.code,
+        subcategoryCode: subcategory.code,
+        originLetter,
+        itemSuffix,
+        existingPrimaryItemNumbers: nums,
+      });
 
       const insert = {
         name: name.trim(),
