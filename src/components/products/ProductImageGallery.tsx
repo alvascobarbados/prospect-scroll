@@ -263,17 +263,6 @@ function SlotCell({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <div
-        style={{
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          color: "#6B7280",
-          fontWeight: 600,
-        }}
-      >
-        {label}
-      </div>
-      <div
         onClick={url ? onClick : onUpload}
         style={{
           background: "#F3F4F6",
