@@ -23,6 +23,7 @@ import { SHEET_GRID_TEMPLATE, SHEET_COL_GAP, SHEET_ROW_PADDING } from "./helpers
 import type { CategoryRowLite, SupplierLite, OriginLite } from "./SupplierProductDataList";
 import { KitComponentsBlock } from "./KitComponentsBlock";
 import { KitPricingBlock } from "./KitPricingBlock";
+import { KitQuantityTiers } from "./KitQuantityTiers";
 
 
 const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
@@ -319,7 +320,11 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       {/* ── BLOCK 5: Pricing OR Kit Pricing ───────────────────────── */}
       <div style={{ ...cellStyle(true), paddingTop: 14 }}>
         {isKit ? (
-          <KitPricingBlock components={kitComponents} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <KitQuantityTiers kitProductId={product.id} />
+            <KitPricingBlock kitProductId={product.id} components={kitComponents} />
+          </div>
+
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {allDecos.map((d, i) => (
