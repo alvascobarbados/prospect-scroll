@@ -13,12 +13,13 @@ interface SupplierProductGroupProps {
   allCategories?: CategoryRowLite[];
   suppliers?: SupplierLite[];
   origins?: OriginLite[];
+  allProducts?: Product[];
   autoFocusVariantForId?: string | null;
   onChanged?: () => void;
   onDuplicated?: (newId: string) => void;
 }
 
-export function SupplierProductGroup({ parentName, members, resolveCategory, allCategories, suppliers, origins, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductGroupProps) {
+export function SupplierProductGroup({ parentName, members, resolveCategory, allCategories, suppliers, origins, allProducts, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductGroupProps) {
   const count = members.length;
 
   const renameAll = async (next: string) => {
@@ -94,6 +95,7 @@ export function SupplierProductGroup({ parentName, members, resolveCategory, all
               allCategories={allCategories}
               suppliers={suppliers}
               origins={origins}
+              allProducts={allProducts}
               showVariantInline
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}

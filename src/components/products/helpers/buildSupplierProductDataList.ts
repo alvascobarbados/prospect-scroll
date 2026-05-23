@@ -53,6 +53,23 @@ export interface ProductSupplier {
   volume_unit: string | null;
 }
 
+export interface KitComponentRowProduct {
+  id: string;
+  name: string;
+  supplier_item_number: string | null;
+  product_kind?: "single" | "kit";
+  carton_pack: number | null;
+  product_decorations: ProductDecoration[];
+}
+
+export interface KitComponentRow {
+  id: string;
+  quantity: number;
+  decoration_id: string | null;
+  sort_order: number;
+  component: KitComponentRowProduct | null;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -78,6 +95,7 @@ export interface Product {
   product_decorations: ProductDecoration[];
   product_includes?: ProductIncludeRow[];
   product_kind?: "single" | "kit";
+  kit_components?: KitComponentRow[];
 }
 
 

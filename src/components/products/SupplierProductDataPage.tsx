@@ -42,7 +42,7 @@ export function SupplierProductDataPage() {
         .from("products")
         .select(`
           id, name, supplier_item_number, parent_product_id, parent_name, variant_name, display_order, variant_label,
-          image_url, updated_at,
+          image_url, updated_at, product_kind,
           carton_pack, carton_length, carton_width, carton_height, carton_weight,
           production_days_min, production_days_max,
           subcategory:product_categories!products_subcategory_id_fkey(id, name, code),
@@ -59,6 +59,21 @@ export function SupplierProductDataPage() {
               method:decoration_methods(id, name)
             ),
             product_decoration_bands(id, qty, unit_cost, setup_cost, inland_freight_usd)
+          ),
+          product_includes(id, quantity, description, sort_order),
+          kit_components:product_kit_components!product_kit_components_kit_product_id_fkey(
+            id, quantity, decoration_id, sort_order,
+            component:products!product_kit_components_component_product_id_fkey(
+              id, name, supplier_item_number, product_kind, carton_pack,
+              product_decorations(
+                id, sort_order, notes, ref_image_url,
+                method_detail:method_details(
+                  id, detail,
+                  method:decoration_methods(id, name, code)
+                ),
+                product_decoration_bands(id, qty, unit_cost, setup_cost, inland_freight_usd)
+              )
+            )
           )
         `)
         .order("display_order", { ascending: true, nullsFirst: false })
@@ -212,6 +227,7 @@ export function SupplierProductDataPage() {
                 allCategories={allCategories}
                 suppliers={suppliers}
                 origins={origins}
+                allProducts={products ?? []}
                 autoFocusVariantForId={autoFocusVariantForId}
                 onChanged={reload}
                 onDuplicated={(newId) => setAutoFocusVariantForId(newId)}

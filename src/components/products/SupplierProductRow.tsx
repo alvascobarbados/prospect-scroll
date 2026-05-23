@@ -21,6 +21,8 @@ import { ProductCardMenu } from "./ProductCardMenu";
 import { duplicateProductAsVariant } from "./helpers/duplicateProductAsVariant";
 import { SHEET_GRID_TEMPLATE, SHEET_COL_GAP, SHEET_ROW_PADDING } from "./helpers/sheetGrid";
 import type { CategoryRowLite, SupplierLite, OriginLite } from "./SupplierProductDataList";
+import { KitComponentsBlock } from "./KitComponentsBlock";
+import { KitPricingBlock } from "./KitPricingBlock";
 
 
 const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
@@ -49,6 +51,8 @@ interface SupplierProductRowProps {
   suppliers?: SupplierLite[];
   /** All origins — used by the origin inline picker. */
   origins?: OriginLite[];
+  /** All loaded products on the sheet (used to filter kit component eligibility). */
+  allProducts?: Product[];
   /** Inside a variant group, show the variant label more prominently. */
   showVariantInline?: boolean;
   /** When this matches product.id, the variant-label inline editor opens automatically. */
@@ -65,14 +69,17 @@ async function updateProduct(id: string, patch: Record<string, unknown>) {
   if (error) throw new Error(error.message);
 }
 
-export function SupplierProductRow({ product, categoryName, allCategories = [], suppliers = [], origins = [], showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
+export function SupplierProductRow({ product, categoryName, allCategories = [], suppliers = [], origins = [], allProducts = [], showVariantInline = false, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductRowProps) {
   const [hovered, setHovered] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmConvertSingle, setConfirmConvertSingle] = useState(false);
   const allDecos = [...product.product_decorations].sort((a, b) => a.sort_order - b.sort_order);
   const nextDecoSortOrder = (allDecos.at(-1)?.sort_order ?? 0) + 1;
 
+  const isKit = (product.product_kind ?? "single") === "kit";
+  const kitComponents = product.kit_components ?? [];
 
   const system = product.supplier?.unit_system ?? "metric";
   const wUnit = weightUnitFor(system);
@@ -99,6 +106,46 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
     } finally {
       setDeleting(false);
     }
+  };
+
+  const handleConvertToKit = async () => {
+    try {
+      await updateProduct(product.id, { product_kind: "kit" });
+      toast.success("Converted to kit");
+      onChanged?.();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to convert";
+      if (/referenced as a kit component|used in a kit/i.test(msg)) {
+        toast.error("Can't convert: this product is used in a kit");
+      } else {
+        toast.error(msg);
+      }
+    }
+  };
+
+  const performConvertToSingle = async () => {
+    try {
+      if (kitComponents.length > 0) {
+        const ids = kitComponents.map((c) => c.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: delErr } = await (supabase.from("product_kit_components").delete().in("id", ids) as any);
+        if (delErr) throw new Error(delErr.message);
+      }
+      await updateProduct(product.id, { product_kind: "single" });
+      toast.success("Converted to single");
+      setConfirmConvertSingle(false);
+      onChanged?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to convert");
+    }
+  };
+
+  const handleConvertToSingle = async () => {
+    if (kitComponents.length === 0) {
+      await performConvertToSingle();
+      return;
+    }
+    setConfirmConvertSingle(true);
   };
 
   const cellStyle = (isLast: boolean): React.CSSProperties => ({
@@ -146,6 +193,7 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       >
         <div style={{ opacity: hovered ? 1 : 0.45, transition: "opacity 120ms" }}>
           <ProductCardMenu
+            productKind={isKit ? "kit" : "single"}
             onDuplicateAsVariant={async () => {
               try {
                 const newId = await duplicateProductAsVariant(product.id);
@@ -156,6 +204,8 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
                 toast.error(err instanceof Error ? err.message : "Failed to duplicate");
               }
             }}
+            onConvertToKit={handleConvertToKit}
+            onConvertToSingle={handleConvertToSingle}
           />
         </div>
         <button
@@ -224,57 +274,80 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
         <Divider />
       </div>
 
-      {/* ── BLOCK 4: Packing & Production ─────────────────────────── */}
+      {/* ── BLOCK 4: Packing OR Components (kit) ──────────────────── */}
       <div style={{ ...cellStyle(false), paddingTop: 14 }}>
-        {specsIncomplete && (
-          <div
-            style={{
-              display: "inline-flex",
-              alignSelf: "flex-start",
-              alignItems: "center",
-              gap: 6,
-              background: "#FEF3E2",
-              color: "#C2410C",
-              fontSize: 11,
-              fontWeight: 500,
-              padding: "3px 8px",
-              borderRadius: 4,
-              marginBottom: 8,
-            }}
-            title="Engine-critical specs missing — this product will not be costed until carton pack, dimensions, and weight are filled."
-          >
-            <AlertTriangle size={12} /> specs incomplete
-          </div>
+        {isKit ? (
+          <KitComponentsBlock
+            kitProductId={product.id}
+            components={kitComponents}
+            allProducts={allProducts}
+            onChanged={onChanged}
+          />
+        ) : (
+          <>
+            {specsIncomplete && (
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignSelf: "flex-start",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "#FEF3E2",
+                  color: "#C2410C",
+                  fontSize: 11,
+                  fontWeight: 500,
+                  padding: "3px 8px",
+                  borderRadius: 4,
+                  marginBottom: 8,
+                }}
+                title="Engine-critical specs missing — this product will not be costed until carton pack, dimensions, and weight are filled."
+              >
+                <AlertTriangle size={12} /> specs incomplete
+              </div>
+            )}
+            <SpecsCell
+              product={product}
+              weightUnit={wUnit}
+              volumeUnit={lUnit}
+              onChanged={onChanged}
+            />
+          </>
         )}
-        <SpecsCell
-          product={product}
-          weightUnit={wUnit}
-          volumeUnit={lUnit}
-          onChanged={onChanged}
-        />
         <Divider />
       </div>
 
-      {/* ── BLOCK 5: Pricing — all decorations stack vertically ──── */}
+      {/* ── BLOCK 5: Pricing OR Kit Pricing ───────────────────────── */}
       <div style={{ ...cellStyle(true), paddingTop: 14 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {allDecos.map((d, i) => (
+        {isKit ? (
+          <KitPricingBlock components={kitComponents} />
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {allDecos.map((d, i) => (
+              <DecorationBlock
+                key={d.id}
+                decoration={d}
+                productId={product.id}
+                nextSortOrder={nextDecoSortOrder + i}
+                onChanged={onChanged}
+              />
+            ))}
             <DecorationBlock
-              key={d.id}
-              decoration={d}
+              decoration={null}
               productId={product.id}
-              nextSortOrder={nextDecoSortOrder + i}
+              nextSortOrder={nextDecoSortOrder + allDecos.length}
               onChanged={onChanged}
             />
-          ))}
-          <DecorationBlock
-            decoration={null}
-            productId={product.id}
-            nextSortOrder={nextDecoSortOrder + allDecos.length}
-            onChanged={onChanged}
-          />
-        </div>
+          </div>
+        )}
       </div>
+      <ConfirmDialog
+        open={confirmConvertSingle}
+        title="Convert kit to single product?"
+        description={`This kit has ${kitComponents.length} component${kitComponents.length === 1 ? "" : "s"}. Converting will remove the component links (the component products themselves are kept).`}
+        confirmLabel="Convert"
+        onConfirm={performConvertToSingle}
+        onCancel={() => setConfirmConvertSingle(false)}
+      />
     </div>
   );
 }
@@ -340,7 +413,7 @@ function IdentityCell({
   return (
     <div style={{ minWidth: 0 }}>
       {/* Name */}
-      <div style={{ minWidth: 0 }}>
+      <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <InlineText
           value={product.name}
           onSave={async (next) => {
@@ -351,6 +424,23 @@ function IdentityCell({
           style={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2 }}
           inputStyle={{ fontSize: 17, fontWeight: 600, color: "#0E2849", lineHeight: 1.2, minWidth: 120 }}
         />
+        {(product.product_kind ?? "single") === "kit" && (
+          <span
+            style={{
+              background: "hsl(var(--brand-orange))",
+              color: "#FFFFFF",
+              fontSize: 10,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              padding: "2px 8px",
+              borderRadius: 999,
+              fontWeight: 600,
+            }}
+            title="This product is a kit — its cost is the sum of its components."
+          >
+            Kit
+          </span>
+        )}
       </div>
 
       {/* Variant chip / placeholder */}

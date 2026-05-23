@@ -8,12 +8,13 @@ interface SupplierProductCardProps {
   allCategories?: CategoryRowLite[];
   suppliers?: SupplierLite[];
   origins?: OriginLite[];
+  allProducts?: Product[];
   autoFocusVariantForId?: string | null;
   onChanged?: () => void;
   onDuplicated?: (newId: string) => void;
 }
 
-export function SupplierProductCard({ product, categoryName, allCategories, suppliers, origins, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductCardProps) {
+export function SupplierProductCard({ product, categoryName, allCategories, suppliers, origins, allProducts, autoFocusVariantForId, onChanged, onDuplicated }: SupplierProductCardProps) {
   return (
     <div
       style={{
@@ -30,6 +31,7 @@ export function SupplierProductCard({ product, categoryName, allCategories, supp
         allCategories={allCategories}
         suppliers={suppliers}
         origins={origins}
+        allProducts={allProducts}
         autoFocusVariantForId={autoFocusVariantForId}
         onChanged={onChanged}
         onDuplicated={onDuplicated}

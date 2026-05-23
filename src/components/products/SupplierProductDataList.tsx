@@ -1,4 +1,4 @@
-import type { ListItem } from "./helpers/buildSupplierProductDataList";
+import type { ListItem, Product } from "./helpers/buildSupplierProductDataList";
 import { SupplierProductCard } from "./SupplierProductCard";
 import { SupplierProductGroup } from "./SupplierProductGroup";
 import { SHEET_GRID_TEMPLATE, SHEET_COL_GAP, SHEET_ROW_PADDING } from "./helpers/sheetGrid";
@@ -13,6 +13,7 @@ interface SupplierProductDataListProps {
   allCategories?: CategoryRowLite[];
   suppliers?: SupplierLite[];
   origins?: OriginLite[];
+  allProducts?: Product[];
   autoFocusVariantForId?: string | null;
   onChanged?: () => void;
   onDuplicated?: (newId: string) => void;
@@ -59,6 +60,7 @@ export function SupplierProductDataList({
   allCategories = [],
   suppliers = [],
   origins = [],
+  allProducts = [],
   autoFocusVariantForId,
   onChanged,
   onDuplicated,
@@ -89,6 +91,7 @@ export function SupplierProductDataList({
               allCategories={allCategories}
               suppliers={suppliers}
               origins={origins}
+              allProducts={allProducts}
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
               onDuplicated={onDuplicated}
@@ -102,6 +105,7 @@ export function SupplierProductDataList({
               allCategories={allCategories}
               suppliers={suppliers}
               origins={origins}
+              allProducts={allProducts}
               autoFocusVariantForId={autoFocusVariantForId}
               onChanged={onChanged}
               onDuplicated={onDuplicated}
