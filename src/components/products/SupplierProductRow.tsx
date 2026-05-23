@@ -24,6 +24,7 @@ import type { CategoryRowLite, SupplierLite, OriginLite } from "./SupplierProduc
 import { KitComponentsBlock } from "./KitComponentsBlock";
 import { KitPricingBlock } from "./KitPricingBlock";
 import { KitQuantityTiers } from "./KitQuantityTiers";
+import { liveGateMissing } from "@/lib/productLiveGate";
 
 
 const DEFAULT_ATTRIBUTE_NAMES = ["Material", "Size"];
