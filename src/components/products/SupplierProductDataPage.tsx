@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { buildSupplierProductDataList, type Product } from "./helpers/buildSupplierProductDataList";
 import { SupplierProductDataList } from "./SupplierProductDataList";
 import { DraftProductCard } from "./DraftProductCard";
+import { DraftKitCard } from "./DraftKitCard";
 import {
   SupplierProductFilterBar,
   EMPTY_PRODUCT_FILTER,
