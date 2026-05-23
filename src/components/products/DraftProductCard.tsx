@@ -46,6 +46,8 @@ interface Category {
 
 interface DraftProductCardProps {
   draftId: string;
+  /** When set, the new draft is locked to this supplier (page is supplier-scoped). */
+  presetSupplierId?: string;
   onCommitted: () => void;
   onDiscard: () => void;
 }
