@@ -210,10 +210,12 @@ export function computeKitCalc(
     .filter((r) => r.destination === "BB")
     .map((r) => r.id);
 
-  const rows: KitRow[] = kitQuantities.map((Q) => {
+  const rows: KitRow[] = [];
+  for (const Q of kitQuantities) {
     const transports: Record<string, KitTransportCell> = {};
     const bbOutputs: Record<string, KitBBCell> = {};
     const incompleteComponentsRow: string[] = [];
+
 
     // Per-route accumulators
     const fobAcc: Record<string, number> = {};
