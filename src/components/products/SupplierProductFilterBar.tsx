@@ -95,47 +95,8 @@ export function SupplierProductFilterBar({ value, onChange, products }: FilterBa
       }}
     >
 
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <label style={labelStyle}>Category</label>
-        <select
-          value={value.categoryId}
-          onChange={(e) => onChange({ ...value, categoryId: e.target.value, subcategoryId: "" })}
-          style={selectStyle}
-        >
-          <option value="">All categories</option>
-          {parentCategories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-      </div>
 
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <label style={labelStyle}>Subcategory</label>
-        <select
-          value={value.subcategoryId}
-          onChange={(e) => onChange({ ...value, subcategoryId: e.target.value })}
-          style={selectStyle}
-        >
-          <option value="">All subcategories</option>
-          {subcategories.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-      </div>
 
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <label style={labelStyle}>Origin</label>
-        <select
-          value={value.originId}
-          onChange={(e) => onChange({ ...value, originId: e.target.value })}
-          style={selectStyle}
-        >
-          <option value="">All origins</option>
-          {visibleOrigins.map((o) => (
-            <option key={o.id} value={o.id}>{o.name}</option>
-          ))}
-        </select>
-      </div>
 
       {hasAny && (
         <button
