@@ -222,7 +222,7 @@ export function SupplierProductDataPage() {
               cursor: "pointer",
             }}
           >
-            <Plus size={15} /> Kit
+            <Plus size={15} /> Add Kit
           </button>
         </div>
 
