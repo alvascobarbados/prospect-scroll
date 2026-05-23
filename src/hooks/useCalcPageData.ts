@@ -259,5 +259,5 @@ export function useCalcPageData() {
     };
   }, [reloadKey]);
 
-  return { products, routes, settings, error, reload };
+  return { products, routes, settings, kitComponents, error, reload };
 }
