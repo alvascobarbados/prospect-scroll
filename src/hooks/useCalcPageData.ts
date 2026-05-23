@@ -170,6 +170,8 @@ export function useCalcPageData() {
       }
 
       setProducts((prodsRes.data ?? []) as unknown as CalcPageProduct[]);
+      setKitComponents(((kitsRes.data ?? []) as unknown as KitComponentRow[]));
+
 
       const methods = methodsRes.data ?? [];
       const originRows = originsRes.data ?? [];
