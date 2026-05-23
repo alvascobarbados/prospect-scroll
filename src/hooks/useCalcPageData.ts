@@ -131,7 +131,7 @@ export function useCalcPageData() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [prodsRes, methodsRes, routesRes, tiersRes, originsRes, destsRes, settingsRes] = await Promise.all([
+      const [prodsRes, methodsRes, routesRes, tiersRes, originsRes, destsRes, settingsRes, kitsRes] = await Promise.all([
         supabase.from("products").select(`
           id, name, supplier_item_number, variant_name, primary_item_number, image_url, updated_at, moq, product_kind,
           carton_pack, carton_length, carton_width, carton_height, carton_weight,
@@ -154,7 +154,9 @@ export function useCalcPageData() {
         supabase.from("origins").select("id, code, name"),
         supabase.from("destinations").select("id, code"),
         supabase.from("app_settings").select("key, value"),
+        supabase.from("product_kit_components").select("id, kit_product_id, component_product_id, quantity, decoration_id, sort_order").order("sort_order"),
       ]);
+
 
       if (cancelled) return;
 
