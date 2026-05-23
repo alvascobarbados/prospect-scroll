@@ -14,10 +14,11 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDown } from "lucide-react";
-import type {
-  KitComponentRow,
-  Product,
-  ProductDecoration,
+import {
+  componentDisplayName,
+  type KitComponentRow,
+  type Product,
+  type ProductDecoration,
 } from "./helpers/buildSupplierProductDataList";
 
 interface KitComponentsBlockProps {
