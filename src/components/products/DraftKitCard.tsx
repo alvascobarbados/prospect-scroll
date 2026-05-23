@@ -145,13 +145,13 @@ function decorationLabel(d: ProductDecoration | null | undefined): string {
   return m.toLowerCase() === det.toLowerCase() ? det : `${m} — ${det}`;
 }
 
-export function DraftKitCard({ draftId, allProducts, onCommitted, onDiscard }: DraftKitCardProps) {
+export function DraftKitCard({ draftId, allProducts, presetSupplierId, onCommitted, onDiscard }: DraftKitCardProps) {
   const { suppliers, origins } = useMasterData();
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
 
   // identity (mirrors DraftProductCard)
-  const [supplierId, setSupplierId] = useState("");
+  const [supplierId, setSupplierId] = useState(presetSupplierId ?? "");
   const [categoryId, setCategoryId] = useState("");
   const [subcategoryId, setSubcategoryId] = useState("");
   const [name, setName] = useState("");
