@@ -74,6 +74,8 @@ export interface Product {
   id: string;
   name: string;
   supplier_item_number: string | null;
+  primary_item_number?: string | null;
+  status?: "draft" | "live";
   parent_product_id: string | null;
   parent_name: string | null;
   variant_name: string | null;
