@@ -362,7 +362,6 @@ export function SupplierProductRow({ product, categoryName, allCategories = [], 
       <div style={{ ...cellStyle(true), paddingTop: 14 }}>
         {isKit ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <KitQuantityTiers kitProductId={product.id} />
             <KitPricingBlock kitProductId={product.id} components={kitComponents} />
           </div>
 
