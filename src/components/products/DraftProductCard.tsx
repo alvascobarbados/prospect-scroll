@@ -122,13 +122,13 @@ function byCategoryCode(a: { code: string | null; name: string }, b: { code: str
   return a.name.localeCompare(b.name);
 }
 
-export function DraftProductCard({ draftId, onCommitted, onDiscard }: DraftProductCardProps) {
+export function DraftProductCard({ draftId, presetSupplierId, onCommitted, onDiscard }: DraftProductCardProps) {
   const { suppliers, origins } = useMasterData();
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
 
   // local-only draft state
-  const [supplierId, setSupplierId] = useState("");
+  const [supplierId, setSupplierId] = useState(presetSupplierId ?? "");
   const [categoryId, setCategoryId] = useState("");
   const [subcategoryId, setSubcategoryId] = useState("");
   const [name, setName] = useState("");
